@@ -219,3 +219,61 @@ async def test_timestamped_comments_on_demos():
             headers={"Authorization": f"Bearer {stranger_token}"},
         )
         assert res_stranger_list.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_comments_expose_author_name_without_email():
+    from datetime import datetime, timezone
+    from bson import ObjectId
+    from app.main import app
+    users_repo = UsersRepository()
+    owner = await users_repo.create_user("owner@test.com", "hash", "Owner Name")
+    owner_token = mint_access_token(str(owner["_id"]))
+    headers = {"Authorization": f"Bearer {owner_token}"}
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        res_create = await client.post(
+            "/api/compositions",
+            json={"title": "Author Name Comp", "visibility": "private"},
+            headers=headers,
+        )
+        cid = res_create.json()["id"]
+        await CompositionsRepository().add_demo(
+            cid,
+            demo_id="d1",
+            cloudinary_public_id="erato/test/demo1",
+            title="Take 1",
+            duration_s=10.0,
+            uploaded_by=owner["_id"],
+        )
+
+        res_comment = await client.post(
+            f"/api/compositions/{cid}/demos/d1/comments",
+            json={"timestamp_s": 1.0, "text": "Hola"},
+            headers=headers,
+        )
+        assert res_comment.status_code == 201
+        assert res_comment.json()["author_name"] == "Owner Name"
+
+        # A comment whose author no longer exists
+        await get_db().composition_comments.insert_one(
+            {
+                "composition_id": ObjectId(cid),
+                "demo_id": "d1",
+                "author_id": ObjectId(),
+                "timestamp_s": 2.0,
+                "text": "Huerfano",
+                "created_at": datetime.now(timezone.utc),
+            }
+        )
+
+        res_list = await client.get(
+            f"/api/compositions/{cid}/demos/d1/comments", headers=headers
+        )
+        assert res_list.status_code == 200
+        items = res_list.json()
+        by_text = {c["text"]: c for c in items}
+        assert by_text["Hola"]["author_name"] == "Owner Name"
+        assert by_text["Huerfano"]["author_name"] is None
+        assert "owner@test.com" not in res_list.text
+        assert "owner@test.com" not in res_comment.text

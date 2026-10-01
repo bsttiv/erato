@@ -35,6 +35,7 @@ interface CommentResponse {
   composition_id: string
   demo_id: string
   author_id: string
+  author_name?: string | null
   timestamp_s: number
   text: string
   created_at: string
@@ -54,7 +55,7 @@ function toDemoComment(c: CommentResponse): DemoComment {
   return {
     id: c.id,
     t: c.timestamp_s,
-    author: c.author_id,
+    author: c.author_name?.trim() || 'Usuario',
     text: c.text,
     created_at: c.created_at,
   }
