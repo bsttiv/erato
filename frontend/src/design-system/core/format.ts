@@ -15,3 +15,26 @@ export function fmt(t: number): string {
   const s = Math.max(0, Math.floor(t))
   return pad2(Math.floor(s / 60)) + ":" + pad2(s % 60)
 }
+
+const esDateFormatter = new Intl.DateTimeFormat('es', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+})
+
+/**
+ * Formatea una fecha ISO o timestamp a español (ej. "1 oct 2026").
+ * Retorna '' para null/undefined/cadena vacía.
+ * Si la fecha no es válida, retorna el valor crudo en string, nunca "Invalid Date".
+ */
+export function formatDate(value: string | number | Date | null | undefined): string {
+  if (value === null || value === undefined || value === '') {
+    return ''
+  }
+  const date = value instanceof Date ? value : new Date(value)
+  if (isNaN(date.getTime())) {
+    return String(value)
+  }
+  return esDateFormatter.format(date)
+}
+

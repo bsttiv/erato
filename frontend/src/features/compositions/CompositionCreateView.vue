@@ -4,9 +4,6 @@
       <router-link to="/" class="er-topbar-brand">
         Erato
       </router-link>
-      <router-link to="/" class="er-auth-link">
-        Cancelar
-      </router-link>
     </header>
 
     <main class="er-form-card">

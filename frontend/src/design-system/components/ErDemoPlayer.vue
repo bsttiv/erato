@@ -20,7 +20,7 @@
         <span class="er-take-title">{{ x.title }}</span>
         <span class="er-take-dur">{{ fmt(x.duration || 0) }}</span>
         <span class="er-take-meta">
-          {{ (x.date ? x.date + ' · ' : '') + (x.comments ? x.comments.length : 0) }} coment.
+          {{ (formatDate(x.date) ? formatDate(x.date) + ' · ' : '') + (x.comments ? x.comments.length : 0) }} coment.
         </span>
       </button>
     </div>
@@ -50,7 +50,7 @@
             {{ currentTake.title }}
           </div>
           <div class="er-now-sub">
-            {{ currentTake.date || '' }}{{ currentTake.note ? ' · ' + currentTake.note : '' }}
+            {{ [formatDate(currentTake.date), currentTake.note].filter(Boolean).join(' · ') }}
           </div>
         </div>
       </div>
@@ -131,7 +131,7 @@ import { ref, computed, watch } from 'vue'
 import ErIcon from './ErIcon.vue'
 import ErButton from './ErButton.vue'
 import { peaks } from '../core/waveform'
-import { fmt, pad2 } from '../core/format'
+import { fmt, pad2, formatDate } from '../core/format'
 import { useTakePlayback } from '../composables/useTakePlayback'
 
 export interface DemoComment {
