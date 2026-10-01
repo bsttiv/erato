@@ -86,7 +86,7 @@ describe('CompositionDetailView', () => {
     vi.spyOn(compApi, 'listCompositions').mockResolvedValue(sampleSidebarList)
   })
 
-  it('renders persistent sidebar with link back to dashboard in footer', async () => {
+  it('renders persistent sidebar with ErSideNav and dashboard link in header', async () => {
     const router = await setupRouter('/compositions/comp-100')
 
     const wrapper = mount(CompositionDetailView, {
@@ -100,9 +100,9 @@ describe('CompositionDetailView', () => {
     const sideNav = wrapper.findComponent({ name: 'ErSideNav' })
     expect(sideNav.exists()).toBe(true)
 
-    const backLink = sidebar.find('.er-sidebar-foot a[href="/"]')
-    expect(backLink.exists()).toBe(true)
-    expect(backLink.text()).toContain('todas las composiciones')
+    const backBtn = wrapper.find('.er-comp-back-btn')
+    expect(backBtn.exists()).toBe(true)
+    expect(backBtn.text()).toContain('todas las composiciones')
   })
 
   it('unauthenticated visitor on public route drops sidebar (er-layout--noside)', async () => {
@@ -135,7 +135,9 @@ describe('CompositionDetailView', () => {
     // Breadcrumb
     const crumb = wrapper.find('.er-crumb')
     expect(crumb.exists()).toBe(true)
-    expect(crumb.text()).toContain('composiciones')
+    const crumbLink = crumb.find('a[href="/"]')
+    expect(crumbLink.exists()).toBe(true)
+    expect(crumbLink.text().trim()).toBe('composiciones')
     expect(crumb.text().toLowerCase()).toContain('noche de otoño')
 
     // Title
@@ -159,6 +161,35 @@ describe('CompositionDetailView', () => {
     expect(wrapper.find('.er-save-btn').exists()).toBe(true)
   })
 
+  it('renders demo dates formatted via formatDate without raw ISO T or Z', async () => {
+    const compWithDemo: CompositionResponse = {
+      ...sampleComposition,
+      demos: [
+        {
+          demo_id: 'demo-1',
+          cloudinary_public_id: 'c-1',
+          uploaded_by: 'user-1',
+          title: 'Toma acústica',
+          uploaded_at: '2026-10-01T12:00:00Z',
+          duration_s: 120,
+        },
+      ],
+    }
+    const router = await setupRouter('/compositions/comp-100')
+    const wrapper = mount(CompositionDetailView, {
+      props: { composition: compWithDemo },
+      global: { plugins: [router] },
+    })
+    await flushPromises()
+
+    const demoSection = wrapper.find('#sec-demos')
+    expect(demoSection.exists()).toBe(true)
+    const text = demoSection.text()
+    expect(text).not.toContain('T12:00:00')
+    expect(text).not.toContain('Z')
+    expect(text).toMatch(/1\s+oct\.?\s+2026/i)
+  })
+
   it('hides edit and save controls for viewer or anonymous visitors', async () => {
     const viewerComp: CompositionResponse = {
       ...sampleComposition,
@@ -174,6 +205,54 @@ describe('CompositionDetailView', () => {
 
     expect(wrapper.find('.er-save-btn').exists()).toBe(false)
     expect(wrapper.find('[data-test="share-btn"]').exists()).toBe(false)
+
+    // Non-editor sees ErTag with status and no segmented control
+    expect(wrapper.find('[data-test="status-segmented"]').exists()).toBe(false)
+    const statusTag = wrapper.findAll('.er-tag').find((t) => t.text().includes('En progreso'))
+    expect(statusTag).toBeDefined()
+  })
+
+  it('editor clicking "En progreso" calls updateComposition, disables in flight, and reverts with error on rejection', async () => {
+    const compWithIdea: CompositionResponse = {
+      ...sampleComposition,
+      status: 'idea',
+      user_role: 'editor',
+    }
+    const updateSpy = vi.spyOn(compApi, 'updateComposition')
+    let rejectUpdate!: (err: any) => void
+    updateSpy.mockReturnValue(
+      new Promise((_, reject) => {
+        rejectUpdate = reject
+      })
+    )
+
+    const router = await setupRouter('/compositions/comp-100')
+    const wrapper = mount(CompositionDetailView, {
+      props: { composition: compWithIdea },
+      global: { plugins: [router] },
+    })
+    await flushPromises()
+
+    // Segmented control is present for editor
+    const statusSegmented = wrapper.find('[data-test="status-segmented"]')
+    expect(statusSegmented.exists()).toBe(true)
+
+    // Find "En progreso" button and click
+    const inProgressBtn = statusSegmented.findAll('button').find((b) => b.text().includes('En progreso'))
+    expect(inProgressBtn).toBeDefined()
+    await inProgressBtn!.trigger('click')
+
+    // Called updateComposition with 'comp-100', { status: 'in_progress' }
+    expect(updateSpy).toHaveBeenCalledWith('comp-100', { status: 'in_progress' })
+
+    // Disabled while in flight
+    expect(inProgressBtn?.attributes('disabled')).toBeDefined()
+
+    // Rejection reverts value and shows error
+    rejectUpdate(new Error('Network error'))
+    await flushPromises()
+
+    expect(wrapper.find('.er-savestate').text()).toBe('No se pudo guardar el estado. Intenta de nuevo.')
   })
 
   it('renders count-bearing jump nav with all enabled sections stacked in page', async () => {
@@ -296,6 +375,94 @@ describe('CompositionDetailView', () => {
       await flushPromises()
       expect(bySlug).toHaveBeenCalledWith('slug-100')
       expect(byId).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('mobile drawer sidebar', () => {
+    it('toggle has aria-expanded="false" and aria-controls="er-sidebar" matching aside id', async () => {
+      const router = await setupRouter('/compositions/comp-100')
+      const wrapper = mount(CompositionDetailView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      const toggle = wrapper.find('.er-drawer-toggle')
+      expect(toggle.exists()).toBe(true)
+      expect(toggle.attributes('aria-expanded')).toBe('false')
+      expect(toggle.attributes('aria-controls')).toBe('er-sidebar')
+      expect(toggle.attributes('aria-label')).toBe('Abrir menú')
+
+      const aside = wrapper.find('aside#er-sidebar')
+      expect(aside.exists()).toBe(true)
+      expect(aside.classes()).not.toContain('er-sidebar--open')
+    })
+
+    it('clicking toggle sets aria-expanded="true" and adds er-sidebar--open class and renders backdrop', async () => {
+      const router = await setupRouter('/compositions/comp-100')
+      const wrapper = mount(CompositionDetailView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      const toggle = wrapper.find('.er-drawer-toggle')
+      await toggle.trigger('click')
+
+      expect(toggle.attributes('aria-expanded')).toBe('true')
+      const aside = wrapper.find('aside#er-sidebar')
+      expect(aside.classes()).toContain('er-sidebar--open')
+
+      const backdrop = wrapper.find('.er-drawer-backdrop')
+      expect(backdrop.exists()).toBe(true)
+    })
+
+    it('clicking backdrop closes drawer and removes backdrop', async () => {
+      const router = await setupRouter('/compositions/comp-100')
+      const wrapper = mount(CompositionDetailView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      const toggle = wrapper.find('.er-drawer-toggle')
+      await toggle.trigger('click')
+      expect(wrapper.find('aside#er-sidebar').classes()).toContain('er-sidebar--open')
+
+      const backdrop = wrapper.find('.er-drawer-backdrop')
+      await backdrop.trigger('click')
+
+      expect(toggle.attributes('aria-expanded')).toBe('false')
+      expect(wrapper.find('aside#er-sidebar').classes()).not.toContain('er-sidebar--open')
+      expect(wrapper.find('.er-drawer-backdrop').exists()).toBe(false)
+    })
+
+    it('pressing Escape closes drawer and returns focus to toggle', async () => {
+      const router = await setupRouter('/compositions/comp-100')
+      const wrapper = mount(CompositionDetailView, {
+        attachTo: document.body,
+        global: { plugins: [router] },
+      })
+      await flushPromises()
+
+      const toggle = wrapper.find<HTMLButtonElement>('.er-drawer-toggle')
+      await toggle.trigger('click')
+      expect(wrapper.find('aside#er-sidebar').classes()).toContain('er-sidebar--open')
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      await wrapper.vm.$nextTick()
+
+      expect(toggle.attributes('aria-expanded')).toBe('false')
+      expect(wrapper.find('aside#er-sidebar').classes()).not.toContain('er-sidebar--open')
+      expect(document.activeElement).toBe(toggle.element)
+      wrapper.unmount()
+    })
+
+    it('route change closes drawer', async () => {
+      const router = await setupRouter('/compositions/comp-100')
+      const wrapper = mount(CompositionDetailView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      const toggle = wrapper.find('.er-drawer-toggle')
+      await toggle.trigger('click')
+      expect(wrapper.find('aside#er-sidebar').classes()).toContain('er-sidebar--open')
+
+      await router.push('/compositions/comp-200')
+      await wrapper.vm.$nextTick()
+
+      expect(toggle.attributes('aria-expanded')).toBe('false')
+      expect(wrapper.find('aside#er-sidebar').classes()).not.toContain('er-sidebar--open')
     })
   })
 })

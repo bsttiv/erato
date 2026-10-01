@@ -20,6 +20,7 @@ describe('ErSideNav component', () => {
     })
     expect(wrapper.element.tagName).toBe('NAV')
     expect(wrapper.classes()).toContain('er-nav')
+    expect(wrapper.find('.er-brand').exists()).toBe(true)
     expect(wrapper.find('.er-nav-name').text()).toBe('Erato')
     expect(wrapper.find('.er-nav-sub').text()).toBe('cancionero')
     expect(wrapper.find('.er-nav-heading').text()).toBe('// composiciones')

@@ -6,18 +6,25 @@
     No se encontró la composición.
   </div>
   <div v-else :class="['er-layout', { 'er-layout--noside': !showSidebar }]">
+    <!-- Mobile drawer backdrop -->
+    <div
+      v-if="showSidebar && drawer.open.value"
+      class="er-drawer-backdrop"
+      @click="drawer.close"
+    />
+
     <!-- Persistent sidebar for authenticated users -->
-    <aside v-if="showSidebar" class="er-sidebar">
+    <aside
+      v-if="showSidebar"
+      id="er-sidebar"
+      ref="sidebarRef"
+      :class="['er-sidebar', { 'er-sidebar--open': drawer.open.value }]"
+    >
       <ErSideNav
         :items="sidebarNavItems"
         :model-value="comp.id"
         @select="onSelectComposition"
       />
-      <div class="er-sidebar-foot">
-        <router-link to="/">
-          ← todas las composiciones
-        </router-link>
-      </div>
     </aside>
 
     <!-- Main composition content -->
@@ -25,79 +32,113 @@
       <div class="er-comp-detail">
         <!-- Top header -->
         <header class="er-comp-header">
-          <div>
-            <nav class="er-crumb" aria-label="Miga de pan">
-              <router-link to="/">
-                composiciones
-              </router-link>
-              <span> / </span>
-              <span>{{ comp.title }}</span>
-            </nav>
+          <!-- Navigation & Actions bar -->
+          <div class="er-comp-header-nav">
+            <div class="er-comp-header-nav-left">
+              <button
+                v-if="showSidebar"
+                ref="toggleRef"
+                type="button"
+                class="er-drawer-toggle"
+                aria-label="Abrir menú"
+                aria-controls="er-sidebar"
+                :aria-expanded="drawer.open.value ? 'true' : 'false'"
+                @click="drawer.toggle"
+              >
+                <ErIcon name="menu" />
+              </button>
 
-            <div class="er-field-row">
-              <h1 class="er-comp-title">
-                {{ comp.title }}
-              </h1>
-              <span class="er-savestate">{{ saveStateText }}</span>
+              <router-link to="/" class="er-comp-back-btn" aria-label="Todas las composiciones">
+                ← todas las composiciones
+              </router-link>
+
+              <nav class="er-crumb" aria-label="Miga de pan">
+                <router-link to="/">
+                  composiciones
+                </router-link>
+                <span> / </span>
+                <span>{{ comp.title }}</span>
+              </nav>
             </div>
 
-            <div class="er-comp-meta">
-              <ErTag v-if="comp.key" tone="neutral">
-                {{ comp.key }}
-              </ErTag>
-              <ErTag v-if="comp.bpm" tone="neutral">
-                {{ comp.bpm }} bpm
-              </ErTag>
-              <ErTag v-if="comp.time_signature" tone="neutral">
-                {{ comp.time_signature }}
-              </ErTag>
-              <ErTag
-                v-for="tag in comp.style_tags || []"
-                :key="tag"
-                tone="neutral"
-              >
-                {{ tag }}
-              </ErTag>
-              <ErTag :tone="isPublic ? 'moss' : 'neutral'">
-                {{ isPublic ? 'Pública' : 'Privada' }}
-              </ErTag>
-              <ErTag class="er-role-tag" :tone="roleTone">
-                {{ roleLabel }}
-              </ErTag>
+            <div class="er-comp-header-nav-right">
+              <!-- Member avatar stack -->
+              <div v-if="comp.members && comp.members.length" class="er-avatars">
+                <span
+                  v-for="m in comp.members"
+                  :key="m.user_id"
+                  class="er-avatar"
+                  :title="m.display_name || undefined"
+                >
+                  {{ m.initials }}
+                </span>
+              </div>
+
+              <!-- Action buttons for editor / owner -->
+              <div v-if="canEdit" class="er-comp-tags">
+                <ErButton
+                  data-test="share-btn"
+                  variant="ghost"
+                  @click="showShareModal = true"
+                >
+                  Compartir
+                </ErButton>
+                <ErButton
+                  class="er-save-btn"
+                  variant="primary"
+                  :disabled="isSaving"
+                  @click="saveAll"
+                >
+                  Guardar cambios
+                </ErButton>
+              </div>
             </div>
           </div>
 
-          <div class="er-field-row">
-            <!-- Member avatar stack -->
-            <div v-if="comp.members && comp.members.length" class="er-avatars">
-              <span
-                v-for="m in comp.members"
-                :key="m.user_id"
-                class="er-avatar"
-                :title="m.display_name || undefined"
-              >
-                {{ m.initials }}
-              </span>
-            </div>
+          <!-- Title bar: space-between layout for title and savestate -->
+          <div class="er-comp-title-row">
+            <h1 class="er-comp-title">
+              {{ comp.title }}
+            </h1>
+            <span class="er-savestate">{{ saveStateText }}</span>
+          </div>
 
-            <!-- Action buttons for editor / owner -->
-            <div v-if="canEdit" class="er-comp-tags">
-              <ErButton
-                data-test="share-btn"
-                variant="ghost"
-                @click="showShareModal = true"
-              >
-                Compartir
-              </ErButton>
-              <ErButton
-                class="er-save-btn"
-                variant="primary"
-                :disabled="isSaving"
-                @click="saveAll"
-              >
-                Guardar cambios
-              </ErButton>
-            </div>
+          <!-- Metadata chips bar -->
+          <div class="er-comp-meta">
+            <ErSegmented
+              v-if="canEdit"
+              data-test="status-segmented"
+              :model-value="comp.status || 'idea'"
+              :options="STATUS_OPTIONS"
+              label="Estado"
+              :disabled="isUpdatingStatus"
+              @update:model-value="onStatusChange"
+            />
+            <ErTag v-else :tone="statusTone" dot>
+              {{ statusLabel(comp.status) }}
+            </ErTag>
+            <ErTag v-if="comp.key" tone="neutral">
+              {{ comp.key }}
+            </ErTag>
+            <ErTag v-if="comp.bpm" tone="neutral">
+              {{ comp.bpm }} bpm
+            </ErTag>
+            <ErTag v-if="comp.time_signature" tone="neutral">
+              {{ comp.time_signature }}
+            </ErTag>
+            <ErTag
+              v-for="tag in comp.style_tags || []"
+              :key="tag"
+              tone="neutral"
+            >
+              {{ tag }}
+            </ErTag>
+            <ErTag :tone="isPublic ? 'moss' : 'neutral'">
+              {{ isPublic ? 'Pública' : 'Privada' }}
+            </ErTag>
+            <ErTag class="er-role-tag" :tone="roleTone">
+              {{ roleLabel }}
+            </ErTag>
           </div>
         </header>
 
@@ -185,32 +226,40 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ErButton,
   ErTag,
   ErTodoList,
   ErSideNav,
+  ErSegmented,
+  ErIcon,
+  formatDate,
   type SideNavItem,
   type TodoItem,
+  type Tone,
 } from '@/design-system'
+import { useDrawer } from '@/shared/useDrawer'
 import ChordGrid from './ChordGrid.vue'
 import TablatureSection from './TablatureSection.vue'
 import LyricsSection from './LyricsSection.vue'
 import DemosSection from '@/features/demos/DemosSection.vue'
 import { resolveCompositionRef } from './resolveCompositionRef'
 import SharingModal from '@/features/sharing/SharingModal.vue'
+import { STATUS_OPTIONS, statusLabel } from './status'
 import type { TabEntry } from '@/design-system/core/tab'
 import {
   getComposition,
   listCompositions,
+  updateComposition,
   updateChordsSection,
   updateTablatureSection,
   updateLyricsSection,
   updateTodosSection,
   type CompositionResponse,
   type CompositionListItem,
+  type CompositionStatus,
   type ChordsSection,
   type SectionsEnabled,
 } from '@/api/compositions'
@@ -222,6 +271,43 @@ const props = defineProps<{
 
 const route = useRoute()
 const router = useRouter()
+
+const drawer = useDrawer()
+const toggleRef = ref<HTMLButtonElement | null>(null)
+const sidebarRef = ref<HTMLElement | null>(null)
+
+const onKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && drawer.open.value) {
+    drawer.close()
+  }
+}
+
+watch(drawer.open, async (isOpen, wasOpen) => {
+  if (isOpen) {
+    await nextTick()
+    const firstLink = sidebarRef.value?.querySelector('a') as HTMLElement | null
+    firstLink?.focus()
+  } else if (wasOpen) {
+    toggleRef.value?.focus()
+  }
+})
+
+watch(
+  () => route?.fullPath,
+  () => {
+    if (drawer.open.value) {
+      drawer.close()
+    }
+  },
+)
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+})
 
 const loading = ref(false)
 const isSaving = ref(false)
@@ -306,7 +392,7 @@ function normalizeCompositionData(c: CompositionResponse) {
     id: d.id || d.demo_id || '',
     title: d.title || 'Demo',
     duration: d.duration || d.duration_s || 0,
-    date: d.date || d.uploaded_at,
+    date: formatDate(d.date || d.uploaded_at),
     note: d.note,
     src: d.src,
     comments: d.comments || [],
@@ -327,6 +413,41 @@ watch(
 const canEdit = computed(() => {
   return comp.value?.user_role === 'owner' || comp.value?.user_role === 'editor'
 })
+
+const statusTone = computed<Tone>(() => {
+  switch (comp.value?.status) {
+    case 'in_progress':
+      return 'amber'
+    case 'ready':
+      return 'moss'
+    case 'idea':
+    default:
+      return 'neutral'
+  }
+})
+
+const isUpdatingStatus = ref(false)
+
+async function onStatusChange(newStatus: string) {
+  if (!comp.value || isUpdatingStatus.value) return
+  const prevStatus = comp.value.status || 'idea'
+  if (newStatus === prevStatus) return
+
+  // Optimistic update
+  comp.value.status = newStatus as CompositionStatus
+  isUpdatingStatus.value = true
+
+  try {
+    await updateComposition(comp.value.id, { status: newStatus as CompositionStatus })
+    saveStateText.value = 'guardado'
+  } catch (err: any) {
+    // Revert optimistic update
+    comp.value.status = prevStatus
+    saveStateText.value = 'No se pudo guardar el estado. Intenta de nuevo.'
+  } finally {
+    isUpdatingStatus.value = false
+  }
+}
 
 const isPublic = computed(() => {
   return comp.value?.visibility === 'public' || comp.value?.is_public === true

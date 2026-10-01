@@ -2,7 +2,7 @@
   <div class="er-createshell">
     <header class="er-createbar">
       <router-link to="/" class="er-topbar-brand">
-        Erato
+        <ErBrand />
       </router-link>
       <router-link to="/" class="er-auth-link">
         Ir al inicio
@@ -40,7 +40,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ErButton } from '@/design-system'
+import { ErButton, ErBrand } from '@/design-system'
 import { redeemInvite } from '@/api/sharing'
 
 const route = useRoute()

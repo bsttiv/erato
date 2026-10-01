@@ -323,3 +323,226 @@ describe('modal opacity', () => {
     expect(body).not.toMatch(/opacity\s*:/)
   })
 })
+
+describe('er-field-grid and er-crumb layout rules', () => {
+  const css = stripCssComments(fs.readFileSync(LAYOUT_CSS_PATH, 'utf8'))
+
+  function ruleBody(selector: string): string | null {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const match = new RegExp(`(?:^|})\\s*${escaped}\\s*\\{([^}]*)\\}`).exec(css)
+    return match ? match[1] : null
+  }
+
+  it('.er-field-grid uses minmax(0, 1fr) to prevent overflow', () => {
+    const body = ruleBody('.er-field-grid')
+    expect(body).not.toBeNull()
+    expect(body).toMatch(/grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/)
+  })
+
+  it('.er-field-grid input and select have width: 100% and min-width: 0', () => {
+    const match = css.match(/\.er-field-grid\s+(?:input|\.er-input)[^{]*\{([^}]*)\}/)
+    expect(match, 'Expected .er-field-grid input/select rule').not.toBeNull()
+    if (match) {
+      expect(match[1]).toMatch(/width:\s*100%/)
+      expect(match[1]).toMatch(/min-width:\s*0/)
+    }
+  })
+
+  it('.er-crumb a has hover/underline rule with no hex or rgb literals', () => {
+    const hoverMatch = css.match(/\.er-crumb\s+a:hover[^{]*\{([^}]*)\}/)
+    expect(hoverMatch, 'Expected .er-crumb a:hover rule').not.toBeNull()
+    if (hoverMatch) {
+      expect(hoverMatch[1]).toMatch(/text-decoration:\s*underline/)
+      expect(hoverMatch[1]).not.toMatch(/#([0-9a-fA-F]{3,8})\b/)
+      expect(hoverMatch[1]).not.toMatch(/\b(rgb|rgba|hsl|hsla)\s*\(/i)
+    }
+  })
+})
+
+describe('er-brand and er-topbar-brand stylesheet contract', () => {
+  const css = stripCssComments(fs.readFileSync(LAYOUT_CSS_PATH, 'utf8'))
+
+  function ruleBody(selector: string): string | null {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const match = new RegExp(`(?:^|})\\s*${escaped}\\s*\\{([^}]*)\\}`).exec(css)
+    return match ? match[1] : null
+  }
+
+  it('.er-brand rule exists and uses only tokens without hex or rgb literals', () => {
+    const body = ruleBody('.er-brand')
+    expect(body, 'Expected .er-brand rule in layout.css').not.toBeNull()
+    if (body) {
+      expect(body).not.toMatch(/#([0-9a-fA-F]{3,8})\b/)
+      expect(body).not.toMatch(/\b(rgb|rgba|hsl|hsla)\s*\(/i)
+    }
+  })
+
+  it('.er-topbar-brand has no text styling (font-family, font-size, letter-spacing, color)', () => {
+    const body = ruleBody('.er-topbar-brand')
+    expect(body).not.toBeNull()
+    if (body) {
+      expect(body).not.toMatch(/(?:^|[;\s])font-family\s*:/)
+      expect(body).not.toMatch(/(?:^|[;\s])font-size\s*:/)
+      expect(body).not.toMatch(/(?:^|[;\s])letter-spacing\s*:/)
+      expect(body).not.toMatch(/(?:^|[;\s])color\s*:/)
+    }
+  })
+})
+
+describe('responsive 768px layout and drawer', () => {
+  const rawCss = fs.readFileSync(LAYOUT_CSS_PATH, 'utf8')
+  const css = stripCssComments(rawCss)
+
+  function mediaBlock(source: string, query: string | RegExp): string | null {
+    const pattern = typeof query === 'string' ? query : query.source
+    const re = new RegExp(`@media[^{]*${pattern}[^{]*\\{`, 'i')
+    const match = re.exec(source)
+    if (!match) return null
+
+    let depth = 1
+    let index = match.index + match[0].length
+    const startIndex = index
+
+    while (index < source.length && depth > 0) {
+      const char = source[index]
+      if (char === '{') {
+        depth++
+      } else if (char === '}') {
+        depth--
+      }
+      index++
+    }
+
+    if (depth === 0) {
+      return source.slice(startIndex, index - 1)
+    }
+    return null
+  }
+
+  it('contains a single @media (max-width: 768px) block', () => {
+    const block = mediaBlock(css, 'max-width:\\s*768px')
+    expect(block, 'Expected @media (max-width: 768px) block').not.toBeNull()
+  })
+
+  it('media block mentions required responsive selectors', () => {
+    const block = mediaBlock(css, 'max-width:\\s*768px')
+    expect(block).not.toBeNull()
+    if (block) {
+      expect(block).toContain('.er-layout')
+      expect(block).toContain('.er-comp-columns')
+      expect(block).toContain('.er-auth')
+      expect(block).toContain('.er-field-grid')
+      expect(block).toContain('.er-sidebar--open')
+    }
+  })
+
+  it('new selectors .er-drawer-toggle and .er-drawer-backdrop exist with token-only values', () => {
+    expect(css).toMatch(/\.er-drawer-toggle\b/)
+    expect(css).toMatch(/\.er-drawer-backdrop\b/)
+
+    const toggleMatches = css.match(/\.er-drawer-toggle[^{]*\{([^}]*)\}/g) || []
+    const backdropMatches = css.match(/\.er-drawer-backdrop[^{]*\{([^}]*)\}/g) || []
+    const combined = [...toggleMatches, ...backdropMatches].join('\n')
+
+    expect(combined).not.toMatch(/#([0-9a-fA-F]{3,8})\b/)
+    expect(combined).not.toMatch(/\b(rgb|rgba|hsl|hsla)\s*\(/i)
+    expect(combined).not.toMatch(/\b[0-9]+px\s+radius/i)
+  })
+
+  it('prefers-reduced-motion: reduce rule removes transitions', () => {
+    const reducedMotionBlock = mediaBlock(css, 'prefers-reduced-motion:\\s*reduce')
+    expect(reducedMotionBlock, 'Expected prefers-reduced-motion: reduce block').not.toBeNull()
+    if (reducedMotionBlock) {
+      expect(reducedMotionBlock).toMatch(/transition:\s*none/)
+    }
+  })
+
+  it('backdrop uses --bg-000 on a ::before layer with no opacity on the panel container', () => {
+    const backdropBeforeMatch = css.match(/\.er-drawer-backdrop::before\s*\{([^}]*)\}/)
+    expect(backdropBeforeMatch, 'Expected .er-drawer-backdrop::before rule').not.toBeNull()
+    if (backdropBeforeMatch) {
+      expect(backdropBeforeMatch[1]).toMatch(/background(?:-color)?:\s*var\(--bg-000\)/)
+      expect(backdropBeforeMatch[1]).toMatch(/opacity\s*:/)
+    }
+
+    const backdropRuleMatch = css.match(/\.er-drawer-backdrop\s*\{([^}]*)\}/)
+    if (backdropRuleMatch) {
+      expect(backdropRuleMatch[1]).not.toMatch(/(?:^|[;\s])opacity\s*:/)
+    }
+  })
+})
+
+describe('chord carousel and responsive polish in layout.css', () => {
+  const rawCss = fs.readFileSync(LAYOUT_CSS_PATH, 'utf8')
+  const css = stripCssComments(rawCss)
+
+  function mediaBlock(source: string, query: string | RegExp): string | null {
+    const pattern = typeof query === 'string' ? query : query.source
+    const re = new RegExp(`@media[^{]*${pattern}[^{]*\\{`, 'i')
+    const match = re.exec(source)
+    if (!match) return null
+
+    let depth = 1
+    let index = match.index + match[0].length
+    const startIndex = index
+
+    while (index < source.length && depth > 0) {
+      const char = source[index]
+      if (char === '{') {
+        depth++
+      } else if (char === '}') {
+        depth--
+      }
+      index++
+    }
+
+    if (depth === 0) {
+      return source.slice(startIndex, index - 1)
+    }
+    return null
+  }
+
+  it('carousel rules: inside 768px block .er-chord-grid has scroll-snap-type and .er-field has scroll-snap-align', () => {
+    const block = mediaBlock(css, 'max-width:\\s*768px')
+    expect(block).not.toBeNull()
+    if (block) {
+      expect(block).toMatch(/\.er-chord-grid\b[^{]*\{[^}]*scroll-snap-type\s*:/)
+      expect(block).toMatch(/\.er-chord-grid\s*>\s*\.er-field\b[^{]*\{[^}]*scroll-snap-align\s*:/)
+    }
+  })
+
+  it('new selectors .er-chord-carousel and .er-chord-nav exist with token-only values and nav hidden above 768px', () => {
+    expect(css).toMatch(/\.er-chord-carousel\b/)
+    expect(css).toMatch(/\.er-chord-nav\b/)
+
+    const baseNavMatch = css.match(/\.er-chord-nav\b[^{]*\{([^}]*)\}/)
+    expect(baseNavMatch).not.toBeNull()
+    if (baseNavMatch) {
+      expect(baseNavMatch[1]).toMatch(/display\s*:\s*none/)
+    }
+
+    const carouselMatches = css.match(/\.er-chord-carousel[^{]*\{([^}]*)\}/g) || []
+    const navMatches = css.match(/\.er-chord-nav[^{]*\{([^}]*)\}/g) || []
+    const combined = [...carouselMatches, ...navMatches].join('\n')
+
+    expect(combined).not.toMatch(/#([0-9a-fA-F]{3,8})\b/)
+    expect(combined).not.toMatch(/\b(rgb|rgba|hsl|hsla)\s*\(/i)
+    expect(combined).not.toMatch(/\b[0-9]+px\s+radius/i)
+  })
+
+  it('polish rules present in layout.css under 768px block', () => {
+    const block = mediaBlock(css, 'max-width:\\s*768px')
+    expect(block).not.toBeNull()
+    if (block) {
+      expect(block).toMatch(/overflow-x\s*:\s*auto/)
+      expect(block).toMatch(/flex-wrap\s*:\s*wrap/)
+      expect(block).toMatch(/min-width\s*:\s*0/)
+      expect(block).toMatch(/flex-shrink\s*:\s*0/)
+      expect(block).toMatch(/max-height/)
+    }
+  })
+})
+
+
+
+

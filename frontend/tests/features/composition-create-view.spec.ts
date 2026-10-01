@@ -34,12 +34,17 @@ describe('CompositionCreateView', () => {
     expect(wrapper.find('.er-form-card').exists()).toBe(true)
     expect(wrapper.find('.er-modal').exists()).toBe(false)
 
-    // Minimal bar contains brand and Cancel link
+    // Minimal bar contains brand and NO top Cancel link
     expect(wrapper.find('.er-topbar-brand').text()).toContain('Erato')
-    const cancelLinks = wrapper.findAll('a[href="/"]')
-    const cancelLink = cancelLinks.find((l) => l.text().includes('Cancelar'))
-    expect(cancelLink).toBeDefined()
-    expect(cancelLink?.text()).toContain('Cancelar')
+    expect(wrapper.find('.er-topbar-brand .er-brand').exists()).toBe(true)
+    expect(wrapper.find('.er-brand .er-nav-lamp').exists()).toBe(true)
+    expect(wrapper.find('.er-brand .er-nav-name').text()).toBe('Erato')
+    expect(wrapper.find('.er-createbar').text()).not.toContain('Cancelar')
+
+    // There is exactly one Cancelar action in the view (at the bottom)
+    const cancelLinks = wrapper.findAll('a').filter((l) => l.text().trim() === 'Cancelar')
+    expect(cancelLinks.length).toBe(1)
+    expect(cancelLinks[0].attributes('href')).toBe('/')
   })
 
   it('contains title, 3-column metadata inputs, two-option visibility, and section include cards', async () => {
@@ -143,6 +148,7 @@ describe('CompositionCreateView', () => {
       expect.objectContaining({
         title: 'Zamba de mi esperanza',
         visibility: 'public',
+        status: 'idea',
         key: 'Em',
         bpm: 80,
         time_signature: '6/8',
@@ -159,5 +165,44 @@ describe('CompositionCreateView', () => {
     await wrapper.vm.$nextTick()
     await new Promise((r) => setTimeout(r, 10))
     expect(router.currentRoute.value.path).toBe('/compositions/new-comp-123')
+  })
+
+  it('defaults status to idea and allows selecting "Lista" which posts status: ready', async () => {
+    const createSpy = vi.spyOn(compApi, 'createComposition').mockResolvedValueOnce({
+      id: 'new-comp-status',
+      owner_id: 'u1',
+      title: 'Canción con estado',
+      visibility: 'private',
+      status: 'ready',
+      sections_enabled: { chords: true, tablature: false, lyrics: true, demos: true, todos: true },
+      todos: [],
+      members: [],
+      demos: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+
+    const router = setupRouter()
+    await router.push('/compositions/new')
+    await router.isReady()
+
+    const wrapper = mount(CompositionCreateView, {
+      global: { plugins: [router] },
+    })
+
+    expect(wrapper.text()).toContain('Estado')
+    const buttons = wrapper.findAll('.er-seg-opt, .er-segmented-btn')
+    const readyBtn = buttons.find((b) => b.text().includes('Lista'))
+    expect(readyBtn).toBeDefined()
+    await readyBtn!.trigger('click')
+
+    await wrapper.find('#comp-title').setValue('Canción con estado')
+    await wrapper.find('form').trigger('submit')
+
+    expect(createSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'ready',
+      })
+    )
   })
 })

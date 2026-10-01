@@ -89,7 +89,9 @@ describe('DashboardView and CompositionCard', () => {
 
     const topbar = wrapper.find('.er-topbar')
     expect(topbar.exists()).toBe(true)
-    expect(topbar.text()).toContain('Erato')
+    expect(topbar.find('.er-topbar-brand .er-brand').exists()).toBe(true)
+    expect(topbar.find('.er-brand .er-nav-lamp').exists()).toBe(true)
+    expect(topbar.find('.er-brand .er-nav-name').text()).toBe('Erato')
 
     const newBtn = topbar.find('a[href="/compositions/new"]')
     expect(newBtn.exists()).toBe(true)
@@ -166,6 +168,18 @@ describe('DashboardView and CompositionCard', () => {
     expect(tag.exists()).toBe(true)
     expect(tag.text()).toContain('En progreso')
 
+    const readyCard = mount(CompositionCard, {
+      props: { composition: mockCompositions[1], index: 1 },
+      global: { plugins: [router] },
+    })
+    expect(readyCard.find('.er-tag').text()).toContain('Lista')
+
+    const ideaCard = mount(CompositionCard, {
+      props: { composition: mockCompositions[2], index: 2 },
+      global: { plugins: [router] },
+    })
+    expect(ideaCard.find('.er-tag').text()).toContain('Idea')
+
     // Title
     expect(wrapper.find('.er-card-title').text()).toBe('Noche de otoño')
 
@@ -200,5 +214,19 @@ describe('DashboardView and CompositionCard', () => {
     const foot = wrapper.find('.er-card-foot')
     expect(foot.text()).toContain('G')
     expect(foot.text()).not.toContain('bpm')
+  })
+
+  it('does not render sidebar or drawer toggle', async () => {
+    const router = setupRouter()
+    await router.push('/')
+    await router.isReady()
+
+    const wrapper = mount(DashboardView, {
+      global: { plugins: [router] },
+    })
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.er-sidebar').exists()).toBe(false)
+    expect(wrapper.find('.er-drawer-toggle').exists()).toBe(false)
   })
 })

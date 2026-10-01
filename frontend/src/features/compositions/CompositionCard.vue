@@ -3,7 +3,7 @@
     <div>
       <div class="er-card-head">
         <span class="er-card-index">{{ pad2(index + 1) }}</span>
-        <ErTag :tone="statusTone" dot>{{ statusLabel }}</ErTag>
+        <ErTag :tone="statusTone" dot>{{ label }}</ErTag>
       </div>
 
       <h3 class="er-card-title">{{ composition.title }}</h3>
@@ -29,6 +29,7 @@ import { computed } from 'vue'
 import { ErTag, type Tone } from '@/design-system'
 import { pad2 } from '@/design-system/core/format'
 import type { CompositionListItem } from '@/api/compositions'
+import { statusLabel } from './status'
 
 const props = defineProps<{
   composition: CompositionListItem
@@ -47,17 +48,7 @@ const statusTone = computed<Tone>(() => {
   }
 })
 
-const statusLabel = computed<string>(() => {
-  switch (props.composition.status) {
-    case 'in_progress':
-      return 'En progreso'
-    case 'ready':
-      return 'Lista'
-    case 'idea':
-    default:
-      return 'Idea'
-  }
-})
+const label = computed<string>(() => statusLabel(props.composition.status))
 
 const chordsText = computed<string>(() => {
   if (props.composition.chord_names && props.composition.chord_names.length) {

@@ -1,9 +1,9 @@
 <template>
   <section
-    :class="['er-lyrics', max && 'er-lyrics--max', customClass]"
+    :class="['er-lyrics', 'er-lyrics-viewer-card', max && 'er-lyrics--max', customClass]"
     :style="max ? undefined : { height: height ? `${height}px` : '360px' }"
   >
-    <div class="er-lyrics-top">
+    <div class="er-lyrics-top er-lyrics-viewer-top">
       <button
         type="button"
         class="er-iconbtn"
@@ -18,7 +18,7 @@
         {{ title || 'Letra' }}
       </div>
 
-      <label class="er-lyrics-speed">
+      <label class="er-lyrics-speed er-lyrics-viewer-speed">
         velocidad
         <input
           v-model.number="speed"

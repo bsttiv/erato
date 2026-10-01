@@ -54,4 +54,60 @@ describe('ErChordEditor component', () => {
 
     expect(wrapper.find('.er-fb-base').text()).toBe('8fr')
   })
+
+  it('renders horizontal fretboard: strings horizontal (y1 == y2) and nut vertical (x1 == x2)', () => {
+    const wrapper = mount(ErChordEditor, {
+      props: {
+        defaultFrets: [0, 0, 0, 0, 0, 0],
+      },
+    })
+    const strings = wrapper.findAll('line.er-fb-string')
+    expect(strings.length).toBe(6)
+    strings.forEach((str) => {
+      const y1 = Number(str.attributes('y1'))
+      const y2 = Number(str.attributes('y2'))
+      expect(y1).toBe(y2)
+    })
+
+    const nut = wrapper.find('line.er-fb-nut')
+    expect(nut.exists()).toBe(true)
+    const x1 = Number(nut.attributes('x1'))
+    const x2 = Number(nut.attributes('x2'))
+    expect(x1).toBe(x2)
+  })
+
+  it('renders high-e row above low-E row', () => {
+    const wrapper = mount(ErChordEditor, {
+      props: {
+        defaultFrets: [0, 0, 0, 0, 0, 0],
+      },
+    })
+    const markerHits = wrapper.findAll('rect.er-fb-hit')
+    const highEHit = markerHits.find((h) => h.find('title').text().startsWith('e:'))
+    const lowEHit = markerHits.find((h) => h.find('title').text().startsWith('E:'))
+    expect(highEHit).toBeDefined()
+    expect(lowEHit).toBeDefined()
+    expect(Number(highEHit!.attributes('y'))).toBeLessThan(Number(lowEHit!.attributes('y')))
+  })
+
+  it('clicking a fret cell emits set(s, fret) payload and marker click toggles open/mute', async () => {
+    const wrapper = mount(ErChordEditor, {
+      props: {
+        defaultFrets: [-1, -1, -1, -1, -1, -1],
+      },
+    })
+    const cellA3 = wrapper.findAll('rect.er-fb-hit').find((h) => h.find('title').text().includes('A, traste 3'))
+    expect(cellA3).toBeDefined()
+    await cellA3!.trigger('click')
+
+    const emitted = wrapper.emitted('change')?.[0]?.[0] as any
+    expect(emitted.frets[1]).toBe(3)
+
+    const markerE = wrapper.findAll('rect.er-fb-hit').find((h) => h.find('title').text().startsWith('E:'))
+    expect(markerE).toBeDefined()
+    await markerE!.trigger('click')
+
+    const lastEmitted = wrapper.emitted('change')?.[1]?.[0] as any
+    expect(lastEmitted.frets[0]).toBe(0)
+  })
 })
