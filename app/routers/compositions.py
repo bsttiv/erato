@@ -1,13 +1,15 @@
-from typing import List, Optional
+from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, status
 
-from app.core.permissions import Action
-from app.deps import AuthContext, current_user_required, require
+from app.core.permissions import Action, resolve_role
+from app.deps import AuthContext, current_user_optional, current_user_required, require
 from app.schemas.compositions import (
+    CompositionCounts,
     CompositionListItem,
     CompositionResponse,
     CreateCompositionRequest,
     MemberItem,
+    SectionsEnabled,
     UpdateCompositionRequest,
 )
 from app.services.composition_service import CompositionService
@@ -19,7 +21,7 @@ def get_service() -> CompositionService:
     return CompositionService()
 
 
-def _to_response(doc: dict) -> CompositionResponse:
+def _to_response(doc: dict, role: Optional[Any] = None) -> CompositionResponse:
     demos_raw = doc.get("demos") or []
     formatted_demos = [
         {
@@ -28,19 +30,46 @@ def _to_response(doc: dict) -> CompositionResponse:
         }
         for d in demos_raw
     ]
+
+    user_role_str: Optional[str] = None
+    if role is not None:
+        user_role_str = role.value if hasattr(role, "value") else str(role)
+    elif "user_role" in doc:
+        user_role_str = doc["user_role"]
+
+    sections_enabled_data = doc.get("sections_enabled")
+    if isinstance(sections_enabled_data, dict):
+        sections_enabled = SectionsEnabled(**sections_enabled_data)
+    elif isinstance(sections_enabled_data, SectionsEnabled):
+        sections_enabled = sections_enabled_data
+    else:
+        sections_enabled = SectionsEnabled()
+
     return CompositionResponse(
         id=str(doc["_id"]),
         owner_id=str(doc["owner_id"]),
         title=doc["title"],
         visibility=doc["visibility"],
         share_slug=doc.get("share_slug"),
+        key=doc.get("key"),
+        bpm=doc.get("bpm"),
+        time_signature=doc.get("time_signature"),
+        style_tags=doc.get("style_tags") or [],
+        status=doc.get("status") or "idea",
+        sections_enabled=sections_enabled,
+        user_role=user_role_str,
         chords=doc.get("chords"),
         tablature=doc.get("tablature"),
         lyrics=doc.get("lyrics"),
         todos=doc.get("todos") or [],
         demos=formatted_demos,
         members=[
-            MemberItem(user_id=str(m["user_id"]), role=m.get("role", "editor"))
+            MemberItem(
+                user_id=str(m["user_id"]),
+                role=m.get("role", "editor"),
+                display_name=m.get("display_name"),
+                initials=m.get("initials"),
+            )
             for m in doc.get("members", [])
         ],
         created_at=doc["created_at"],
@@ -59,12 +88,19 @@ async def create_composition(
     service: CompositionService = Depends(get_service),
 ) -> CompositionResponse:
     """Create a new composition (owner-only, authenticated)."""
+    sections_dict = body.sections_enabled.model_dump() if body.sections_enabled else None
     doc = await service.create_composition(
         owner_id=current_user["id"],
         title=body.title,
         visibility=body.visibility,
+        key=body.key,
+        bpm=body.bpm,
+        time_signature=body.time_signature,
+        style_tags=body.style_tags,
+        status=body.status,
+        sections_enabled=sections_dict,
     )
-    return _to_response(doc)
+    return _to_response(doc, role="owner")
 
 
 @router.get(
@@ -78,17 +114,62 @@ async def list_compositions(
 ) -> List[CompositionListItem]:
     """List compositions owned by or shared with current user."""
     docs = await service.list_for_user(current_user["id"])
-    return [
-        CompositionListItem(
-            id=str(d["_id"]),
-            owner_id=str(d["owner_id"]),
-            title=d["title"],
-            visibility=d["visibility"],
-            created_at=d["created_at"],
-            updated_at=d["updated_at"],
+    items: List[CompositionListItem] = []
+
+    for d in docs:
+        chords_dict = d.get("chords") or {}
+        entries = chords_dict.get("entries") or []
+        chord_names = [e["name"] for e in entries if isinstance(e, dict) and "name" in e][:4]
+
+        tablature_dict = d.get("tablature") or {}
+        tabs = tablature_dict.get("tabs")
+        if isinstance(tabs, list):
+            tabs_count = len(tabs)
+        elif tablature_dict.get("content"):
+            tabs_count = 1
+        else:
+            tabs_count = 0
+
+        demos = d.get("demos") or []
+        todos = d.get("todos") or []
+        todos_done = sum(1 for t in todos if isinstance(t, dict) and t.get("done"))
+
+        counts = CompositionCounts(
+            chords=len(entries),
+            tabs=tabs_count,
+            demos=len(demos),
+            todos_done=todos_done,
+            todos_total=len(todos),
         )
-        for d in docs
-    ]
+
+        sections_enabled_data = d.get("sections_enabled")
+        if isinstance(sections_enabled_data, dict):
+            sections_enabled = SectionsEnabled(**sections_enabled_data)
+        elif isinstance(sections_enabled_data, SectionsEnabled):
+            sections_enabled = sections_enabled_data
+        else:
+            sections_enabled = SectionsEnabled()
+
+        items.append(
+            CompositionListItem(
+                id=str(d["_id"]),
+                owner_id=str(d["owner_id"]),
+                title=d["title"],
+                visibility=d["visibility"],
+                key=d.get("key"),
+                bpm=d.get("bpm"),
+                time_signature=d.get("time_signature"),
+                style_tags=d.get("style_tags") or [],
+                status=d.get("status") or "idea",
+                sections_enabled=sections_enabled,
+                counts=counts,
+                chord_names=chord_names,
+                created_at=d["created_at"],
+                updated_at=d["updated_at"],
+            )
+        )
+
+    return items
 
 
 @router.get(
@@ -98,11 +179,14 @@ async def list_compositions(
 )
 async def get_by_slug(
     slug: str,
+    user: Optional[dict] = Depends(current_user_optional),
     service: CompositionService = Depends(get_service),
 ) -> CompositionResponse:
     """Anonymous or authenticated read of a public composition by its unguessable share slug."""
     doc = await service.get_by_slug(slug)
-    return _to_response(doc)
+    user_id = user["id"] if user else None
+    role = resolve_role(user_id, doc) if user_id else None
+    return _to_response(doc, role=role)
 
 
 @router.get(
@@ -115,7 +199,7 @@ async def get_composition(
     auth: AuthContext = Depends(require(Action.VIEW)),
 ) -> CompositionResponse:
     """Read a composition by ID, enforced by require(Action.VIEW)."""
-    return _to_response(auth.composition)
+    return _to_response(auth.composition, role=auth.role)
 
 
 @router.patch(
@@ -130,8 +214,13 @@ async def update_composition(
     service: CompositionService = Depends(get_service),
 ) -> CompositionResponse:
     """Update composition top-level fields, enforced by require(Action.EDIT)."""
-    updated = await service.update_composition(composition_id, title=body.title)
-    return _to_response(updated)
+    update_data = body.model_dump(exclude_unset=True)
+    if "sections_enabled" in update_data and update_data["sections_enabled"] is not None:
+        if hasattr(body.sections_enabled, "model_dump"):
+            update_data["sections_enabled"] = body.sections_enabled.model_dump()
+
+    updated = await service.update_composition(composition_id, **update_data)
+    return _to_response(updated, role=auth.role)
 
 
 @router.delete(

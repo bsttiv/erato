@@ -1,6 +1,24 @@
 from datetime import datetime
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 from pydantic import BaseModel, Field
+
+STATUS = Literal["idea", "in_progress", "ready"]
+
+
+class SectionsEnabled(BaseModel):
+    chords: bool = True
+    tablature: bool = False
+    lyrics: bool = True
+    demos: bool = True
+    todos: bool = True
+
+
+class CompositionCounts(BaseModel):
+    chords: int = 0
+    tabs: int = 0
+    demos: int = 0
+    todos_done: int = 0
+    todos_total: int = 0
 
 
 # Embedded Section Schemas
@@ -15,9 +33,18 @@ class ChordsSection(BaseModel):
     entries: List[ChordEntry] = []
 
 
+class TabItem(BaseModel):
+    id: Optional[str] = None
+    title: Optional[str] = None
+    strings: Optional[int] = 6
+    columns: Optional[List[Any]] = None
+    content: Optional[str] = None
+
+
 class TablatureSection(BaseModel):
     strings: int = 6
-    content: str = ""
+    content: Optional[str] = ""
+    tabs: List[Dict[str, Any]] = []
 
 
 class LyricsSection(BaseModel):
@@ -25,6 +52,7 @@ class LyricsSection(BaseModel):
 
 
 class TodoItem(BaseModel):
+    id: Optional[str] = None
     text: str
     done: bool = False
 
@@ -41,16 +69,30 @@ class DemoItem(BaseModel):
 class MemberItem(BaseModel):
     user_id: str
     role: str = "editor"
+    display_name: Optional[str] = None
+    initials: Optional[str] = None
 
 
 # Request Schemas
 class CreateCompositionRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     visibility: str = Field("private", pattern="^(public|private)$")
+    key: Optional[str] = None
+    bpm: Optional[int] = None
+    time_signature: Optional[str] = None
+    style_tags: List[str] = []
+    status: STATUS = "idea"
+    sections_enabled: SectionsEnabled = Field(default_factory=SectionsEnabled)
 
 
 class UpdateCompositionRequest(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=200)
+    key: Optional[str] = None
+    bpm: Optional[int] = None
+    time_signature: Optional[str] = None
+    style_tags: Optional[List[str]] = None
+    status: Optional[STATUS] = None
+    sections_enabled: Optional[SectionsEnabled] = None
 
 
 class UpdateVisibilityRequest(BaseModel):
@@ -59,7 +101,7 @@ class UpdateVisibilityRequest(BaseModel):
 
 class CreateInviteRequest(BaseModel):
     invited_email: Optional[str] = None
-    role: str = Field("editor", pattern="^(editor)$")
+    role: str = Field("editor", pattern="^(editor|viewer)$")
 
 
 class RedeemInviteRequest(BaseModel):
@@ -73,6 +115,13 @@ class CompositionResponse(BaseModel):
     title: str
     visibility: str
     share_slug: Optional[str] = None
+    key: Optional[str] = None
+    bpm: Optional[int] = None
+    time_signature: Optional[str] = None
+    style_tags: List[str] = []
+    status: STATUS = "idea"
+    sections_enabled: SectionsEnabled = Field(default_factory=SectionsEnabled)
+    user_role: Optional[str] = None
     chords: Optional[ChordsSection] = None
     tablature: Optional[TablatureSection] = None
     lyrics: Optional[LyricsSection] = None
@@ -88,6 +137,14 @@ class CompositionListItem(BaseModel):
     owner_id: str
     title: str
     visibility: str
+    key: Optional[str] = None
+    bpm: Optional[int] = None
+    time_signature: Optional[str] = None
+    style_tags: List[str] = []
+    status: STATUS = "idea"
+    sections_enabled: SectionsEnabled = Field(default_factory=SectionsEnabled)
+    counts: CompositionCounts = Field(default_factory=CompositionCounts)
+    chord_names: List[str] = []
     created_at: datetime
     updated_at: datetime
 

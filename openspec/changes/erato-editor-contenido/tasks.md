@@ -155,31 +155,31 @@ branch merges into `main` after all units have passed review and verification.
 
 ### Metadata schemas, advisory role, and list counts in FastAPI
 
-- [ ] 5.1 RED: Create `tests/test_compositions_metadata.py` asserting:
+- [x] 5.1 RED: Create `tests/test_compositions_metadata.py` asserting:
   - Creating a composition accepts optional `key`, `bpm`, `time_signature`, `style_tags`, `status`, and `sections_enabled`.
   - Default creation without metadata sets `status: "idea"`, `sections_enabled` defaults, and nullable fields to `None`.
   - Status accepts only `"idea"`, `"in_progress"`, `"ready"`; any other value raises 422.
   - Updating a composition via `PATCH /api/compositions/{id}` updates metadata fields.
   - Pre-existing compositions without metadata fields serialize cleanly with defaults on read.
-- [ ] 5.2 GREEN: Update `app/schemas/compositions.py`:
+- [x] 5.2 GREEN: Update `app/schemas/compositions.py`:
   - Define `STATUS = Literal["idea", "in_progress", "ready"]`.
   - Define `SectionsEnabled` model (`chords: bool = True`, `tablature: bool = False`, `lyrics: bool = True`, `demos: bool = True`, `todos: bool = True`).
   - Add optional `key`, `bpm`, `time_signature`, `style_tags`, `status`, and `sections_enabled` to `CreateCompositionRequest`, `UpdateCompositionRequest`, `CompositionListItem`, and `CompositionResponse`.
   - Add `CompositionCounts` schema (`chords: int`, `tabs: int`, `demos: int`, `todos_done: int`, `todos_total: int`) and `chord_names: List[str]` to `CompositionListItem`.
-- [ ] 5.3 RED: Create `tests/test_user_role_response.py` asserting:
+- [x] 5.3 RED: Create `tests/test_user_role_response.py` asserting:
   - `GET /api/compositions/{id}` returns `user_role: "owner"` for the owner.
   - `GET /api/compositions/{id}` returns `user_role: "editor"` for an invited editor member.
   - `GET /api/compositions/{id}` returns `user_role: "viewer"` for an invited viewer member.
   - `GET /api/compositions/by-slug/{slug}` returns `user_role: None` for unauthenticated requests, and correct role if optional auth header is present.
   - `GET /api/compositions` list returns computed `counts` and first 4 `chord_names` from document data without extra queries.
-- [ ] 5.4 GREEN: Update `app/routers/compositions.py`:
+- [x] 5.4 GREEN: Update `app/routers/compositions.py`:
   - Update `_to_response(doc, role=None)` to accept advisory `role` and populate `user_role`.
   - Update `get_composition` and `update_composition` to pass `auth.role`.
   - Update `create_composition` to pass `Role.OWNER`.
   - Update `get_by_slug` to resolve optional caller identity via `resolve_role()` and populate `user_role`.
   - Update `list_compositions` to compute `counts` and `chord_names` in memory from loaded documents.
-- [ ] 5.5 GREEN: Update `app/db/repositories/compositions.py` to allow patching metadata fields in `update_fields` allow-list.
-- [ ] 5.6 REFACTOR: Run `.venv/bin/pytest tests/test_compositions_metadata.py tests/test_user_role_response.py tests/test_compositions_router.py` to verify backend behavior.
+- [x] 5.5 GREEN: Update `app/db/repositories/compositions.py` to allow patching metadata fields in `update_fields` allow-list.
+- [x] 5.6 REFACTOR: Run `.venv/bin/pytest tests/test_compositions_metadata.py tests/test_user_role_response.py tests/test_compositions_router.py` to verify backend behavior.
 
 ---
 
