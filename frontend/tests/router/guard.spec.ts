@@ -52,7 +52,7 @@ describe('Router navigation guard and authReady contract', () => {
     expect(router.currentRoute.value.query.next).toBe('/compositions/comp-123')
   })
 
-  it('navigating to /c/:slug when unauthenticated succeeds without redirecting', async () => {
+  it('navigating to /c/:ref when unauthenticated succeeds without redirecting', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
       new Response(JSON.stringify({ detail: 'No refresh token' }), { status: 401 })
     )
@@ -97,5 +97,16 @@ describe('Router navigation guard and authReady contract', () => {
     await navigationPromise
     expect(isAuthReady()).toBe(true)
     expect(router.currentRoute.value.path).toBe('/')
+  })
+
+  it('public composition route exposes the ref param', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ detail: 'No refresh token' }), { status: 401 })
+    )
+    const router = createTestRouter()
+    await router.push('/c/64b7f0c2a1b2c3d4e5f60718')
+    const current = router.currentRoute.value
+    expect(current.name).toBe('composition-public')
+    expect(current.params.ref).toBe('64b7f0c2a1b2c3d4e5f60718')
   })
 })

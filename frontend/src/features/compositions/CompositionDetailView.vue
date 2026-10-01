@@ -199,11 +199,11 @@ import ChordGrid from './ChordGrid.vue'
 import TablatureSection from './TablatureSection.vue'
 import LyricsSection from './LyricsSection.vue'
 import DemosSection from '@/features/demos/DemosSection.vue'
+import { resolveCompositionRef } from './resolveCompositionRef'
 import SharingModal from '@/features/sharing/SharingModal.vue'
 import type { TabEntry } from '@/design-system/core/tab'
 import {
   getComposition,
-  getCompositionBySlug,
   listCompositions,
   updateChordsSection,
   updateTablatureSection,
@@ -414,8 +414,8 @@ async function loadData() {
   if (!props.composition && route) {
     loading.value = true
     try {
-      if (route.name === 'composition-public' && route.params.slug) {
-        const res = await getCompositionBySlug(route.params.slug as string)
+      if (route.name === 'composition-public' && route.params.ref) {
+        const res = await resolveCompositionRef(route.params.ref as string)
         comp.value = res
         normalizeCompositionData(res)
       } else if (route.params.id) {
