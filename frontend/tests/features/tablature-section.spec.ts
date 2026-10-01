@@ -161,4 +161,19 @@ describe('TablatureSection.vue', () => {
     const editor = wrapper.findComponent(ErTabEditor)
     expect(editor.props('readonly')).toBe(true)
   })
+
+  it('rename and delete buttons render plain Spanish text without emoji or glyphs', () => {
+    const wrapper = mount(TablatureSection, {
+      props: { tabs: sampleTabs, editable: true },
+    })
+
+    const rename = wrapper.find('[data-test="rename-tab-btn"]')
+    const del = wrapper.find('[data-test="delete-tab-btn"]')
+    expect(rename.text()).toBe('Renombrar')
+    expect(del.text()).toBe('Borrar')
+    for (const btn of [rename, del]) {
+      expect(btn.text()).not.toMatch(/\p{Extended_Pictographic}/u)
+      expect(btn.text()).not.toMatch(/[\u2700-\u27BF]/u)
+    }
+  })
 })
