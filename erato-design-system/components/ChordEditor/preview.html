@@ -1,0 +1,17 @@
+<!-- @dsCard group="Música" height=330 subtitle="Toca el diagrama: el nombre se detecta solo" -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>ChordEditor — preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=IBM+Plex+Mono:wght@400;500&family=Libre+Franklin:wght@300..700&display=swap">
+
+</head>
+<body>
+<div id="root" class="er-stage"></div>
+<script>
+  var E = window.Erato, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h(React.Fragment, null,
+    h(E.ChordEditor, { defaultFrets: [-1, 3, 2, 0, 0, 0] }),
+    h(E.ChordEditor, { defaultInstrument: 'piano', defaultNotes: [50, 53, 57, 60], defaultFrets: [-1, -1, 0, 2, 1, 1] })));
+</script>
+</body>
+</html>

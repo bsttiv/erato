@@ -1,0 +1,16 @@
+<!-- @dsCard group="Música" height=420 subtitle="Autoscroll con velocidad y pantalla completa" -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>LyricsViewer — preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=IBM+Plex+Mono:wght@400;500&family=Libre+Franklin:wght@300..700&display=swap">
+
+</head>
+<body>
+<div id="root" class="er-stage" style="display:block"></div>
+<script>
+  var E = window.Erato, h = React.createElement;
+  var LYR = "# Verso 1\n[Am7]Bajo el farol la [D9]noche se hace lenta\n[Gmaj7]y la ciudad se [Cmaj7]apaga despacio\n[F#m7b5]T\u00fa pides otra [B7]copa, yo la cuenta\n[Em]y el pianista [A7]toca sin espacio\n\n# Coro\n[Dm7]Qu\u00e9date un [G7]rato m\u00e1s\n[Cmaj7]que la banda no ha [Am7]terminado\n[Dm7]Qu\u00e9date, [E7]que el humo va\na [Am]borrar lo que no hemos [E7]cantado\n\n# Verso 2\n[Am7]Las luces bajan, [D9]nadie se levanta\n[Gmaj7]el contrabajo [Cmaj7]camina en la penumbra\n[F#m7b5]Y si me miras [B7]mientras nadie canta\n[Em]sabr\u00e9 que esta canci\u00f3n [A7]ya nos alumbra";
+  ReactDOM.createRoot(document.getElementById('root')).render(h(E.LyricsViewer, { title: 'Noche de otoño', lyrics: LYR, height: 360 }));
+</script>
+</body>
+</html>

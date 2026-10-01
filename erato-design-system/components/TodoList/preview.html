@@ -1,0 +1,19 @@
+<!-- @dsCard group="Proyecto" height=360 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>TodoList — preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=IBM+Plex+Mono:wght@400;500&family=Libre+Franklin:wght@300..700&display=swap">
+
+</head>
+<body>
+<div id="root" class="er-stage" style="display:block;max-width:520px"></div>
+<script>
+  var E = window.Erato, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h(E.TodoList, { title: 'por hacer', defaultItems: [
+    { id: '1', text: 'Terminar la letra del segundo verso', done: true },
+    { id: '2', text: 'Probar el puente en Eb', done: false },
+    { id: '3', text: 'Grabar la toma con click a 72', done: false },
+    { id: '4', text: 'Decidir el final: fade o corte seco', done: false } ] }));
+</script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mount, flushPromises } from '@vue/test-utils'
+import SharingModal from '@/features/sharing/SharingModal.vue'
+import * as sharingApi from '@/api/sharing'
+
+describe('SharingModal component', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('toggles visibility from private to public', async () => {
+    const setVisSpy = vi.spyOn(sharingApi, 'setVisibility').mockResolvedValueOnce({
+      is_public: true,
+    })
+    vi.spyOn(sharingApi, 'listInvites').mockResolvedValueOnce([])
+
+    const wrapper = mount(SharingModal, {
+      props: {
+        compositionId: 'comp-1',
+        isPublic: false,
+        canManage: true,
+      },
+    })
+
+    const toggleBtn = wrapper.find('button.er-btn--ghost')
+    expect(toggleBtn.text()).toBe('Hacer pública')
+
+    await toggleBtn.trigger('click')
+    await flushPromises()
+
+    expect(setVisSpy).toHaveBeenCalledWith('comp-1', true)
+    expect(wrapper.emitted('visibilityChanged')?.[0]).toEqual([true])
+  })
+
+  it('creates an invite and lists it', async () => {
+    vi.spyOn(sharingApi, 'listInvites').mockResolvedValueOnce([])
+    const createSpy = vi.spyOn(sharingApi, 'createInvite').mockResolvedValueOnce({
+      id: 'inv-1',
+      composition_id: 'comp-1',
+      created_at: new Date().toISOString(),
+      expires_at: new Date(Date.now() + 86400000).toISOString(),
+      token: 'secret-invite-token',
+    })
+
+    const wrapper = mount(SharingModal, {
+      props: {
+        compositionId: 'comp-1',
+        isPublic: false,
+        canManage: true,
+      },
+    })
+    await flushPromises()
+
+    const createBtn = wrapper.find('.er-invites-block button.er-btn--primary')
+    await createBtn.trigger('click')
+    await flushPromises()
+
+    expect(createSpy).toHaveBeenCalledWith('comp-1')
+    expect(wrapper.find('.er-invite-created').text()).toContain('secret-invite-token')
+  })
+})

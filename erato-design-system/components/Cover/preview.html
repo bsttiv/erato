@@ -1,0 +1,57 @@
+<!-- @dsCard height=300 -->
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Erato</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=Libre+Franklin:wght@300..700&display=swap">
+<style>
+  html, body { margin:0; height:100%; }
+  body { background:var(--bg-100); color:var(--ink); font-family:var(--font-sans); overflow:hidden; }
+  .cover { position:relative; width:960px; height:300px; overflow:hidden; }
+  .art { position:absolute; top:0; left:480px; width:480px; height:300px; overflow:hidden; }
+  .art svg { display:block; }
+  .amber { fill:var(--amber); }
+  .wine  { fill:var(--wine); }
+  .ember { fill:var(--ember); }
+  .ink   { fill:var(--ink); }
+  .moss  { fill:var(--moss); }
+  .blk   { rx:var(--radius-lg); }
+  .sm    { rx:var(--radius-md); }
+  .pill  { rx:12px; }
+  .str   { stroke:var(--bg-100); stroke-width:1.5; }
+  .words { position:absolute; left:var(--space-12); bottom:var(--space-12); max-width:440px; }
+  .name { margin:0; font-family:var(--font-display); font-style:italic; font-weight:500; font-size:120px; line-height:.92; letter-spacing:-.02em; color:var(--ink); }
+  .tag { margin:var(--space-3) 0 0 6px; font-size:14px; line-height:20px; color:var(--ink-muted); }
+</style>
+</head>
+<body>
+<div class="cover">
+  <div class="art" aria-hidden="true">
+    <svg viewBox="0 0 480 300" width="480" height="300">
+      <!--
+        blocks      amber 144×264 slab bled off the top (the lamp, largest) · wine 128×152 · ember 128×200 bled off the right · ink 128×56 (the relief tint) · moss 48×24 pill once — ≈40% of 960×300
+        arrangement one tall amber slab with satellites; bottoms on one line at y=252 (space-12 above the edge), space-4 gutters
+        pattern     literal motif: six guitar strings — the ground (bg-100) cut through every block as hairlines, like a tab staff; Erato is a place for tabs and chords, so strings say "music, written down"
+        scales      gutters space-4 (16), bottom inset space-12 (48), string pitch space-4 (16); corners radius-lg on the big blocks, radius-md on ink, pill = half of 24
+      -->
+      <rect class="amber blk" x="48"  y="-12" width="144" height="264"/>
+      <rect class="ink sm"    x="208" y="36"  width="128" height="56"/>
+      <rect class="wine blk"  x="208" y="100" width="128" height="152"/>
+      <rect class="ember blk" x="352" y="52"  width="144" height="200"/>
+      <rect class="moss pill" x="48"  y="264" width="48"  height="24"/>
+      <line class="str" x1="0" x2="480" y1="140" y2="140"/>
+      <line class="str" x1="0" x2="480" y1="156" y2="156"/>
+      <line class="str" x1="0" x2="480" y1="172" y2="172"/>
+      <line class="str" x1="0" x2="480" y1="188" y2="188"/>
+      <line class="str" x1="0" x2="480" y1="204" y2="204"/>
+      <line class="str" x1="0" x2="480" y1="220" y2="220"/>
+    </svg>
+  </div>
+  <div class="words">
+    <h1 class="name">Erato</h1>
+    <p class="tag">Las canciones de la banda, bajo luz cálida.</p>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!-- @dsCard group="Controles" height=80 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Segmented — preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=IBM+Plex+Mono:wght@400;500&family=Libre+Franklin:wght@300..700&display=swap">
+
+</head>
+<body>
+<div id="root" class="er-stage"></div>
+<script>
+  var E = window.Erato, h = React.createElement;
+  function Demo() { var s = React.useState('piano');
+    return h(E.Segmented, { label: 'Instrumento', value: s[0], onChange: s[1], options: [{ value: 'guitar', label: 'guitarra' }, { value: 'piano', label: 'piano' }] }); }
+  ReactDOM.createRoot(document.getElementById('root')).render(h(Demo));
+</script>
+</body>
+</html>

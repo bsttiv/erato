@@ -1,0 +1,22 @@
+<!-- @dsCard group="Música" height=460 subtitle="Lista de demos y comentarios con marca de tiempo" -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>DemoPlayer — preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=IBM+Plex+Mono:wght@400;500&family=Libre+Franklin:wght@300..700&display=swap">
+
+</head>
+<body>
+<div id="root" class="er-stage" style="display:block"></div>
+<script>
+  var E = window.Erato, h = React.createElement;
+  var takes = [
+    { id: 't3', title: 'Toma 3 — ensayo', date: '28 sep', duration: 214, note: 'sala B, un mic', comments: [
+      { t: 18, author: 'Ana', text: 'La entrada del bajo va medio tiempo antes.' },
+      { t: 71, author: 'Tomás', text: 'Acá probar el Gmaj7 en vez de G.' },
+      { t: 150, author: 'Ana', text: 'Este puente es el bueno.' } ] },
+    { id: 't2', title: 'Toma 2', date: '21 sep', duration: 198, comments: [ { t: 40, author: 'Leo', text: 'Muy rápido.' } ] },
+    { id: 't1', title: 'Idea de voz', date: '14 sep', duration: 62, note: 'nota de voz', comments: [] } ];
+  ReactDOM.createRoot(document.getElementById('root')).render(h(E.DemoPlayer, { takes: takes, author: 'Tú' }));
+</script>
+</body>
+</html>

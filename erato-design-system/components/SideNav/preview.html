@@ -1,0 +1,23 @@
+<!-- @dsCard group="Navegación" height=420 -->
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>SideNav — preview</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..700;1,6..96,400..700&family=IBM+Plex+Mono:wght@400;500&family=Libre+Franklin:wght@300..700&display=swap">
+
+</head>
+<body>
+<div id="root" style="height:420px;display:flex"></div>
+<script>
+  var E = window.Erato, h = React.createElement;
+  ReactDOM.createRoot(document.getElementById('root')).render(h(E.SideNav, {
+    brand: 'Erato', subtitle: 'Los Faroles · 7 composiciones', heading: 'composiciones', defaultActiveId: 'a',
+    items: [
+      { id: 'a', label: 'Noche de otoño', meta: 'Am' },
+      { id: 'b', label: 'Humo azul', meta: 'Dm' },
+      { id: 'c', label: 'La última ronda', meta: 'G' },
+      { id: 'd', label: 'Farol', meta: 'Eb' },
+      { id: 'e', label: 'Sin título (3)' }
+    ] }));
+</script>
+</body>
+</html>
