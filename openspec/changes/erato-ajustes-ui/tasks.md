@@ -59,7 +59,7 @@ Specs: design-system-port (no overflow), app-shell-and-navigation (one Cancelar,
 ### REFACTOR / verify
 - [x] 3.1 `npm run test:unit -- format composition-create ErDemoPlayer layout-css composition-detail` all green; then full `npm run test:unit`.
 - [x] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
-- [ ] 3.3 Manual QA (author only): 360/390/768/1024px in Noche and Matine; compas input inside card, single Cancelar, link first, crumb contrast 4.5:1, dates like "1 oct 2026".
+- [x] 3.3 Manual QA (author only, confirmed by the author): 360/390/768/1024px in Noche and Matine; compas input inside card, single Cancelar, link first, crumb contrast 4.5:1, dates like "1 oct 2026".
 - [x] 3.4 Work-unit commit: `fix(ui): corrige desbordes, Cancelar duplicado, enlace lateral y fechas de demos` with explicit paths.
 
 ---
@@ -90,7 +90,7 @@ Specs: design-system-port (ErBrand), composition-content (status editing).
 ### REFACTOR / verify
 - [x] 3.1 Focused command green, then full `npm run test:unit` (ErSideNav is shared).
 - [x] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
-- [ ] 3.3 Manual QA (author only): 360/390/768/1024px, both themes; same logo on all five places; status persists after reload; offline failure reverts; viewer sees tag.
+- [x] 3.3 Manual QA (author only, confirmed by the author): 360/390/768/1024px, both themes; same logo on all five places; status persists after reload; offline failure reverts; viewer sees tag.
 - [x] 3.4 Work-unit commit: `feat(ui): unifica el logo con ErBrand y permite editar el estado` with explicit paths.
 
 ---
@@ -114,7 +114,7 @@ Specs: app-shell-and-navigation (drawer, one-column collapse).
 ### REFACTOR / verify
 - [x] 3.1 Focused command green, then full `npm run test:unit`.
 - [x] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
-- [ ] 3.3 Manual QA (author only): 360/390/768/1024px, both themes; no horizontal scroll at 360; drawer opens/closes via button, Escape, backdrop, link tap; focus returns; Tab skips hidden links; screen reader announces expanded state.
+- [x] 3.3 Manual QA (author only, confirmed by the author): 360/390/768/1024px, both themes; no horizontal scroll at 360; drawer opens/closes via button, Escape, backdrop, link tap; focus returns; Tab skips hidden links; screen reader announces expanded state.
 - [x] 3.4 Work-unit commit: `feat(ui): agrega diseno responsive con barra lateral tipo cajon` with explicit paths.
 
 ---
@@ -134,7 +134,7 @@ Specs: design-system-port (horizontal chord diagram, D6).
 ### REFACTOR / verify
 - [x] 3.1 `cd frontend && npm run test:unit -- ErChordEditor chord-grid` green, then full `npm run test:unit`.
 - [x] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
-- [ ] 3.3 Manual QA (author only): shapes F and Bm, open and muted strings, both themes, 360px inside the card; click sets/clears fret and marker toggles open/mute.
+- [x] 3.3 Manual QA (author only, confirmed by the author): shapes F and Bm, open and muted strings, both themes, 360px inside the card; click sets/clears fret and marker toggles open/mute.
 - [x] 3.4 Work-unit commit: `feat(ui): muestra el diagrama de acordes de guitarra en horizontal` with explicit paths, no AI attribution.
 
 ---
@@ -157,7 +157,7 @@ Specs: design-system-port (carousel, usable from 360px). Depends on WU3 (breakpo
 - [x] 3.1 `npm run test:unit -- chord-grid layout-css` green, then full `npm run test:unit`.
 - [x] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
 - [x] 3.3 Backend regression, once: `cd /home/bspc/proyectos/erato/backend && .venv/bin/pytest -q` (expect 81 passed; no backend files changed).
-- [ ] 3.4 Manual QA (author only): 360/390/768/1024px, both themes; swipe snaps, arrows/buttons scroll, Eliminar reachable, reduced-motion respected; tablature, lyrics maximize/autoscroll, demos/comments, todos, sharing modal usable; contrast 4.5:1.
+- [x] 3.4 Manual QA (author only, confirmed by the author): 360/390/768/1024px, both themes; swipe snaps, arrows/buttons scroll, Eliminar reachable, reduced-motion respected; tablature, lyrics maximize/autoscroll, demos/comments, todos, sharing modal usable; contrast 4.5:1.
 - [x] 3.5 Work-unit commit: `feat(ui): agrega carrusel de acordes y ajusta secciones para pantallas pequenas` with explicit paths.
 
 ---
