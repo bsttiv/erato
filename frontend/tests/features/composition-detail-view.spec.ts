@@ -381,4 +381,92 @@ describe('CompositionDetailView', () => {
       expect(byId).not.toHaveBeenCalled()
     })
   })
+
+  describe('mobile drawer sidebar', () => {
+    it('toggle has aria-expanded="false" and aria-controls="er-sidebar" matching aside id', async () => {
+      const router = await setupRouter('/compositions/comp-100')
+      const wrapper = mount(CompositionDetailView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      const toggle = wrapper.find('.er-drawer-toggle')
+      expect(toggle.exists()).toBe(true)
+      expect(toggle.attributes('aria-expanded')).toBe('false')
+      expect(toggle.attributes('aria-controls')).toBe('er-sidebar')
+      expect(toggle.attributes('aria-label')).toBe('Abrir menú')
+
+      const aside = wrapper.find('aside#er-sidebar')
+      expect(aside.exists()).toBe(true)
+      expect(aside.classes()).not.toContain('er-sidebar--open')
+    })
+
+    it('clicking toggle sets aria-expanded="true" and adds er-sidebar--open class and renders backdrop', async () => {
+      const router = await setupRouter('/compositions/comp-100')
+      const wrapper = mount(CompositionDetailView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      const toggle = wrapper.find('.er-drawer-toggle')
+      await toggle.trigger('click')
+
+      expect(toggle.attributes('aria-expanded')).toBe('true')
+      const aside = wrapper.find('aside#er-sidebar')
+      expect(aside.classes()).toContain('er-sidebar--open')
+
+      const backdrop = wrapper.find('.er-drawer-backdrop')
+      expect(backdrop.exists()).toBe(true)
+    })
+
+    it('clicking backdrop closes drawer and removes backdrop', async () => {
+      const router = await setupRouter('/compositions/comp-100')
+      const wrapper = mount(CompositionDetailView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      const toggle = wrapper.find('.er-drawer-toggle')
+      await toggle.trigger('click')
+      expect(wrapper.find('aside#er-sidebar').classes()).toContain('er-sidebar--open')
+
+      const backdrop = wrapper.find('.er-drawer-backdrop')
+      await backdrop.trigger('click')
+
+      expect(toggle.attributes('aria-expanded')).toBe('false')
+      expect(wrapper.find('aside#er-sidebar').classes()).not.toContain('er-sidebar--open')
+      expect(wrapper.find('.er-drawer-backdrop').exists()).toBe(false)
+    })
+
+    it('pressing Escape closes drawer and returns focus to toggle', async () => {
+      const router = await setupRouter('/compositions/comp-100')
+      const wrapper = mount(CompositionDetailView, {
+        attachTo: document.body,
+        global: { plugins: [router] },
+      })
+      await flushPromises()
+
+      const toggle = wrapper.find<HTMLButtonElement>('.er-drawer-toggle')
+      await toggle.trigger('click')
+      expect(wrapper.find('aside#er-sidebar').classes()).toContain('er-sidebar--open')
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+      await wrapper.vm.$nextTick()
+
+      expect(toggle.attributes('aria-expanded')).toBe('false')
+      expect(wrapper.find('aside#er-sidebar').classes()).not.toContain('er-sidebar--open')
+      expect(document.activeElement).toBe(toggle.element)
+      wrapper.unmount()
+    })
+
+    it('route change closes drawer', async () => {
+      const router = await setupRouter('/compositions/comp-100')
+      const wrapper = mount(CompositionDetailView, { global: { plugins: [router] } })
+      await flushPromises()
+
+      const toggle = wrapper.find('.er-drawer-toggle')
+      await toggle.trigger('click')
+      expect(wrapper.find('aside#er-sidebar').classes()).toContain('er-sidebar--open')
+
+      await router.push('/compositions/comp-200')
+      await wrapper.vm.$nextTick()
+
+      expect(toggle.attributes('aria-expanded')).toBe('false')
+      expect(wrapper.find('aside#er-sidebar').classes()).not.toContain('er-sidebar--open')
+    })
+  })
 })

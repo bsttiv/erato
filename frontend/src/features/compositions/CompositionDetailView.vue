@@ -6,8 +6,34 @@
     No se encontró la composición.
   </div>
   <div v-else :class="['er-layout', { 'er-layout--noside': !showSidebar }]">
+    <!-- Mobile drawer toggle -->
+    <button
+      v-if="showSidebar"
+      ref="toggleRef"
+      type="button"
+      class="er-drawer-toggle"
+      aria-label="Abrir menú"
+      aria-controls="er-sidebar"
+      :aria-expanded="drawer.open.value ? 'true' : 'false'"
+      @click="drawer.toggle"
+    >
+      <ErIcon name="menu" />
+    </button>
+
+    <!-- Mobile drawer backdrop -->
+    <div
+      v-if="showSidebar && drawer.open.value"
+      class="er-drawer-backdrop"
+      @click="drawer.close"
+    />
+
     <!-- Persistent sidebar for authenticated users -->
-    <aside v-if="showSidebar" class="er-sidebar">
+    <aside
+      v-if="showSidebar"
+      id="er-sidebar"
+      ref="sidebarRef"
+      :class="['er-sidebar', { 'er-sidebar--open': drawer.open.value }]"
+    >
       <div class="er-sidebar-foot">
         <router-link to="/">
           ← todas las composiciones
@@ -197,7 +223,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ErButton,
@@ -205,11 +231,13 @@ import {
   ErTodoList,
   ErSideNav,
   ErSegmented,
+  ErIcon,
   formatDate,
   type SideNavItem,
   type TodoItem,
   type Tone,
 } from '@/design-system'
+import { useDrawer } from '@/shared/useDrawer'
 import ChordGrid from './ChordGrid.vue'
 import TablatureSection from './TablatureSection.vue'
 import LyricsSection from './LyricsSection.vue'
@@ -240,6 +268,43 @@ const props = defineProps<{
 
 const route = useRoute()
 const router = useRouter()
+
+const drawer = useDrawer()
+const toggleRef = ref<HTMLButtonElement | null>(null)
+const sidebarRef = ref<HTMLElement | null>(null)
+
+const onKeydown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && drawer.open.value) {
+    drawer.close()
+  }
+}
+
+watch(drawer.open, async (isOpen, wasOpen) => {
+  if (isOpen) {
+    await nextTick()
+    const firstLink = sidebarRef.value?.querySelector('a') as HTMLElement | null
+    firstLink?.focus()
+  } else if (wasOpen) {
+    toggleRef.value?.focus()
+  }
+})
+
+watch(
+  () => route?.fullPath,
+  () => {
+    if (drawer.open.value) {
+      drawer.close()
+    }
+  },
+)
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+})
 
 const loading = ref(false)
 const isSaving = ref(false)

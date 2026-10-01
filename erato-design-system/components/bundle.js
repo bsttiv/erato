@@ -22,7 +22,8 @@
     right: "M6 3.5L10.5 8 6 12.5",
     bar: "M8 3v10",
     guitar: "M10.5 2.5l3 3M12 4L7.5 8.5M7 7.5c-1.5-1-3.5-.5-4 1s-.5 3 1 4.5 3.5 1.5 4.5 1 2-2.5 1-4",
-    piano: "M2.5 3.5h11v9h-11zM6 3.5v5M10 3.5v5M8 8.5v4"
+    piano: "M2.5 3.5h11v9h-11zM6 3.5v5M10 3.5v5M8 8.5v4",
+    menu: "M2.5 4h11M2.5 8h11M2.5 12h11"
   };
   function Icon(p) {
     var fill = p.name === "play";

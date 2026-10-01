@@ -100,22 +100,22 @@ Specs: design-system-port (ErBrand), composition-content (status editing).
 Specs: app-shell-and-navigation (drawer, one-column collapse).
 
 ### RED
-- [ ] 1.1 `layout-css.spec.ts` helper first: add a balanced-brace `mediaBlock(css, query)` helper (existing `ruleBody` regex does not handle nested `@media`); keep every existing assertion green (`npm run test:unit -- layout-css`).
-- [ ] 1.2 `layout-css.spec.ts`: file has `@media (max-width: 768px)`; block mentions `.er-layout`, `.er-comp-columns`, `.er-auth`, `.er-field-grid`, `.er-sidebar--open`; new selectors `.er-drawer-toggle`, `.er-drawer-backdrop` exist, no hex/rgb/px radius; `prefers-reduced-motion: reduce` rule removes transition; backdrop uses `--bg-000` on a `::before` layer, no `opacity` on a container holding the panel.
-- [ ] 1.3 New `tests/shared/use-drawer.spec.ts`: `open` starts false; `toggle` flips; `close` sets false.
-- [ ] 1.4 `composition-detail-view.spec.ts` and `dashboard-view.spec.ts`: toggle has `aria-expanded="false"` and `aria-controls="er-sidebar"` matching aside id; click sets true and adds `er-sidebar--open`; Escape closes and focuses toggle; backdrop click closes; route change closes.
-- [ ] 1.5 Run focused command; confirm new assertions FAIL.
+- [x] 1.1 `layout-css.spec.ts` helper first: add a balanced-brace `mediaBlock(css, query)` helper (existing `ruleBody` regex does not handle nested `@media`); keep every existing assertion green (`npm run test:unit -- layout-css`).
+- [x] 1.2 `layout-css.spec.ts`: file has `@media (max-width: 768px)`; block mentions `.er-layout`, `.er-comp-columns`, `.er-auth`, `.er-field-grid`, `.er-sidebar--open`; new selectors `.er-drawer-toggle`, `.er-drawer-backdrop` exist, no hex/rgb/px radius; `prefers-reduced-motion: reduce` rule removes transition; backdrop uses `--bg-000` on a `::before` layer, no `opacity` on a container holding the panel.
+- [x] 1.3 New `tests/shared/use-drawer.spec.ts`: `open` starts false; `toggle` flips; `close` sets false.
+- [x] 1.4 `composition-detail-view.spec.ts` and `dashboard-view.spec.ts`: toggle has `aria-expanded="false"` and `aria-controls="er-sidebar"` matching aside id; click sets true and adds `er-sidebar--open`; Escape closes and focuses toggle; backdrop click closes; route change closes.
+- [x] 1.5 Run focused command; confirm new assertions FAIL.
 
 ### GREEN
-- [ ] 2.1 Create `frontend/src/shared/useDrawer.ts` (`open`, `toggle`, `close`) next to `AppModal.vue` and `useFocusTrap.ts`.
-- [ ] 2.2 `CompositionDetailView.vue`, `DashboardView.vue`: toggle button (`aria-label="Abrir menú"`), `id="er-sidebar"`, `er-sidebar--open` class, backdrop sibling, Escape listener while open, `watch(route.fullPath)` close, focus to first link on open and back to toggle on close.
-- [ ] 2.3 `layout.css`: single `@media (max-width: 768px)` block: `.er-layout` one column; `.er-comp-columns`, `.er-auth`, `.er-field-grid` to `1fr`; header/topbar `flex-wrap`; reduced page paddings (existing tokens); off-canvas `.er-sidebar` (`fixed`, `translateX(-100%)`, `visibility:hidden` when closed, delayed); `.er-drawer-backdrop` with `--bg-000` color and opacity on `::before`; toggle shown only inside the block; reduced-motion rule.
+- [x] 2.1 Create `frontend/src/shared/useDrawer.ts` (`open`, `toggle`, `close`) next to `AppModal.vue` and `useFocusTrap.ts`.
+- [x] 2.2 `CompositionDetailView.vue`, `DashboardView.vue`: toggle button (`aria-label="Abrir menú"`), `id="er-sidebar"`, `er-sidebar--open` class, backdrop sibling, Escape listener while open, `watch(route.fullPath)` close, focus to first link on open and back to toggle on close.
+- [x] 2.3 `layout.css`: single `@media (max-width: 768px)` block: `.er-layout` one column; `.er-comp-columns`, `.er-auth`, `.er-field-grid` to `1fr`; header/topbar `flex-wrap`; reduced page paddings (existing tokens); off-canvas `.er-sidebar` (`fixed`, `translateX(-100%)`, `visibility:hidden` when closed, delayed); `.er-drawer-backdrop` with `--bg-000` color and opacity on `::before`; toggle shown only inside the block; reduced-motion rule.
 
 ### REFACTOR / verify
-- [ ] 3.1 Focused command green, then full `npm run test:unit`.
-- [ ] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
+- [x] 3.1 Focused command green, then full `npm run test:unit`.
+- [x] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
 - [ ] 3.3 Manual QA (author only): 360/390/768/1024px, both themes; no horizontal scroll at 360; drawer opens/closes via button, Escape, backdrop, link tap; focus returns; Tab skips hidden links; screen reader announces expanded state.
-- [ ] 3.4 Work-unit commit: `feat(ui): agrega diseno responsive con barra lateral tipo cajon` with explicit paths.
+- [x] 3.4 Work-unit commit: `feat(ui): agrega diseno responsive con barra lateral tipo cajon` with explicit paths.
 
 ---
 

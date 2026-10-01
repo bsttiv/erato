@@ -389,4 +389,88 @@ describe('er-brand and er-topbar-brand stylesheet contract', () => {
   })
 })
 
+describe('responsive 768px layout and drawer', () => {
+  const rawCss = fs.readFileSync(LAYOUT_CSS_PATH, 'utf8')
+  const css = stripCssComments(rawCss)
+
+  function mediaBlock(source: string, query: string | RegExp): string | null {
+    const pattern = typeof query === 'string' ? query : query.source
+    const re = new RegExp(`@media[^{]*${pattern}[^{]*\\{`, 'i')
+    const match = re.exec(source)
+    if (!match) return null
+
+    let depth = 1
+    let index = match.index + match[0].length
+    const startIndex = index
+
+    while (index < source.length && depth > 0) {
+      const char = source[index]
+      if (char === '{') {
+        depth++
+      } else if (char === '}') {
+        depth--
+      }
+      index++
+    }
+
+    if (depth === 0) {
+      return source.slice(startIndex, index - 1)
+    }
+    return null
+  }
+
+  it('contains a single @media (max-width: 768px) block', () => {
+    const block = mediaBlock(css, 'max-width:\\s*768px')
+    expect(block, 'Expected @media (max-width: 768px) block').not.toBeNull()
+  })
+
+  it('media block mentions required responsive selectors', () => {
+    const block = mediaBlock(css, 'max-width:\\s*768px')
+    expect(block).not.toBeNull()
+    if (block) {
+      expect(block).toContain('.er-layout')
+      expect(block).toContain('.er-comp-columns')
+      expect(block).toContain('.er-auth')
+      expect(block).toContain('.er-field-grid')
+      expect(block).toContain('.er-sidebar--open')
+    }
+  })
+
+  it('new selectors .er-drawer-toggle and .er-drawer-backdrop exist with token-only values', () => {
+    expect(css).toMatch(/\.er-drawer-toggle\b/)
+    expect(css).toMatch(/\.er-drawer-backdrop\b/)
+
+    const toggleMatches = css.match(/\.er-drawer-toggle[^{]*\{([^}]*)\}/g) || []
+    const backdropMatches = css.match(/\.er-drawer-backdrop[^{]*\{([^}]*)\}/g) || []
+    const combined = [...toggleMatches, ...backdropMatches].join('\n')
+
+    expect(combined).not.toMatch(/#([0-9a-fA-F]{3,8})\b/)
+    expect(combined).not.toMatch(/\b(rgb|rgba|hsl|hsla)\s*\(/i)
+    expect(combined).not.toMatch(/\b[0-9]+px\s+radius/i)
+  })
+
+  it('prefers-reduced-motion: reduce rule removes transitions', () => {
+    const reducedMotionBlock = mediaBlock(css, 'prefers-reduced-motion:\\s*reduce')
+    expect(reducedMotionBlock, 'Expected prefers-reduced-motion: reduce block').not.toBeNull()
+    if (reducedMotionBlock) {
+      expect(reducedMotionBlock).toMatch(/transition:\s*none/)
+    }
+  })
+
+  it('backdrop uses --bg-000 on a ::before layer with no opacity on the panel container', () => {
+    const backdropBeforeMatch = css.match(/\.er-drawer-backdrop::before\s*\{([^}]*)\}/)
+    expect(backdropBeforeMatch, 'Expected .er-drawer-backdrop::before rule').not.toBeNull()
+    if (backdropBeforeMatch) {
+      expect(backdropBeforeMatch[1]).toMatch(/background(?:-color)?:\s*var\(--bg-000\)/)
+      expect(backdropBeforeMatch[1]).toMatch(/opacity\s*:/)
+    }
+
+    const backdropRuleMatch = css.match(/\.er-drawer-backdrop\s*\{([^}]*)\}/)
+    if (backdropRuleMatch) {
+      expect(backdropRuleMatch[1]).not.toMatch(/(?:^|[;\s])opacity\s*:/)
+    }
+  })
+})
+
+
 
