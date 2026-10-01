@@ -11,7 +11,7 @@
           heading="composiciones"
           @update:model-value="onSelectComposition"
         />
-        <div style="padding: var(--space-4)">
+        <div class="er-sidebar-foot">
           <ErButton
             variant="primary"
             icon="plus"

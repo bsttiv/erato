@@ -1,103 +1,97 @@
 <template>
-  <div class="er-modal-backdrop" @click.self="emit('close')">
-    <div class="er-modal er-panel">
+  <AppModal :open="true" title="// compartir composición" @close="emit('close')">
+    <!-- Visibility toggle -->
+    <div class="er-field">
+      <label class="er-label">Visibilidad pública</label>
+      <div class="er-field-row">
+        <ErTag :tone="isPublicLocal ? 'moss' : 'neutral'">
+          {{ isPublicLocal ? 'Pública' : 'Privada' }}
+        </ErTag>
+        <ErButton
+          v-if="canManage"
+          size="sm"
+          variant="ghost"
+          :disabled="toggling"
+          @click="toggleVisibility"
+        >
+          {{ isPublicLocal ? 'Hacer privada' : 'Hacer pública' }}
+        </ErButton>
+      </div>
+      <p class="er-hint">
+        {{
+          isPublicLocal
+            ? 'Cualquiera con el enlace público puede ver los acordes, letra y escuchar demos.'
+            : 'Solo los colaboradores invitados con cuenta pueden acceder a esta composición.'
+        }}
+      </p>
+    </div>
+
+    <!-- Invites management -->
+    <div v-if="canManage" class="er-invites-block">
       <div class="er-label">
-        // compartir composición
+        // invitaciones para edición
       </div>
 
-      <!-- Visibility toggle -->
-      <div class="er-field" style="margin: var(--space-4) 0">
-        <label class="er-label">Visibilidad pública</label>
-        <div class="er-row" style="gap: var(--space-2); align-items: center">
-          <ErTag :tone="isPublicLocal ? 'moss' : 'neutral'">
-            {{ isPublicLocal ? 'Pública' : 'Privada' }}
-          </ErTag>
-          <ErButton
-            v-if="canManage"
-            size="sm"
-            variant="ghost"
-            :disabled="toggling"
-            @click="toggleVisibility"
-          >
-            {{ isPublicLocal ? 'Hacer privada' : 'Hacer pública' }}
-          </ErButton>
+      <div>
+        <ErButton
+          size="sm"
+          variant="primary"
+          icon="plus"
+          :disabled="creatingInvite"
+          @click="handleCreateInvite"
+        >
+          Generar enlace de invitación
+        </ErButton>
+      </div>
+
+      <div v-if="newInviteUrl" class="er-invite-created er-panel">
+        <div class="er-label">
+          ¡Invitación creada!
         </div>
-        <p class="er-hint" style="font-size: 0.85em; margin-top: var(--space-1)">
-          {{
-            isPublicLocal
-              ? 'Cualquiera con el enlace público puede ver los acordes, letra y escuchar demos.'
-              : 'Solo los colaboradores invitados con cuenta pueden acceder a esta composición.'
-          }}
+        <p class="er-share-link">
+          {{ newInviteUrl }}
         </p>
       </div>
 
-      <!-- Invites management -->
-      <div v-if="canManage" class="er-invites-block" style="margin-top: var(--space-6)">
-        <div class="er-label">
-          // invitaciones para edición
-        </div>
-
-        <div style="margin: var(--space-2) 0">
+      <div v-if="loadingInvites" class="er-loading">
+        Cargando invitaciones activas…
+      </div>
+      <ul v-else-if="invites.length" class="er-invites-list">
+        <li
+          v-for="inv in invites"
+          :key="inv.id"
+          class="er-member"
+        >
+          <span class="er-member-role">
+            Expira: {{ new Date(inv.expires_at).toLocaleDateString() }}
+          </span>
           <ErButton
             size="sm"
-            variant="primary"
-            icon="plus"
-            :disabled="creatingInvite"
-            @click="handleCreateInvite"
+            variant="danger"
+            icon="x"
+            @click="handleRevoke(inv.id)"
           >
-            Generar enlace de invitación
+            Revocar
           </ErButton>
-        </div>
-
-        <div v-if="newInviteUrl" class="er-invite-created er-panel" style="margin-bottom: var(--space-4)">
-          <div class="er-label" style="color: var(--amber)">
-            ¡Invitación creada!
-          </div>
-          <p style="font-size: 0.85em; word-break: break-all">
-            {{ newInviteUrl }}
-          </p>
-        </div>
-
-        <div v-if="loadingInvites" class="er-loading">
-          Cargando invitaciones activas…
-        </div>
-        <ul v-else-if="invites.length" class="er-invites-list">
-          <li
-            v-for="inv in invites"
-            :key="inv.id"
-            class="er-row"
-            style="justify-content: space-between; align-items: center; padding: var(--space-2) 0; border-bottom: 1px solid var(--line)"
-          >
-            <span style="font-size: 0.85em; color: var(--ink-muted)">
-              Expira: {{ new Date(inv.expires_at).toLocaleDateString() }}
-            </span>
-            <ErButton
-              size="sm"
-              variant="danger"
-              icon="x"
-              @click="handleRevoke(inv.id)"
-            >
-              Revocar
-            </ErButton>
-          </li>
-        </ul>
-        <div v-else style="font-size: 0.85em; color: var(--ink-faint)">
-          No hay invitaciones activas.
-        </div>
-      </div>
-
-      <div class="er-row" style="justify-content: flex-end; margin-top: var(--space-6)">
-        <ErButton variant="ghost" @click="emit('close')">
-          Cerrar
-        </ErButton>
+        </li>
+      </ul>
+      <div v-else class="er-hint">
+        No hay invitaciones activas.
       </div>
     </div>
-  </div>
+
+    <template #footer>
+      <ErButton variant="ghost" @click="emit('close')">
+        Cerrar
+      </ErButton>
+    </template>
+  </AppModal>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { ErButton, ErTag } from '@/design-system'
+import AppModal from '@/shared/AppModal.vue'
 import {
   setVisibility,
   createInvite,
