@@ -1,33 +1,35 @@
 <template>
-  <div :class="['er-tab', 'er-panel', customClass]">
+  <div :class="['er-tab', 'er-panel', customClass]" :readonly="readonly ? '' : undefined">
     <div class="er-tab-bar">
       <div v-if="title" class="er-label" style="margin-right: auto">
         // {{ title }}
       </div>
       <span v-else style="margin-right: auto" />
 
-      <ErButton
-        size="sm"
-        variant="ghost"
-        icon="bar"
-        @click="onAddBar"
-      >
-        compás
-      </ErButton>
-      <ErButton
-        size="sm"
-        variant="quiet"
-        icon="plus"
-        @click="onAddEight"
-      >
-        8 tiempos
-      </ErButton>
+      <template v-if="!readonly">
+        <ErButton
+          size="sm"
+          variant="ghost"
+          icon="bar"
+          @click="onAddBar"
+        >
+          compás
+        </ErButton>
+        <ErButton
+          size="sm"
+          variant="quiet"
+          icon="plus"
+          @click="onAddEight"
+        >
+          8 tiempos
+        </ErButton>
+      </template>
     </div>
 
     <div
       ref="gridRef"
       class="er-tab-grid"
-      tabindex="0"
+      :tabindex="readonly ? -1 : 0"
       role="grid"
       aria-label="Tablatura: usa las flechas y escribe números de traste"
       @keydown="handleKeyDown"
@@ -88,10 +90,12 @@ const props = withDefaults(
     title?: string
     hideHint?: boolean
     customClass?: string
+    readonly?: boolean
   }>(),
   {
     columns: 16,
     hideHint: false,
+    readonly: false,
   }
 )
 
@@ -117,10 +121,12 @@ watch(
 )
 
 function handleKeyDown(e: KeyboardEvent) {
+  if (props.readonly) return
   onKey(e)
 }
 
 function onPick(c: number, s: number) {
+  if (props.readonly) return
   pick(c, s)
   gridRef.value?.focus()
 }

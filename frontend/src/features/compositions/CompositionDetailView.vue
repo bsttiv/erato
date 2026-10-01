@@ -148,17 +148,13 @@
           @update:chords="onChordsUpdate"
         />
 
-        <section
+        <TablatureSection
           v-if="isSectionEnabled('tablature')"
           id="sec-tablature"
-          class="er-section"
-        >
-          <ErTabEditor
-            v-model="tabCols"
-            title="Tablatura"
-            :readonly="!canEdit"
-          />
-        </section>
+          :tabs="compTabs"
+          :editable="canEdit"
+          @update:tabs="onTabsUpdate"
+        />
 
         <section
           v-if="isSectionEnabled('demos')"
@@ -195,17 +191,17 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   ErButton,
   ErTag,
-  ErTabEditor,
   ErLyricsViewer,
   ErTodoList,
   ErSideNav,
   type SideNavItem,
   type TodoItem,
-  type TabColumn,
 } from '@/design-system'
 import ChordGrid from './ChordGrid.vue'
+import TablatureSection from './TablatureSection.vue'
 import DemosSection from '@/features/demos/DemosSection.vue'
 import SharingModal from '@/features/sharing/SharingModal.vue'
+import type { TabEntry } from '@/design-system/core/tab'
 import {
   getComposition,
   getCompositionBySlug,
@@ -235,7 +231,7 @@ const sidebarList = ref<CompositionListItem[]>([])
 
 // Section states
 const compChords = ref<ChordsSection>({ instrument: 'guitar', entries: [] })
-const tabCols = ref<TabColumn[]>([])
+const compTabs = ref<TabEntry[]>([])
 const lyricsText = ref('')
 const todoItems = ref<TodoItem[]>([])
 const compDemos = ref<DemoTake[]>([])
@@ -266,11 +262,21 @@ function normalizeCompositionData(c: CompositionResponse) {
 
   // Tablature
   if (c.tablature && c.tablature.tabs && c.tablature.tabs.length > 0) {
-    tabCols.value = (c.tablature.tabs[0]?.columns as TabColumn[]) || []
+    compTabs.value = c.tablature.tabs.map((t) => ({
+      ...t,
+      columns: Array.isArray(t.columns) ? [...t.columns] : [],
+    }))
   } else if (c.sections?.tab?.columns) {
-    tabCols.value = [...c.sections.tab.columns]
+    compTabs.value = [
+      {
+        id: 'tab-1',
+        title: 'Tablatura',
+        strings: 6,
+        columns: [...c.sections.tab.columns],
+      },
+    ]
   } else {
-    tabCols.value = []
+    compTabs.value = []
   }
 
   // Lyrics
@@ -361,8 +367,7 @@ function isSectionEnabled(sec: keyof SectionsEnabled): boolean {
 const chordCount = computed(() => compChords.value.entries?.length || 0)
 
 const tabCount = computed(() => {
-  if (comp.value?.tablature?.tabs) return comp.value.tablature.tabs.length
-  return tabCols.value.length ? 1 : 0
+  return compTabs.value.length
 })
 
 const demoCount = computed(() => compDemos.value.length)
@@ -377,6 +382,10 @@ const todosTotalCount = computed(() => {
 
 function onChordsUpdate(val: ChordsSection) {
   compChords.value = val
+}
+
+function onTabsUpdate(val: TabEntry[]) {
+  compTabs.value = val
 }
 
 function onDemosUpdated(demos: DemoTake[]) {
@@ -434,7 +443,7 @@ async function saveAll() {
   try {
     await Promise.all([
       updateSection(comp.value.id, 'chords', compChords.value).catch(() => {}),
-      updateSection(comp.value.id, 'tab', { columns: tabCols.value }).catch(() => {}),
+      updateSection(comp.value.id, 'tablature', { tabs: compTabs.value }).catch(() => {}),
       updateSection(comp.value.id, 'todos', { items: todoItems.value }).catch(() => {}),
     ])
     saveStateText.value = 'guardado'

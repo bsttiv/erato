@@ -34,17 +34,17 @@ class ChordsSection(BaseModel):
 
 
 class TabItem(BaseModel):
-    id: Optional[str] = None
-    title: Optional[str] = None
-    strings: Optional[int] = 6
-    columns: Optional[List[Any]] = None
+    id: str
+    title: str = Field(..., min_length=1, max_length=80)
+    strings: int = 6
+    columns: List[Any] = []
     content: Optional[str] = None
 
 
 class TablatureSection(BaseModel):
     strings: int = 6
     content: Optional[str] = ""
-    tabs: List[Dict[str, Any]] = []
+    tabs: List[TabItem] = []
 
 
 class LyricsSection(BaseModel):
