@@ -9,7 +9,11 @@ describe('Compositions feature views', () => {
     title: 'Bajo el farol',
     slug: 'bajo-el-farol',
     owner_id: 'user-1',
+    visibility: 'private',
     is_public: false,
+    todos: [],
+    members: [],
+    demos: [],
     sections: {
       chords: {
         frets: [-1, 3, 2, 0, 1, 0],
@@ -38,6 +42,9 @@ describe('Compositions feature views', () => {
           user_role: 'viewer',
         },
       },
+      global: {
+        stubs: { 'router-link': true },
+      },
     })
 
     // ChordEditor editable should be false
@@ -60,6 +67,9 @@ describe('Compositions feature views', () => {
           ...sampleComposition,
           user_role: 'editor',
         },
+      },
+      global: {
+        stubs: { 'router-link': true },
       },
     })
 

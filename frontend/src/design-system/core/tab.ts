@@ -24,3 +24,32 @@ export function tabToText(cols: TabColumn[], names?: string[]): string {
 }
 
 export const TECH = "hpbrs/\\~xv"
+
+export interface TabEntry {
+  id: string
+  title: string
+  strings: number
+  columns: TabColumn[]
+}
+
+export function newTabId(): string {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  return 'tab_' + Math.random().toString(36).slice(2, 11)
+}
+
+export function newTabEntry(titleOrIndex?: string | number, strings: number = 6): TabEntry {
+  let title = 'Tablatura'
+  if (typeof titleOrIndex === 'number') {
+    title = `Tablatura ${titleOrIndex + 1}`
+  } else if (typeof titleOrIndex === 'string') {
+    title = titleOrIndex
+  }
+  return {
+    id: newTabId(),
+    title,
+    strings,
+    columns: blankTab(16),
+  }
+}

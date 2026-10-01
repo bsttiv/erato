@@ -1,8 +1,22 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import LoginForm from '@/features/auth/LoginForm.vue'
+import RegisterForm from '@/features/auth/RegisterForm.vue'
 import AuthView from '@/features/auth/AuthView.vue'
 import * as authApi from '@/api/auth'
+
+function createTestRouter(initialPath: string = '/login') {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/login', name: 'login', component: AuthView },
+      { path: '/register', name: 'register', component: AuthView },
+    ],
+  })
+  router.push(initialPath)
+  return router
+}
 
 describe('Auth feature views', () => {
   beforeEach(() => {
@@ -21,10 +35,17 @@ describe('Auth feature views', () => {
       },
     })
 
-    const wrapper = mount(LoginForm)
+    const router = createTestRouter('/login')
+    await router.isReady()
+
+    const wrapper = mount(LoginForm, {
+      global: {
+        plugins: [router],
+      },
+    })
 
     const emailInput = wrapper.find('input[type="email"]')
-    const passwordInput = wrapper.find('input[type="password"]')
+    const passwordInput = wrapper.find('#login-password')
     await emailInput.setValue('musico@erato.io')
     await passwordInput.setValue('Password123!')
 
@@ -39,10 +60,17 @@ describe('Auth feature views', () => {
       new Error('Credenciales incorrectas')
     )
 
-    const wrapper = mount(LoginForm)
+    const router = createTestRouter('/login')
+    await router.isReady()
+
+    const wrapper = mount(LoginForm, {
+      global: {
+        plugins: [router],
+      },
+    })
 
     await wrapper.find('input[type="email"]').setValue('wrong@erato.io')
-    await wrapper.find('input[type="password"]').setValue('wrongpass')
+    await wrapper.find('#login-password').setValue('wrongpass')
     await wrapper.find('form').trigger('submit')
 
     // Wait for promise resolution
@@ -57,16 +85,25 @@ describe('Auth feature views', () => {
     expect(errorEl.text().toLowerCase()).not.toContain('contraseña incorrecta')
   })
 
-  it('allows switching between login and registration in AuthView', async () => {
-    const wrapper = mount(AuthView)
+  it('allows switching between login and registration in AuthView via routing', async () => {
+    const router = createTestRouter('/login')
+    await router.isReady()
+
+    const wrapper = mount(AuthView, {
+      global: {
+        plugins: [router],
+      },
+    })
     expect(wrapper.findComponent(LoginForm).exists()).toBe(true)
+    expect(wrapper.findComponent(RegisterForm).exists()).toBe(false)
 
-    // Switch to register tab
-    const segButtons = wrapper.findAll('.er-seg-opt')
-    expect(segButtons.length).toBe(2)
-    await segButtons[1].trigger('click')
+    // Navigate to register route
+    await router.push('/register')
+    await wrapper.vm.$nextTick()
 
-    expect(wrapper.find('input[type="email"]').exists()).toBe(true)
-    expect(wrapper.text()).toContain('Registrarse')
+    expect(wrapper.findComponent(RegisterForm).exists()).toBe(true)
+    expect(wrapper.findComponent(LoginForm).exists()).toBe(false)
+    expect(wrapper.find('#reg-email').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Crea tu cuenta')
   })
 })

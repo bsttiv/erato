@@ -22,6 +22,12 @@ class CompositionService:
         owner_id: str,
         title: str,
         visibility: str = "private",
+        key: Optional[str] = None,
+        bpm: Optional[int] = None,
+        time_signature: Optional[str] = None,
+        style_tags: Optional[List[str]] = None,
+        status: str = "idea",
+        sections_enabled: Optional[Dict[str, bool]] = None,
     ) -> Dict[str, Any]:
         """Create a new composition for owner."""
         share_slug = generate_share_slug() if visibility == "public" else None
@@ -30,6 +36,12 @@ class CompositionService:
             title=title,
             visibility=visibility,
             share_slug=share_slug,
+            key=key,
+            bpm=bpm,
+            time_signature=time_signature,
+            style_tags=style_tags,
+            status=status,
+            sections_enabled=sections_enabled,
         )
 
     async def get_composition(self, composition_id: str) -> Dict[str, Any]:
@@ -53,11 +65,12 @@ class CompositionService:
     async def update_composition(
         self,
         composition_id: str,
-        title: Optional[str] = None,
+        **fields: Any,
     ) -> Dict[str, Any]:
-        """Update composition top-level fields (e.g. title)."""
-        if title is not None:
-            updated = await self.repo.update_title(composition_id, title)
+        """Update composition top-level fields (e.g. title, metadata)."""
+        clean_fields = {k: v for k, v in fields.items() if v is not None}
+        if clean_fields:
+            updated = await self.repo.update_fields(composition_id, clean_fields)
             if not updated:
                 raise NotFoundError("Composición no encontrada")
             return updated

@@ -40,8 +40,14 @@ class CompositionsRepository:
         title: str,
         visibility: str = "private",
         share_slug: Optional[str] = None,
+        key: Optional[str] = None,
+        bpm: Optional[int] = None,
+        time_signature: Optional[str] = None,
+        style_tags: Optional[List[str]] = None,
+        status: str = "idea",
+        sections_enabled: Optional[Dict[str, bool]] = None,
     ) -> Dict[str, Any]:
-        """Create a new composition with empty embedded sections."""
+        """Create a new composition with empty embedded sections and metadata."""
         oid = ObjectId(owner_id) if isinstance(owner_id, str) else owner_id
         now = datetime.now(timezone.utc)
 
@@ -49,6 +55,18 @@ class CompositionsRepository:
             "owner_id": oid,
             "title": title.strip(),
             "visibility": visibility,
+            "key": key,
+            "bpm": bpm,
+            "time_signature": time_signature,
+            "style_tags": style_tags if style_tags is not None else [],
+            "status": status,
+            "sections_enabled": sections_enabled if sections_enabled is not None else {
+                "chords": True,
+                "tablature": False,
+                "lyrics": True,
+                "demos": True,
+                "todos": True,
+            },
             "chords": None,
             "tablature": None,
             "lyrics": None,
@@ -136,6 +154,42 @@ class CompositionsRepository:
         result = await self.collection.find_one_and_update(
             {"_id": oid},
             {"$set": {"title": title.strip(), "updated_at": now}},
+            return_document=True,
+        )
+        return result
+
+    async def update_fields(
+        self,
+        composition_id: Union[str, ObjectId],
+        fields: Dict[str, Any],
+    ) -> Optional[Dict[str, Any]]:
+        """Update allowed top-level metadata fields."""
+        if isinstance(composition_id, str):
+            if not ObjectId.is_valid(composition_id):
+                return None
+            oid = ObjectId(composition_id)
+        else:
+            oid = composition_id
+
+        allowed_keys = {
+            "title",
+            "key",
+            "bpm",
+            "time_signature",
+            "style_tags",
+            "status",
+            "sections_enabled",
+        }
+        set_dict = {k: v for k, v in fields.items() if k in allowed_keys and v is not None}
+        if "title" in set_dict and isinstance(set_dict["title"], str):
+            set_dict["title"] = set_dict["title"].strip()
+
+        now = datetime.now(timezone.utc)
+        set_dict["updated_at"] = now
+
+        result = await self.collection.find_one_and_update(
+            {"_id": oid},
+            {"$set": set_dict},
             return_document=True,
         )
         return result

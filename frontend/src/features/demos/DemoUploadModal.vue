@@ -1,62 +1,58 @@
 <template>
-  <div class="er-modal-backdrop" @click.self="emit('close')">
-    <div class="er-modal er-panel">
-      <div class="er-label">
-        // subir demo
+  <AppModal :open="true" title="// subir demo" @close="emit('close')">
+    <form class="er-field" @submit.prevent="handleSubmit">
+      <div class="er-field">
+        <label for="demo-title" class="er-label">Título de la toma</label>
+        <input
+          id="demo-title"
+          v-model="title"
+          type="text"
+          class="er-input"
+          placeholder="Ej. Toma acústica en Re"
+          required
+        >
       </div>
-      <form @submit.prevent="handleSubmit">
-        <div class="er-field">
-          <label for="demo-title" class="er-label">Título de la toma</label>
-          <input
-            id="demo-title"
-            v-model="title"
-            type="text"
-            class="er-input"
-            placeholder="Ej. Toma acústica en Re"
-            required
-          >
-        </div>
 
-        <div class="er-field" style="margin: var(--space-4) 0">
-          <label for="demo-file" class="er-label">Archivo de audio</label>
-          <input
-            id="demo-file"
-            type="file"
-            accept="audio/*"
-            class="er-input"
-            required
-            @change="handleFileChange"
-          >
-        </div>
+      <div class="er-field">
+        <label for="demo-file" class="er-label">Archivo de audio</label>
+        <input
+          id="demo-file"
+          type="file"
+          accept="audio/*"
+          class="er-input"
+          required
+          @change="handleFileChange"
+        >
+      </div>
 
-        <div v-if="error" class="er-auth-error">
-          {{ error }}
-        </div>
+      <div v-if="error" class="er-auth-error">
+        {{ error }}
+      </div>
 
-        <div v-if="uploading" class="er-loading" style="margin-bottom: var(--space-2)">
-          Subiendo audio directamente a almacenamiento seguro…
-        </div>
+      <div v-if="uploading" class="er-loading">
+        Subiendo audio directamente a almacenamiento seguro…
+      </div>
 
-        <div class="er-row" style="gap: var(--space-2); justify-content: flex-end">
-          <ErButton variant="ghost" :disabled="uploading" @click="emit('close')">
-            Cancelar
-          </ErButton>
-          <ErButton
-            type="submit"
-            variant="primary"
-            :disabled="uploading || !selectedFile || !title.trim()"
-          >
-            {{ uploading ? 'Subiendo…' : 'Subir demo' }}
-          </ErButton>
-        </div>
-      </form>
-    </div>
-  </div>
+      <div class="er-modal-foot">
+        <ErButton variant="ghost" :disabled="uploading" @click="emit('close')">
+          Cancelar
+        </ErButton>
+        <ErButton
+          type="submit"
+          variant="primary"
+          :disabled="uploading || !selectedFile || !title.trim()"
+        >
+          {{ uploading ? 'Subiendo…' : 'Subir demo' }}
+        </ErButton>
+      </div>
+    </form>
+  </AppModal>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
 import { ErButton } from '@/design-system'
+import AppModal from '@/shared/AppModal.vue'
 import {
   requestUploadSignature,
   confirmUpload,

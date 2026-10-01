@@ -3,11 +3,13 @@ from fastapi import APIRouter, Depends, status
 
 from app.core.permissions import Action
 from app.deps import AuthContext, require
-from app.routers.compositions import _to_response
+from app.db.repositories.users import UsersRepository
+from app.routers.compositions import _to_response, compute_initials
 from app.schemas.compositions import (
     CompositionResponse,
     CreateInviteRequest,
     InviteResponse,
+    MemberDetail,
     UpdateVisibilityRequest,
 )
 from app.services.sharing_service import SharingService
@@ -18,6 +20,82 @@ router = APIRouter(prefix="/api/compositions/{composition_id}", tags=["sharing"]
 
 def get_service() -> SharingService:
     return SharingService()
+
+
+@router.get(
+    "/members",
+    response_model=List[MemberDetail],
+    status_code=status.HTTP_200_OK,
+)
+async def list_members(
+    composition_id: str,
+    auth: AuthContext = Depends(require(Action.MANAGE_SHARING)),
+    service: SharingService = Depends(get_service),
+) -> List[MemberDetail]:
+    """Return resolved member projection including active members and pending invites (owner only)."""
+    users_repo = UsersRepository()
+    owner_doc = await users_repo.get_by_id(auth.composition["owner_id"])
+
+    active_uids = [m["user_id"] for m in auth.composition.get("members", []) if "user_id" in m]
+    user_map = await users_repo.get_by_ids(active_uids)
+
+    invites = await service.list_invites(composition_id)
+
+    result: List[MemberDetail] = []
+
+    # 1. Owner
+    if owner_doc:
+        result.append(
+            MemberDetail(
+                user_id=str(owner_doc["_id"]),
+                display_name=owner_doc.get("display_name"),
+                email=owner_doc.get("email"),
+                initials=compute_initials(owner_doc.get("display_name")),
+                role="owner",
+                pending=False,
+            )
+        )
+    else:
+        result.append(
+            MemberDetail(
+                user_id=str(auth.composition["owner_id"]),
+                role="owner",
+                pending=False,
+            )
+        )
+
+    # 2. Active members
+    for m in auth.composition.get("members", []):
+        uid_str = str(m["user_id"])
+        u = user_map.get(uid_str)
+        display_name = u.get("display_name") if u else None
+        result.append(
+            MemberDetail(
+                user_id=uid_str,
+                display_name=display_name,
+                email=u.get("email") if u else None,
+                initials=compute_initials(display_name),
+                role=m.get("role", "editor"),
+                pending=False,
+            )
+        )
+
+    # 3. Pending invitations
+    for inv in invites:
+        if inv.get("used_at") is None:
+            result.append(
+                MemberDetail(
+                    invite_id=str(inv["_id"]),
+                    user_id=None,
+                    display_name=None,
+                    email=inv.get("invited_email"),
+                    initials=None,
+                    role=inv.get("role", "editor"),
+                    pending=True,
+                )
+            )
+
+    return result
 
 
 @router.patch(
@@ -33,7 +111,7 @@ async def update_visibility(
 ) -> CompositionResponse:
     """Toggle composition visibility between public and private (owner only)."""
     updated = await service.update_visibility(composition_id, body.visibility)
-    return _to_response(updated)
+    return _to_response(updated, role=auth.role)
 
 
 @router.post(
