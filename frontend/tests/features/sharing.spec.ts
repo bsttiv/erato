@@ -10,7 +10,16 @@ describe('SharingModal component', () => {
 
   it('toggles visibility from private to public', async () => {
     const setVisSpy = vi.spyOn(sharingApi, 'setVisibility').mockResolvedValueOnce({
+      id: 'comp-1',
+      owner_id: 'user-1',
+      title: 'Song',
+      visibility: 'public',
       is_public: true,
+      todos: [],
+      members: [],
+      demos: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
     vi.spyOn(sharingApi, 'listInvites').mockResolvedValueOnce([])
 
@@ -28,7 +37,7 @@ describe('SharingModal component', () => {
     await toggleBtn.trigger('click')
     await flushPromises()
 
-    expect(setVisSpy).toHaveBeenCalledWith('comp-1', true)
+    expect(setVisSpy).toHaveBeenCalledWith('comp-1', 'public')
     expect(wrapper.emitted('visibilityChanged')?.[0]).toEqual([true])
   })
 
@@ -40,6 +49,7 @@ describe('SharingModal component', () => {
       created_at: new Date().toISOString(),
       expires_at: new Date(Date.now() + 86400000).toISOString(),
       token: 'secret-invite-token',
+      role: 'editor',
     })
 
     const wrapper = mount(SharingModal, {
@@ -55,7 +65,7 @@ describe('SharingModal component', () => {
     await createBtn.trigger('click')
     await flushPromises()
 
-    expect(createSpy).toHaveBeenCalledWith('comp-1')
+    expect(createSpy).toHaveBeenCalledWith('comp-1', { role: 'editor' })
     expect(wrapper.find('.er-invite-created').text()).toContain('secret-invite-token')
   })
 })

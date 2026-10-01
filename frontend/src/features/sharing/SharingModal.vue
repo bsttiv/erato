@@ -133,9 +133,9 @@ async function toggleVisibility() {
   toggling.value = true
   try {
     const next = !isPublicLocal.value
-    const res = await setVisibility(props.compositionId, next)
-    isPublicLocal.value = res.is_public
-    emit('visibilityChanged', res.is_public)
+    const res = await setVisibility(props.compositionId, next ? 'public' : 'private')
+    isPublicLocal.value = res.visibility === 'public'
+    emit('visibilityChanged', res.visibility === 'public')
   } catch {
     // revert
   } finally {
@@ -159,7 +159,7 @@ async function handleCreateInvite() {
   creatingInvite.value = true
   newInviteUrl.value = null
   try {
-    const res = await createInvite(props.compositionId)
+    const res = await createInvite(props.compositionId, { role: 'editor' })
     invites.value.push(res)
     if (res.token) {
       newInviteUrl.value = `${window.location.origin}/invite/${res.token}`
