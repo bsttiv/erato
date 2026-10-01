@@ -472,5 +472,77 @@ describe('responsive 768px layout and drawer', () => {
   })
 })
 
+describe('chord carousel and responsive polish in layout.css', () => {
+  const rawCss = fs.readFileSync(LAYOUT_CSS_PATH, 'utf8')
+  const css = stripCssComments(rawCss)
+
+  function mediaBlock(source: string, query: string | RegExp): string | null {
+    const pattern = typeof query === 'string' ? query : query.source
+    const re = new RegExp(`@media[^{]*${pattern}[^{]*\\{`, 'i')
+    const match = re.exec(source)
+    if (!match) return null
+
+    let depth = 1
+    let index = match.index + match[0].length
+    const startIndex = index
+
+    while (index < source.length && depth > 0) {
+      const char = source[index]
+      if (char === '{') {
+        depth++
+      } else if (char === '}') {
+        depth--
+      }
+      index++
+    }
+
+    if (depth === 0) {
+      return source.slice(startIndex, index - 1)
+    }
+    return null
+  }
+
+  it('carousel rules: inside 768px block .er-chord-grid has scroll-snap-type and .er-field has scroll-snap-align', () => {
+    const block = mediaBlock(css, 'max-width:\\s*768px')
+    expect(block).not.toBeNull()
+    if (block) {
+      expect(block).toMatch(/\.er-chord-grid\b[^{]*\{[^}]*scroll-snap-type\s*:/)
+      expect(block).toMatch(/\.er-chord-grid\s*>\s*\.er-field\b[^{]*\{[^}]*scroll-snap-align\s*:/)
+    }
+  })
+
+  it('new selectors .er-chord-carousel and .er-chord-nav exist with token-only values and nav hidden above 768px', () => {
+    expect(css).toMatch(/\.er-chord-carousel\b/)
+    expect(css).toMatch(/\.er-chord-nav\b/)
+
+    const baseNavMatch = css.match(/\.er-chord-nav\b[^{]*\{([^}]*)\}/)
+    expect(baseNavMatch).not.toBeNull()
+    if (baseNavMatch) {
+      expect(baseNavMatch[1]).toMatch(/display\s*:\s*none/)
+    }
+
+    const carouselMatches = css.match(/\.er-chord-carousel[^{]*\{([^}]*)\}/g) || []
+    const navMatches = css.match(/\.er-chord-nav[^{]*\{([^}]*)\}/g) || []
+    const combined = [...carouselMatches, ...navMatches].join('\n')
+
+    expect(combined).not.toMatch(/#([0-9a-fA-F]{3,8})\b/)
+    expect(combined).not.toMatch(/\b(rgb|rgba|hsl|hsla)\s*\(/i)
+    expect(combined).not.toMatch(/\b[0-9]+px\s+radius/i)
+  })
+
+  it('polish rules present in layout.css under 768px block', () => {
+    const block = mediaBlock(css, 'max-width:\\s*768px')
+    expect(block).not.toBeNull()
+    if (block) {
+      expect(block).toMatch(/overflow-x\s*:\s*auto/)
+      expect(block).toMatch(/flex-wrap\s*:\s*wrap/)
+      expect(block).toMatch(/min-width\s*:\s*0/)
+      expect(block).toMatch(/flex-shrink\s*:\s*0/)
+      expect(block).toMatch(/max-height/)
+    }
+  })
+})
+
+
 
 

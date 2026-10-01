@@ -928,6 +928,25 @@
   opacity: 0.85;
 }
 
+/* ── Chord Carousel Base ────────────────────────────────────────────────── */
+.er-chord-carousel {
+  position: relative;
+  width: 100%;
+}
+
+.er-chord-nav {
+  display: none;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.er-chord-grid:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
 /* ── Responsive Layout (768px breakpoint) ───────────────────────────────── */
 @media (max-width: 768px) {
   .er-layout {
@@ -983,6 +1002,57 @@
     transform: translateX(0);
     visibility: visible;
     transition: transform 0.2s ease, visibility 0s linear 0s;
+  }
+
+  /* Chord carousel under 768px */
+  .er-chord-nav {
+    display: flex;
+  }
+
+  .er-chord-grid {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    gap: var(--space-4);
+    padding-bottom: var(--space-2);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .er-chord-grid > .er-field {
+    flex: 0 0 85%;
+    max-width: 85%;
+    scroll-snap-align: start;
+    min-width: 0;
+  }
+
+  /* Responsive polish under 768px */
+  .er-tabs-strip,
+  .er-tab-actions {
+    overflow-x: auto;
+  }
+
+  .er-lyrics-edit,
+  .er-lyrics-line {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .er-demos-section,
+  .er-invite-row {
+    min-width: 0;
+  }
+
+  .er-todo-actions {
+    flex-shrink: 0;
+  }
+
+  .er-modal {
+    max-height: calc(100vh - 2 * var(--space-4));
+    overflow-y: auto;
+  }
+
+  .er-share-cards {
+    grid-template-columns: 1fr;
   }
 }
 

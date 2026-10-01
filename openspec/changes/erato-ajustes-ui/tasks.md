@@ -144,18 +144,18 @@ Specs: design-system-port (horizontal chord diagram, D6).
 Specs: design-system-port (carousel, usable from 360px). Depends on WU3 (breakpoint) and WU4 (card width derived from the horizontal diagram width).
 
 ### RED
-- [ ] 1.1 `chord-grid.spec.ts`: wrapper has `role="group"`, `aria-roledescription="carrusel"`, `aria-label="Acordes"`; track `tabindex="0"`; one Eliminar button per chord always present; prev/next (`data-test="chord-prev|chord-next"`, aria-labels "Acorde anterior/siguiente") call stubbed `scrollBy` with +/- width; reduced-motion `matchMedia` stub yields `behavior:'auto'`, otherwise `'smooth'`.
-- [ ] 1.2 `layout-css.spec.ts` (use `mediaBlock`): inside 768px block `.er-chord-grid` has `scroll-snap-type`, `.er-chord-grid > .er-field` has `scroll-snap-align`; `.er-chord-carousel`, `.er-chord-nav` exist and are token-only; nav hidden above 768px; polish rules present (tablature `overflow-x:auto`, lyrics toolbar wrap, demo comment row wrap and `min-width:0`, todos actions `flex-shrink:0`, sharing modal `max-height` with scroll).
-- [ ] 1.3 Run `npm run test:unit -- chord-grid layout-css`; confirm FAIL.
+- [x] 1.1 `chord-grid.spec.ts`: wrapper has `role="group"`, `aria-roledescription="carrusel"`, `aria-label="Acordes"`; track `tabindex="0"`; one Eliminar button per chord always present; prev/next (`data-test="chord-prev|chord-next"`, aria-labels "Acorde anterior/siguiente") call stubbed `scrollBy` with +/- width; reduced-motion `matchMedia` stub yields `behavior:'auto'`, otherwise `'smooth'`.
+- [x] 1.2 `layout-css.spec.ts` (use `mediaBlock`): inside 768px block `.er-chord-grid` has `scroll-snap-type`, `.er-chord-grid > .er-field` has `scroll-snap-align`; `.er-chord-carousel`, `.er-chord-nav` exist and are token-only; nav hidden above 768px; polish rules present (tablature `overflow-x:auto`, lyrics toolbar wrap, demo comment row wrap and `min-width:0`, todos actions `flex-shrink:0`, sharing modal `max-height` with scroll).
+- [x] 1.3 Run `npm run test:unit -- chord-grid layout-css`; confirm FAIL.
 
 ### GREEN
-- [ ] 2.1 `features/compositions/ChordGrid.vue`: add `.er-chord-carousel` wrapper, focusable track, prev/next buttons with `scrollBy` and reduced-motion behavior; keep Eliminar inside each slide.
-- [ ] 2.2 `layout.css`: carousel rules (flex track, `scroll-snap-type: x mandatory`, slide `flex:0 0 85%`, visible focus ring, nav hidden above 768px).
-- [ ] 2.3 `layout.css` polish inside the 768px block: tablature, lyrics toolbar and touch targets (40px minimum, per spec), demo player and comments, todos, sharing modal. Overflow and target fixes only.
+- [x] 2.1 `features/compositions/ChordGrid.vue`: add `.er-chord-carousel` wrapper, focusable track, prev/next buttons with `scrollBy` and reduced-motion behavior; keep Eliminar inside each slide.
+- [x] 2.2 `layout.css`: carousel rules (flex track, `scroll-snap-type: x mandatory`, slide `flex:0 0 85%`, visible focus ring, nav hidden above 768px).
+- [x] 2.3 `layout.css` polish inside the 768px block: tablature, lyrics toolbar and touch targets (40px minimum, per spec), demo player and comments, todos, sharing modal. Overflow and target fixes only.
 
 ### REFACTOR / verify
-- [ ] 3.1 `npm run test:unit -- chord-grid layout-css` green, then full `npm run test:unit`.
-- [ ] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
-- [ ] 3.3 Backend regression, once: `cd /home/bspc/proyectos/erato/backend && .venv/bin/pytest -q` (expect 81 passed; no backend files changed).
+- [x] 3.1 `npm run test:unit -- chord-grid layout-css` green, then full `npm run test:unit`.
+- [x] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
+- [x] 3.3 Backend regression, once: `cd /home/bspc/proyectos/erato/backend && .venv/bin/pytest -q` (expect 81 passed; no backend files changed).
 - [ ] 3.4 Manual QA (author only): 360/390/768/1024px, both themes; swipe snaps, arrows/buttons scroll, Eliminar reachable, reduced-motion respected; tablature, lyrics maximize/autoscroll, demos/comments, todos, sharing modal usable; contrast 4.5:1.
-- [ ] 3.5 Work-unit commit: `feat(ui): agrega carrusel de acordes y ajusta secciones para pantallas pequenas` with explicit paths.
+- [x] 3.5 Work-unit commit: `feat(ui): agrega carrusel de acordes y ajusta secciones para pantallas pequenas` with explicit paths.

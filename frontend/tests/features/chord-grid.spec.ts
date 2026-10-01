@@ -116,4 +116,99 @@ describe('ChordGrid feature component', () => {
     expect(wrapper.find('[data-test="add-chord-btn"]').exists()).toBe(false)
     expect(wrapper.findAll('[data-test="remove-chord-btn"]').length).toBe(0)
   })
+
+  describe('chord carousel on mobile', () => {
+    it('wrapper has role="group", aria-roledescription="carrusel", and aria-label="Acordes"', () => {
+      const wrapper = mount(ChordGrid, {
+        props: {
+          chords: sampleChords,
+          editable: true,
+        },
+      })
+      const carousel = wrapper.find('.er-chord-carousel')
+      expect(carousel.exists()).toBe(true)
+      expect(carousel.attributes('role')).toBe('group')
+      expect(carousel.attributes('aria-roledescription')).toBe('carrusel')
+      expect(carousel.attributes('aria-label')).toBe('Acordes')
+    })
+
+    it('track has tabindex="0" and one Eliminar button per chord', () => {
+      const wrapper = mount(ChordGrid, {
+        props: {
+          chords: sampleChords,
+          editable: true,
+        },
+      })
+      const track = wrapper.find('.er-chord-grid')
+      expect(track.attributes('tabindex')).toBe('0')
+
+      const removeBtns = wrapper.findAll('[data-test="remove-chord-btn"]')
+      expect(removeBtns.length).toBe(sampleChords.entries.length)
+    })
+
+    it('prev and next buttons have accessible labels and call scrollBy with width and smooth behavior', async () => {
+      const wrapper = mount(ChordGrid, {
+        props: {
+          chords: sampleChords,
+          editable: true,
+        },
+      })
+      const track = wrapper.find('.er-chord-grid').element as HTMLElement
+      const scrollBySpy = vi.fn()
+      track.scrollBy = scrollBySpy
+      Object.defineProperty(track, 'clientWidth', { value: 320, configurable: true })
+
+      window.matchMedia = vi.fn().mockImplementation((query) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }))
+
+      const prevBtn = wrapper.find('[data-test="chord-prev"]')
+      const nextBtn = wrapper.find('[data-test="chord-next"]')
+      expect(prevBtn.exists()).toBe(true)
+      expect(nextBtn.exists()).toBe(true)
+      expect(prevBtn.attributes('aria-label')).toBe('Acorde anterior')
+      expect(nextBtn.attributes('aria-label')).toBe('Acorde siguiente')
+
+      await nextBtn.trigger('click')
+      expect(scrollBySpy).toHaveBeenCalledWith({ left: 320, behavior: 'smooth' })
+
+      await prevBtn.trigger('click')
+      expect(scrollBySpy).toHaveBeenCalledWith({ left: -320, behavior: 'smooth' })
+    })
+
+    it('respects prefers-reduced-motion: reduce by using behavior: auto', async () => {
+      const wrapper = mount(ChordGrid, {
+        props: {
+          chords: sampleChords,
+          editable: true,
+        },
+      })
+      const track = wrapper.find('.er-chord-grid').element as HTMLElement
+      const scrollBySpy = vi.fn()
+      track.scrollBy = scrollBySpy
+      Object.defineProperty(track, 'clientWidth', { value: 320, configurable: true })
+
+      window.matchMedia = vi.fn().mockImplementation((query) => ({
+        matches: query === '(prefers-reduced-motion: reduce)',
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      }))
+
+      const nextBtn = wrapper.find('[data-test="chord-next"]')
+      await nextBtn.trigger('click')
+      expect(scrollBySpy).toHaveBeenCalledWith({ left: 320, behavior: 'auto' })
+    })
+  })
 })
