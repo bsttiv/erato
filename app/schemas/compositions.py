@@ -157,3 +157,13 @@ class InviteResponse(BaseModel):
     role: str
     expires_at: datetime
     used_at: Optional[datetime] = None
+
+
+class MemberDetail(BaseModel):
+    user_id: Optional[str] = None
+    invite_id: Optional[str] = None
+    display_name: Optional[str] = None
+    email: Optional[str] = None
+    initials: Optional[str] = None
+    role: str
+    pending: bool = False

@@ -172,6 +172,18 @@
             @updated="onDemosUpdated"
           />
         </section>
+
+        <!-- Sharing modal -->
+        <SharingModal
+          v-if="showShareModal && comp"
+          :composition-id="comp.id"
+          :title="comp.title"
+          :visibility="comp.visibility"
+          :share-slug="comp.share_slug"
+          :can-manage="canEdit"
+          @close="showShareModal = false"
+          @visibility-changed="onVisibilityChanged"
+        />
       </div>
     </main>
   </div>
@@ -193,6 +205,7 @@ import {
 } from '@/design-system'
 import ChordGrid from './ChordGrid.vue'
 import DemosSection from '@/features/demos/DemosSection.vue'
+import SharingModal from '@/features/sharing/SharingModal.vue'
 import {
   getComposition,
   getCompositionBySlug,
@@ -373,6 +386,12 @@ function onDemosUpdated(demos: DemoTake[]) {
 function onSelectComposition(id: string) {
   if (router) {
     router.push(`/compositions/${id}`)
+  }
+}
+
+function onVisibilityChanged(vis: any) {
+  if (comp.value) {
+    comp.value.visibility = (typeof vis === 'string' ? vis : (vis ? 'public' : 'private')) as any
   }
 }
 

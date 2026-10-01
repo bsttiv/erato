@@ -12,6 +12,7 @@ from app.schemas.compositions import (
     SectionsEnabled,
     UpdateCompositionRequest,
 )
+from app.db.repositories.users import UsersRepository
 from app.services.composition_service import CompositionService
 
 router = APIRouter(prefix="/api/compositions", tags=["compositions"])
@@ -21,7 +22,23 @@ def get_service() -> CompositionService:
     return CompositionService()
 
 
-def _to_response(doc: dict, role: Optional[Any] = None) -> CompositionResponse:
+def compute_initials(name: Optional[str]) -> Optional[str]:
+    """Derive 1-2 uppercase characters from display name."""
+    if not name:
+        return None
+    parts = name.strip().split()
+    if not parts:
+        return None
+    if len(parts) == 1:
+        return parts[0][:2].upper()
+    return (parts[0][0] + parts[1][0]).upper()
+
+
+def _to_response(
+    doc: dict,
+    role: Optional[Any] = None,
+    user_map: Optional[dict] = None,
+) -> CompositionResponse:
     demos_raw = doc.get("demos") or []
     formatted_demos = [
         {
@@ -45,6 +62,21 @@ def _to_response(doc: dict, role: Optional[Any] = None) -> CompositionResponse:
     else:
         sections_enabled = SectionsEnabled()
 
+    members_list: List[MemberItem] = []
+    for m in doc.get("members", []):
+        uid_str = str(m["user_id"])
+        u = user_map.get(uid_str) if user_map else None
+        d_name = u.get("display_name") if u else m.get("display_name")
+        init = compute_initials(d_name) if d_name else m.get("initials")
+        members_list.append(
+            MemberItem(
+                user_id=uid_str,
+                role=m.get("role", "editor"),
+                display_name=d_name,
+                initials=init,
+            )
+        )
+
     return CompositionResponse(
         id=str(doc["_id"]),
         owner_id=str(doc["owner_id"]),
@@ -63,18 +95,18 @@ def _to_response(doc: dict, role: Optional[Any] = None) -> CompositionResponse:
         lyrics=doc.get("lyrics"),
         todos=doc.get("todos") or [],
         demos=formatted_demos,
-        members=[
-            MemberItem(
-                user_id=str(m["user_id"]),
-                role=m.get("role", "editor"),
-                display_name=m.get("display_name"),
-                initials=m.get("initials"),
-            )
-            for m in doc.get("members", [])
-        ],
+        members=members_list,
         created_at=doc["created_at"],
         updated_at=doc["updated_at"],
     )
+
+
+async def _to_response_async(doc: dict, role: Optional[Any] = None) -> CompositionResponse:
+    user_ids = [m["user_id"] for m in doc.get("members", []) if "user_id" in m]
+    user_map = {}
+    if user_ids:
+        user_map = await UsersRepository().get_by_ids(user_ids)
+    return _to_response(doc, role=role, user_map=user_map)
 
 
 @router.post(
@@ -186,7 +218,7 @@ async def get_by_slug(
     doc = await service.get_by_slug(slug)
     user_id = user["id"] if user else None
     role = resolve_role(user_id, doc) if user_id else None
-    return _to_response(doc, role=role)
+    return await _to_response_async(doc, role=role)
 
 
 @router.get(
@@ -199,7 +231,7 @@ async def get_composition(
     auth: AuthContext = Depends(require(Action.VIEW)),
 ) -> CompositionResponse:
     """Read a composition by ID, enforced by require(Action.VIEW)."""
-    return _to_response(auth.composition, role=auth.role)
+    return await _to_response_async(auth.composition, role=auth.role)
 
 
 @router.patch(
@@ -220,7 +252,7 @@ async def update_composition(
             update_data["sections_enabled"] = body.sections_enabled.model_dump()
 
     updated = await service.update_composition(composition_id, **update_data)
-    return _to_response(updated, role=auth.role)
+    return await _to_response_async(updated, role=auth.role)
 
 
 @router.delete(

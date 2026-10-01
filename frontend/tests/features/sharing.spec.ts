@@ -30,11 +30,10 @@ describe('SharingModal component', () => {
         canManage: true,
       },
     })
+    await flushPromises()
 
-    const toggleBtn = wrapper.find('button.er-btn--ghost')
-    expect(toggleBtn.text()).toBe('Hacer pública')
-
-    await toggleBtn.trigger('click')
+    const publicCard = wrapper.findAll('.er-share-card')[0]
+    await publicCard.trigger('click')
     await flushPromises()
 
     expect(setVisSpy).toHaveBeenCalledWith('comp-1', 'public')
@@ -43,6 +42,7 @@ describe('SharingModal component', () => {
 
   it('creates an invite and lists it', async () => {
     vi.spyOn(sharingApi, 'listInvites').mockResolvedValueOnce([])
+    vi.spyOn(sharingApi, 'listMembers').mockResolvedValueOnce([])
     const createSpy = vi.spyOn(sharingApi, 'createInvite').mockResolvedValueOnce({
       id: 'inv-1',
       composition_id: 'comp-1',
@@ -61,11 +61,17 @@ describe('SharingModal component', () => {
     })
     await flushPromises()
 
-    const createBtn = wrapper.find('.er-invites-block button.er-btn--primary')
+    const emailInput = wrapper.find('.er-invite-row input[type="email"]')
+    await emailInput.setValue('colaborador@banda.com')
+
+    const createBtn = wrapper.find('.er-invites-block button[data-test="send-invite-btn"]')
     await createBtn.trigger('click')
     await flushPromises()
 
-    expect(createSpy).toHaveBeenCalledWith('comp-1', { role: 'editor' })
+    expect(createSpy).toHaveBeenCalledWith('comp-1', {
+      invited_email: 'colaborador@banda.com',
+      role: 'editor',
+    })
     expect(wrapper.find('.er-invite-created').text()).toContain('secret-invite-token')
   })
 })
