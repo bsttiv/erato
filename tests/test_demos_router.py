@@ -66,6 +66,8 @@ async def test_demos_upload_signature_and_permission_scenarios():
         assert "api_key" in sig_data
         assert sig_data["folder"] == f"erato/test/compositions/{cid}"
         assert sig_data["type"] == "authenticated"
+        assert sig_data["tags"] == "pending"
+        assert "tag" not in sig_data
 
 
 @pytest.mark.asyncio

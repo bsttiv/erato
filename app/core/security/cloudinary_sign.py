@@ -16,8 +16,10 @@ def sign_upload_params(
 ) -> Dict[str, Any]:
     """Generate signed upload parameters for direct client-to-Cloudinary upload.
     
-    Includes timestamp, folder=erato/compositions/{id}, resource_type=video, tag=pending,
-    authenticated delivery type, and signature computed with CLOUDINARY_API_SECRET.
+    Signs exactly the parameters the client POSTs to Cloudinary: folder, tags=pending,
+    timestamp and type=authenticated. resource_type is part of the upload URL path, so it
+    is returned for information but never signed. The signature is computed with
+    CLOUDINARY_API_SECRET.
     """
     settings = get_settings()
     prefix = folder_prefix or settings.cloudinary_folder_prefix
@@ -28,11 +30,10 @@ def sign_upload_params(
     timestamp = int(datetime.now(timezone.utc).timestamp())
     folder = f"{prefix}/compositions/{composition_id}"
 
-    # Parameters that Cloudinary requires in the signature
+    # Only parameters actually sent in the upload POST are signed
     params_to_sign = {
         "folder": folder,
-        "resource_type": "video",
-        "tag": "pending",
+        "tags": "pending",
         "timestamp": timestamp,
         "type": "authenticated",
     }
@@ -41,6 +42,7 @@ def sign_upload_params(
 
     return {
         **params_to_sign,
+        "resource_type": "video",
         "api_key": key,
         "cloud_name": cname,
         "signature": signature,

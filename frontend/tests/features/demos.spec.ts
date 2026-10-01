@@ -81,6 +81,8 @@ describe('Demos upload flow (direct-to-Cloudinary)', () => {
     expect(formData.get('file')).toBeDefined()
     expect(formData.get('api_key')).toBe('cloud_api_key_123')
     expect(formData.get('signature')).toBe('test_sha_sig')
+    expect(formData.get('tags')).toBe('pending')
+    expect(formData.get('tags')).not.toBe('undefined')
 
     // 4. Verify confirmation payload with references only (no audio binary)
     expect(confirmSpy).toHaveBeenCalledTimes(1)

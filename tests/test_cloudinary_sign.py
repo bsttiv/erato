@@ -25,7 +25,8 @@ def test_sign_upload_params_structure_and_signature():
     # Required fields
     assert params["folder"] == f"{folder_prefix}/compositions/{cid}"
     assert params["resource_type"] == "video"
-    assert params["tag"] == "pending"
+    assert params["tags"] == "pending"
+    assert "tag" not in params
     assert params["type"] == "authenticated"
     assert "timestamp" in params
     assert isinstance(params["timestamp"], int)
@@ -33,6 +34,23 @@ def test_sign_upload_params_structure_and_signature():
     assert params["cloud_name"] == cloud_name
     assert "signature" in params
     assert len(params["signature"]) > 0
+
+    # Signature covers exactly the params the client POSTs to Cloudinary
+    import cloudinary.utils
+
+    signed = {
+        "folder": params["folder"],
+        "tags": "pending",
+        "timestamp": params["timestamp"],
+        "type": "authenticated",
+    }
+    assert params["signature"] == cloudinary.utils.api_sign_request(signed, api_secret)
+
+    # resource_type travels in the URL path, so it must NOT be signed
+    with_resource_type = {**signed, "resource_type": "video"}
+    assert params["signature"] != cloudinary.utils.api_sign_request(
+        with_resource_type, api_secret
+    )
 
 
 def test_verify_upload_response_accepts_valid_and_rejects_forged():
