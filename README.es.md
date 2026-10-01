@@ -6,6 +6,10 @@
 
 Erato (nombrado en honor a la musa griega de la lírica coral y la poesía) es una aplicación web diseñada para que los integrantes de una banda organicen y compartan sus composiciones en un solo lugar. En lugar de dispersar notas de voz en aplicaciones de mensajería, letras en documentos sueltos y acordes en papeles fotografiados, cada composición en Erato reúne en una interfaz armónica todos los elementos de un tema musical: acordes interactivos, tablaturas precisas, letras sincronizables, demos con comentarios temporales y una lista de pendientes.
 
+<p align="center">
+  <img src="img/dashboard.png" alt="Panel de Erato en el tema oscuro Noche: lista de composiciones con filtros por estado" width="900">
+</p>
+
 ---
 
 ## 1. Qué es Erato y qué problema resuelve
@@ -55,6 +59,31 @@ Cada composición en Erato se organiza en módulos opcionales y flexibles:
   - Generación y revocación de enlaces de invitación con tokens criptográficos de un solo uso.
 
 *(Nota: En futuras iteraciones se incorporarán capturas de pantalla y demostraciones animadas del flujo completo).*
+
+### Recorrido del producto
+
+**Crear una canción y abrirla**
+
+| Crear una canción | Vista de composición |
+|---|---|
+| ![Formulario de nueva canción: título, tonalidad, tempo, compás, estado, visibilidad y secciones iniciales](img/crear.png) | ![Vista de composición con estado, visibilidad, navegación por secciones, letra y tareas de ensayo](img/vista%20composicion.png) |
+
+**Editor de acordes con detección automática**
+
+| Diapasón de guitarra | Guitarra y piano |
+|---|---|
+| ![Editor de acordes sobre un diapasón horizontal que detecta el nombre del acorde a partir de las notas](img/editor-acorde.gif) | ![Tarjetas de acordes de guitarra y piano; los acordes con barra como AbMaj7/G se detectan solos](img/editor-acorde-2.gif) |
+
+**Letra**
+
+| Visor de letra | Acordes sobre las sílabas |
+|---|---|
+| ![Visor de letra con velocidad de desplazamiento ajustable y modo pantalla completa](img/letra.gif) | ![Asignación de acordes a las sílabas de la letra desde la paleta de acordes](img/letra-acordes.gif) |
+
+**Reproductor de demos con comentarios anclados**
+
+![Reproductor de demos con forma de onda y un comentario anclado al segundo actual](img/demo.gif)
+
 
 ---
 

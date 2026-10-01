@@ -6,6 +6,10 @@
 
 Erato (named after the Greek muse of lyric poetry and choral song) is a web application designed for band members to organize, compose, and share their songs in a single place. Instead of dispersing voice memos across messaging apps, lyrics in loose documents, and chord sheets in smartphone photos, each composition in Erato brings all musical elements together in an elegant, unified interface: interactive chord diagrams, precise tablature editing, auto-scrolling synced lyrics, audio demo takes with timestamped feedback, and rehearsal to-do lists.
 
+<p align="center">
+  <img src="img/dashboard.png" alt="Erato dashboard in the dark Noche theme: composition list with status filters" width="900">
+</p>
+
 ---
 
 ## 1. What Erato is and the problem it solves
@@ -56,6 +60,31 @@ Every composition in Erato is organized into flexible, modular sections:
   - Role hierarchy: **Owner** (`owner`), **Editor** (`editor`), and **Viewer** (`viewer`), strictly enforced on every backend request.
   - Anti-probing security: uninvited requests to private resources return `404 Not Found` rather than `403 Forbidden`, preventing resource enumeration.
   - Single-use cryptographically secure invitation tokens with TTL expiration.
+
+### Product tour
+
+**Create a song and open it**
+
+| Create a song | Composition view |
+|---|---|
+| ![Create-song form: title, key, tempo, time signature, status, visibility and initial sections](img/crear.png) | ![Composition view with status, visibility, section navigation, lyrics and rehearsal tasks](img/vista%20composicion.png) |
+
+**Chord editor with automatic chord detection**
+
+| Guitar fretboard | Guitar and piano |
+|---|---|
+| ![Chord editor on a horizontal guitar fretboard that detects the chord name from the notes](img/editor-acorde.gif) | ![Guitar and piano chord cards, with slash chords such as AbMaj7/G detected automatically](img/editor-acorde-2.gif) |
+
+**Lyrics**
+
+| Lyrics viewer | Chords over syllables |
+|---|---|
+| ![Lyrics viewer with adjustable auto-scroll speed and full-screen mode](img/letra.gif) | ![Assigning chords to lyric syllables from the chord palette](img/letra-acordes.gif) |
+
+**Demo player with timestamped comments**
+
+![Demo player with a waveform and a comment anchored to the current timestamp](img/demo.gif)
+
 
 ---
 
