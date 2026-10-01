@@ -10,6 +10,8 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
+        # Blank values (`KEY=` in .env, empty variable in the host panel) count as unset.
+        env_ignore_empty=True,
     )
 
     # Database
