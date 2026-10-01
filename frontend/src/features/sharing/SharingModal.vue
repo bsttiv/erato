@@ -72,12 +72,6 @@
       </div>
 
       <div class="er-invite-row">
-        <input
-          v-model="inviteEmail"
-          type="email"
-          placeholder="correo@ejemplo.com"
-          class="er-input"
-        >
         <select v-model="inviteRole" class="er-select">
           <option value="editor">
             Editor (puede editar)
@@ -89,20 +83,43 @@
         <ErButton
           data-test="send-invite-btn"
           variant="primary"
-          :disabled="sendingInvite || !inviteEmail"
+          :disabled="sendingInvite"
           @click="handleSendInvite"
         >
-          Invitar
+          Crear enlace de invitación
         </ErButton>
       </div>
 
-      <!-- Newly created invite banner -->
-      <div v-if="newInviteUrl" class="er-invite-created er-panel">
+      <!-- Newly created invite link -->
+      <div
+        v-if="newInviteUrl"
+        class="er-invite-created er-panel"
+        data-test="invite-result"
+      >
         <div class="er-label">
-          Invitación creada
+          Enlace de invitación
         </div>
-        <p class="er-share-link">
-          {{ newInviteUrl }}
+        <div class="er-share-link">
+          <input
+            type="text"
+            readonly
+            :value="newInviteUrl"
+            class="er-input"
+            aria-label="Enlace de invitación"
+          >
+          <ErButton
+            data-test="copy-invite-btn"
+            variant="quiet"
+            @click="copyInviteLink"
+          >
+            Copiar enlace
+          </ErButton>
+        </div>
+        <p v-if="inviteExpiry" class="er-hint">
+          Vence el {{ inviteExpiry }}
+        </p>
+        <p v-if="inviteCopied" class="er-hint" role="status">
+          Enlace copiado
         </p>
       </div>
 
@@ -126,7 +143,7 @@
                 {{ m.initials || '?' }}
               </span>
               <div>
-                <span class="er-member-id">{{ m.display_name || m.email }}</span>
+                <span class="er-member-id">{{ memberName(m) }}</span>
                 <span v-if="m.display_name && m.email" class="er-hint">
                   ({{ m.email }})
                 </span>
@@ -207,10 +224,11 @@ const currentVisibility = ref<Visibility>(
 )
 
 const copied = ref(false)
-const inviteEmail = ref('')
 const inviteRole = ref<'editor' | 'viewer'>('editor')
 const sendingInvite = ref(false)
 const newInviteUrl = ref<string | null>(null)
+const inviteExpiry = ref<string | null>(null)
+const inviteCopied = ref(false)
 
 const members = ref<MemberDetail[]>([])
 const loadingMembers = ref(false)
@@ -228,6 +246,16 @@ function roleLabel(role: MemberRole | string): string {
   if (role === 'editor') return 'Editor'
   if (role === 'viewer') return 'Solo ver'
   return role
+}
+
+function memberName(m: MemberDetail): string {
+  return m.display_name || m.email || 'Invitación por enlace'
+}
+
+function formatExpiry(iso: string | null | undefined): string | null {
+  if (!iso) return null
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString('es')
 }
 
 function roleTone(role: MemberRole | string): 'amber' | 'wine' | 'neutral' {
@@ -265,6 +293,19 @@ async function copyShareLink() {
   }
 }
 
+async function copyInviteLink() {
+  if (!newInviteUrl.value || !navigator.clipboard) return
+  try {
+    await navigator.clipboard.writeText(newInviteUrl.value)
+    inviteCopied.value = true
+    setTimeout(() => {
+      inviteCopied.value = false
+    }, 2000)
+  } catch {
+    inviteCopied.value = false
+  }
+}
+
 async function loadMembers() {
   if (!props.canManage) return
   loadingMembers.value = true
@@ -278,12 +319,12 @@ async function loadMembers() {
 }
 
 async function handleSendInvite() {
-  if (!inviteEmail.value) return
   sendingInvite.value = true
   newInviteUrl.value = null
+  inviteExpiry.value = null
+  inviteCopied.value = false
   try {
     const res = await createInvite(props.compositionId, {
-      invited_email: inviteEmail.value,
       role: inviteRole.value,
     })
     if (res.invite_url) {
@@ -291,7 +332,7 @@ async function handleSendInvite() {
     } else if (res.token) {
       newInviteUrl.value = `${window.location.origin}/invite/${res.token}`
     }
-    inviteEmail.value = ''
+    inviteExpiry.value = formatExpiry(res.expires_at)
     await loadMembers()
   } catch {
     // Error handling

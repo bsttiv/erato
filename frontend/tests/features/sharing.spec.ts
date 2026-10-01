@@ -61,17 +61,14 @@ describe('SharingModal component', () => {
     })
     await flushPromises()
 
-    const emailInput = wrapper.find('.er-invite-row input[type="email"]')
-    await emailInput.setValue('colaborador@banda.com')
-
     const createBtn = wrapper.find('.er-invites-block button[data-test="send-invite-btn"]')
     await createBtn.trigger('click')
     await flushPromises()
 
     expect(createSpy).toHaveBeenCalledWith('comp-1', {
-      invited_email: 'colaborador@banda.com',
       role: 'editor',
     })
-    expect(wrapper.find('.er-invite-created').text()).toContain('secret-invite-token')
+    const link = wrapper.find('.er-invite-created input[readonly]')
+    expect((link.element as HTMLInputElement).value).toContain('/invite/secret-invite-token')
   })
 })
