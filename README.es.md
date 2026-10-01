@@ -56,7 +56,7 @@ Cada composición en Erato se organiza en módulos opcionales y flexibles:
 - **Compartir y control de acceso granular:**
   - Modos de visibilidad: **Pública** (cualquiera con el enlace puede consultar la composición sin necesidad de iniciar sesión; solo los usuarios invitados pueden editarla) o **Privada** (restringida exclusivamente a integrantes invitados).
   - Roles de usuario: **Dueño** (`owner`), **Editor** (`editor`) y **Lector** (`viewer`), validados estrictamente en cada petición del backend.
-  - Generación y revocación de enlaces de invitación con tokens criptográficos de un solo uso.
+  - Generación y revocación de enlaces de invitación con tokens criptográficos.
 
 *(Nota: En futuras iteraciones se incorporarán capturas de pantalla y demostraciones animadas del flujo completo).*
 

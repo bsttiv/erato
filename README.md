@@ -59,7 +59,7 @@ Every composition in Erato is organized into flexible, modular sections:
     - **Private:** Strictly restricted to invited band members.
   - Role hierarchy: **Owner** (`owner`), **Editor** (`editor`), and **Viewer** (`viewer`), strictly enforced on every backend request.
   - Anti-probing security: uninvited requests to private resources return `404 Not Found` rather than `403 Forbidden`, preventing resource enumeration.
-  - Single-use cryptographically secure invitation tokens with TTL expiration.
+  - Invitation links with cryptographically secure tokens and TTL expiration.
 
 ### Product tour
 
