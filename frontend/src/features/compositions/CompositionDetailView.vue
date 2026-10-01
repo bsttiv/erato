@@ -113,16 +113,15 @@
         <!-- Two-column band: Lyrics & Todos -->
         <div class="er-comp-columns">
           <div class="er-comp-column">
-            <section
+            <LyricsSection
               v-if="isSectionEnabled('lyrics')"
               id="sec-lyrics"
-              class="er-section"
-            >
-              <ErLyricsViewer
-                :lyrics="lyricsText"
-                :title="`Letra — ${comp.title}`"
-              />
-            </section>
+              :lyrics="lyricsText"
+              :title="`Letra — ${comp.title}`"
+              :chords="compChords"
+              :editable="canEdit"
+              @update:lyrics="onLyricsUpdate"
+            />
           </div>
 
           <div class="er-comp-column">
@@ -191,7 +190,6 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   ErButton,
   ErTag,
-  ErLyricsViewer,
   ErTodoList,
   ErSideNav,
   type SideNavItem,
@@ -199,14 +197,18 @@ import {
 } from '@/design-system'
 import ChordGrid from './ChordGrid.vue'
 import TablatureSection from './TablatureSection.vue'
+import LyricsSection from './LyricsSection.vue'
 import DemosSection from '@/features/demos/DemosSection.vue'
+import { resolveCompositionRef } from './resolveCompositionRef'
 import SharingModal from '@/features/sharing/SharingModal.vue'
 import type { TabEntry } from '@/design-system/core/tab'
 import {
   getComposition,
-  getCompositionBySlug,
   listCompositions,
-  updateSection,
+  updateChordsSection,
+  updateTablatureSection,
+  updateLyricsSection,
+  updateTodosSection,
   type CompositionResponse,
   type CompositionListItem,
   type ChordsSection,
@@ -388,6 +390,10 @@ function onTabsUpdate(val: TabEntry[]) {
   compTabs.value = val
 }
 
+function onLyricsUpdate(val: string) {
+  lyricsText.value = val
+}
+
 function onDemosUpdated(demos: DemoTake[]) {
   compDemos.value = demos
 }
@@ -408,8 +414,8 @@ async function loadData() {
   if (!props.composition && route) {
     loading.value = true
     try {
-      if (route.name === 'composition-public' && route.params.slug) {
-        const res = await getCompositionBySlug(route.params.slug as string)
+      if (route.name === 'composition-public' && route.params.ref) {
+        const res = await resolveCompositionRef(route.params.ref as string)
         comp.value = res
         normalizeCompositionData(res)
       } else if (route.params.id) {
@@ -441,10 +447,12 @@ async function saveAll() {
   saveStateText.value = 'guardando...'
 
   try {
+    const id = comp.value.id
     await Promise.all([
-      updateSection(comp.value.id, 'chords', compChords.value).catch(() => {}),
-      updateSection(comp.value.id, 'tablature', { tabs: compTabs.value }).catch(() => {}),
-      updateSection(comp.value.id, 'todos', { items: todoItems.value }).catch(() => {}),
+      updateChordsSection(id, compChords.value),
+      updateTablatureSection(id, { tabs: compTabs.value }),
+      updateLyricsSection(id, { content: lyricsText.value }),
+      updateTodosSection(id, todoItems.value),
     ])
     saveStateText.value = 'guardado'
   } catch {

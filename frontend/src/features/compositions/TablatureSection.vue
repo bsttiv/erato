@@ -59,7 +59,7 @@
             data-test="rename-tab-btn"
             @click="startRename"
           >
-            ✎ Renombrar
+            Renombrar
           </ErButton>
 
           <template v-if="!confirmDelete">
@@ -69,7 +69,7 @@
               data-test="delete-tab-btn"
               @click="confirmDelete = true"
             >
-              🗑 Borrar
+              Borrar
             </ErButton>
           </template>
           <template v-else>

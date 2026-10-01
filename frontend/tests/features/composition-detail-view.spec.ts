@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import CompositionDetailView from '@/features/compositions/CompositionDetailView.vue'
 import ChordGrid from '@/features/compositions/ChordGrid.vue'
@@ -71,7 +71,7 @@ async function setupRouter(initialPath: string = '/compositions/comp-100') {
     routes: [
       { path: '/', name: 'dashboard', component: { template: '<div>Dashboard</div>' } },
       { path: '/compositions/:id', name: 'composition-detail', component: CompositionDetailView },
-      { path: '/c/:slug', name: 'composition-public', component: CompositionDetailView },
+      { path: '/c/:ref', name: 'composition-public', component: CompositionDetailView },
     ],
   })
   await router.push(initialPath)
@@ -204,5 +204,83 @@ describe('CompositionDetailView', () => {
     // Components rendered
     expect(wrapper.findComponent(ChordGrid).exists()).toBe(true)
     expect(wrapper.findComponent(DemosSection).exists()).toBe(true)
+  })
+  describe('saveAll', () => {
+    async function mountOwner() {
+      const router = await setupRouter('/compositions/comp-100')
+      const wrapper = mount(CompositionDetailView, {
+        props: { composition: sampleComposition },
+        global: { plugins: [router] },
+      })
+      await flushPromises()
+      return wrapper
+    }
+
+    function mockSectionApis() {
+      return {
+        chords: vi.spyOn(compApi, 'updateChordsSection').mockResolvedValue(sampleComposition.chords!),
+        tablature: vi
+          .spyOn(compApi, 'updateTablatureSection')
+          .mockResolvedValue(sampleComposition.tablature!),
+        lyrics: vi.spyOn(compApi, 'updateLyricsSection').mockResolvedValue(sampleComposition.lyrics!),
+        todos: vi.spyOn(compApi, 'updateTodosSection').mockResolvedValue(sampleComposition.todos!),
+      }
+    }
+
+    it('calls each typed section endpoint with the right id and payload', async () => {
+      const spies = mockSectionApis()
+      const wrapper = await mountOwner()
+
+      await wrapper.find('.er-save-btn').trigger('click')
+      await flushPromises()
+
+      expect(spies.chords).toHaveBeenCalledWith('comp-100', sampleComposition.chords)
+      expect(spies.tablature).toHaveBeenCalledWith('comp-100', {
+        tabs: sampleComposition.tablature!.tabs,
+      })
+      expect(spies.lyrics).toHaveBeenCalledWith('comp-100', {
+        content: sampleComposition.lyrics!.content,
+      })
+      expect(spies.todos).toHaveBeenCalledWith('comp-100', sampleComposition.todos)
+      expect(wrapper.find('.er-savestate').text()).toBe('guardado')
+    })
+
+    it('shows an error state when any section save rejects', async () => {
+      const spies = mockSectionApis()
+      spies.lyrics.mockRejectedValue(new Error('boom'))
+      const wrapper = await mountOwner()
+
+      await wrapper.find('.er-save-btn').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.find('.er-savestate').text()).toBe('error al guardar')
+    })
+  })
+
+  describe('public ref resolution', () => {
+    const hex = '64b7f0c2a1b2c3d4e5f60718'
+
+    it('loads a hex ref by id and falls back to slug on 404', async () => {
+      const byId = vi
+        .spyOn(compApi, 'getComposition')
+        .mockRejectedValue(new compApi.HttpError('nf', 404))
+      const bySlug = vi.spyOn(compApi, 'getCompositionBySlug').mockResolvedValue(sampleComposition)
+      const router = await setupRouter(`/c/${hex}`)
+      const wrapper = mount(CompositionDetailView, { global: { plugins: [router] } })
+      await flushPromises()
+      expect(byId).toHaveBeenCalledWith(hex)
+      expect(bySlug).toHaveBeenCalledWith(hex)
+      expect(wrapper.find('.er-comp-title').text()).toBe('Noche de otoño')
+    })
+
+    it('loads a non-hex ref straight by slug', async () => {
+      const byId = vi.spyOn(compApi, 'getComposition').mockResolvedValue(sampleComposition)
+      const bySlug = vi.spyOn(compApi, 'getCompositionBySlug').mockResolvedValue(sampleComposition)
+      const router = await setupRouter('/c/slug-100')
+      mount(CompositionDetailView, { global: { plugins: [router] } })
+      await flushPromises()
+      expect(bySlug).toHaveBeenCalledWith('slug-100')
+      expect(byId).not.toHaveBeenCalled()
+    })
   })
 })

@@ -27,3 +27,10 @@ export * from './ErDemoPlayer.vue'
 
 export { default as ErTodoList } from './ErTodoList.vue'
 export * from './ErTodoList.vue'
+
+export { default as ErChordPalette } from './ErChordPalette.vue'
+export * from './ErChordPalette.vue'
+
+export { default as ErLyricsChordEditor } from './ErLyricsChordEditor.vue'
+export * from './ErLyricsChordEditor.vue'
+

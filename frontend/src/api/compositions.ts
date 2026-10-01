@@ -150,10 +150,21 @@ export async function listCompositions(): Promise<CompositionListItem[]> {
   return res.json()
 }
 
+/** Error carrying the HTTP status so callers can branch on it (e.g. 404). */
+export class HttpError extends Error {
+  status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'HttpError'
+    this.status = status
+  }
+}
+
 export async function getComposition(id: string): Promise<CompositionResponse> {
   const res = await apiClient(`/compositions/${id}`)
   if (!res.ok) {
-    throw new Error('Composición no encontrada')
+    throw new HttpError('Composición no encontrada', res.status)
   }
   return res.json()
 }

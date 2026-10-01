@@ -36,7 +36,7 @@ export const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/c/:slug',
+    path: '/c/:ref',
     name: 'composition-public',
     component: () => import('@/features/compositions/CompositionDetailView.vue'),
     meta: { public: true },
