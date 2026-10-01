@@ -19,7 +19,6 @@
         <ErButton
           v-if="editable"
           variant="primary"
-          icon="plus"
           data-test="add-chord-btn"
           @click="addChord"
         >
@@ -38,27 +37,60 @@
       </span>
     </div>
 
-    <div v-if="entries.length" class="er-chord-grid">
+    <div
+      v-if="entries.length"
+      class="er-chord-carousel"
+      role="group"
+      aria-roledescription="carrusel"
+      aria-label="Acordes"
+    >
+      <div class="er-chord-nav">
+        <button
+          type="button"
+          class="er-btn er-btn--ghost"
+          data-test="chord-prev"
+          aria-label="Acorde anterior"
+          @click="scrollPrev"
+        >
+          <ErIcon name="left" />
+        </button>
+        <button
+          type="button"
+          class="er-btn er-btn--ghost"
+          data-test="chord-next"
+          aria-label="Acorde siguiente"
+          @click="scrollNext"
+        >
+          <ErIcon name="right" />
+        </button>
+      </div>
+
       <div
-        v-for="(entry, idx) in entries"
-        :key="idx"
-        class="er-field"
+        ref="trackRef"
+        class="er-chord-grid"
+        tabindex="0"
       >
-        <ErChordEditor
-          :default-frets="entry.notes"
-          :default-instrument="currentInstrument"
-          :editable="editable"
-          hide-switch
-          @change="onChordChange(idx, $event)"
-        />
-        <div v-if="editable" class="er-field-row">
-          <ErButton
-            variant="ghost"
-            data-test="remove-chord-btn"
-            @click="removeChord(idx)"
-          >
-            Eliminar
-          </ErButton>
+        <div
+          v-for="(entry, idx) in entries"
+          :key="idx"
+          class="er-field"
+        >
+          <ErChordEditor
+            :default-frets="entry.notes"
+            :default-instrument="currentInstrument"
+            :editable="editable"
+            hide-switch
+            @change="onChordChange(idx, $event)"
+          />
+          <div v-if="editable" class="er-field-row">
+            <ErButton
+              variant="ghost"
+              data-test="remove-chord-btn"
+              @click="removeChord(idx)"
+            >
+              Eliminar
+            </ErButton>
+          </div>
         </div>
       </div>
     </div>
@@ -70,7 +102,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { ErButton, ErSegmented, ErChordEditor, type ChordValue } from '@/design-system'
+import { ErButton, ErSegmented, ErChordEditor, ErIcon, type ChordValue } from '@/design-system'
 import type { ChordsSection, ChordEntry } from '@/api/compositions'
 
 const props = withDefaults(
@@ -87,6 +119,28 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'update:chords', value: ChordsSection): void
 }>()
+
+const trackRef = ref<HTMLElement | null>(null)
+
+function getScrollBehavior(): ScrollBehavior {
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReducedMotion) return 'auto'
+  }
+  return 'smooth'
+}
+
+function scrollPrev() {
+  if (!trackRef.value) return
+  const w = trackRef.value.clientWidth || 300
+  trackRef.value.scrollBy({ left: -w, behavior: getScrollBehavior() })
+}
+
+function scrollNext() {
+  if (!trackRef.value) return
+  const w = trackRef.value.clientWidth || 300
+  trackRef.value.scrollBy({ left: w, behavior: getScrollBehavior() })
+}
 
 const currentInstrument = ref<'guitar' | 'piano'>(
   (props.chords?.instrument as 'guitar' | 'piano') || 'guitar'

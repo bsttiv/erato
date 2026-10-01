@@ -6,20 +6,6 @@
     No se encontró la composición.
   </div>
   <div v-else :class="['er-layout', { 'er-layout--noside': !showSidebar }]">
-    <!-- Mobile drawer toggle -->
-    <button
-      v-if="showSidebar"
-      ref="toggleRef"
-      type="button"
-      class="er-drawer-toggle"
-      aria-label="Abrir menú"
-      aria-controls="er-sidebar"
-      :aria-expanded="drawer.open.value ? 'true' : 'false'"
-      @click="drawer.toggle"
-    >
-      <ErIcon name="menu" />
-    </button>
-
     <!-- Mobile drawer backdrop -->
     <div
       v-if="showSidebar && drawer.open.value"
@@ -34,11 +20,6 @@
       ref="sidebarRef"
       :class="['er-sidebar', { 'er-sidebar--open': drawer.open.value }]"
     >
-      <div class="er-sidebar-foot">
-        <router-link to="/">
-          ← todas las composiciones
-        </router-link>
-      </div>
       <ErSideNav
         :items="sidebarNavItems"
         :model-value="comp.id"
@@ -51,91 +32,113 @@
       <div class="er-comp-detail">
         <!-- Top header -->
         <header class="er-comp-header">
-          <div>
-            <nav class="er-crumb" aria-label="Miga de pan">
-              <router-link to="/">
-                composiciones
-              </router-link>
-              <span> / </span>
-              <span>{{ comp.title }}</span>
-            </nav>
+          <!-- Navigation & Actions bar -->
+          <div class="er-comp-header-nav">
+            <div class="er-comp-header-nav-left">
+              <button
+                v-if="showSidebar"
+                ref="toggleRef"
+                type="button"
+                class="er-drawer-toggle"
+                aria-label="Abrir menú"
+                aria-controls="er-sidebar"
+                :aria-expanded="drawer.open.value ? 'true' : 'false'"
+                @click="drawer.toggle"
+              >
+                <ErIcon name="menu" />
+              </button>
 
-            <div class="er-field-row">
-              <h1 class="er-comp-title">
-                {{ comp.title }}
-              </h1>
-              <span class="er-savestate">{{ saveStateText }}</span>
+              <router-link to="/" class="er-comp-back-btn" aria-label="Todas las composiciones">
+                ← todas las composiciones
+              </router-link>
+
+              <nav class="er-crumb" aria-label="Miga de pan">
+                <router-link to="/">
+                  composiciones
+                </router-link>
+                <span> / </span>
+                <span>{{ comp.title }}</span>
+              </nav>
             </div>
 
-            <div class="er-comp-meta">
-              <ErSegmented
-                v-if="canEdit"
-                data-test="status-segmented"
-                :model-value="comp.status || 'idea'"
-                :options="STATUS_OPTIONS"
-                label="Estado"
-                :disabled="isUpdatingStatus"
-                @update:model-value="onStatusChange"
-              />
-              <ErTag v-else :tone="statusTone" dot>
-                {{ statusLabel(comp.status) }}
-              </ErTag>
-              <ErTag v-if="comp.key" tone="neutral">
-                {{ comp.key }}
-              </ErTag>
-              <ErTag v-if="comp.bpm" tone="neutral">
-                {{ comp.bpm }} bpm
-              </ErTag>
-              <ErTag v-if="comp.time_signature" tone="neutral">
-                {{ comp.time_signature }}
-              </ErTag>
-              <ErTag
-                v-for="tag in comp.style_tags || []"
-                :key="tag"
-                tone="neutral"
-              >
-                {{ tag }}
-              </ErTag>
-              <ErTag :tone="isPublic ? 'moss' : 'neutral'">
-                {{ isPublic ? 'Pública' : 'Privada' }}
-              </ErTag>
-              <ErTag class="er-role-tag" :tone="roleTone">
-                {{ roleLabel }}
-              </ErTag>
+            <div class="er-comp-header-nav-right">
+              <!-- Member avatar stack -->
+              <div v-if="comp.members && comp.members.length" class="er-avatars">
+                <span
+                  v-for="m in comp.members"
+                  :key="m.user_id"
+                  class="er-avatar"
+                  :title="m.display_name || undefined"
+                >
+                  {{ m.initials }}
+                </span>
+              </div>
+
+              <!-- Action buttons for editor / owner -->
+              <div v-if="canEdit" class="er-comp-tags">
+                <ErButton
+                  data-test="share-btn"
+                  variant="ghost"
+                  @click="showShareModal = true"
+                >
+                  Compartir
+                </ErButton>
+                <ErButton
+                  class="er-save-btn"
+                  variant="primary"
+                  :disabled="isSaving"
+                  @click="saveAll"
+                >
+                  Guardar cambios
+                </ErButton>
+              </div>
             </div>
           </div>
 
-          <div class="er-field-row">
-            <!-- Member avatar stack -->
-            <div v-if="comp.members && comp.members.length" class="er-avatars">
-              <span
-                v-for="m in comp.members"
-                :key="m.user_id"
-                class="er-avatar"
-                :title="m.display_name || undefined"
-              >
-                {{ m.initials }}
-              </span>
-            </div>
+          <!-- Title bar: space-between layout for title and savestate -->
+          <div class="er-comp-title-row">
+            <h1 class="er-comp-title">
+              {{ comp.title }}
+            </h1>
+            <span class="er-savestate">{{ saveStateText }}</span>
+          </div>
 
-            <!-- Action buttons for editor / owner -->
-            <div v-if="canEdit" class="er-comp-tags">
-              <ErButton
-                data-test="share-btn"
-                variant="ghost"
-                @click="showShareModal = true"
-              >
-                Compartir
-              </ErButton>
-              <ErButton
-                class="er-save-btn"
-                variant="primary"
-                :disabled="isSaving"
-                @click="saveAll"
-              >
-                Guardar cambios
-              </ErButton>
-            </div>
+          <!-- Metadata chips bar -->
+          <div class="er-comp-meta">
+            <ErSegmented
+              v-if="canEdit"
+              data-test="status-segmented"
+              :model-value="comp.status || 'idea'"
+              :options="STATUS_OPTIONS"
+              label="Estado"
+              :disabled="isUpdatingStatus"
+              @update:model-value="onStatusChange"
+            />
+            <ErTag v-else :tone="statusTone" dot>
+              {{ statusLabel(comp.status) }}
+            </ErTag>
+            <ErTag v-if="comp.key" tone="neutral">
+              {{ comp.key }}
+            </ErTag>
+            <ErTag v-if="comp.bpm" tone="neutral">
+              {{ comp.bpm }} bpm
+            </ErTag>
+            <ErTag v-if="comp.time_signature" tone="neutral">
+              {{ comp.time_signature }}
+            </ErTag>
+            <ErTag
+              v-for="tag in comp.style_tags || []"
+              :key="tag"
+              tone="neutral"
+            >
+              {{ tag }}
+            </ErTag>
+            <ErTag :tone="isPublic ? 'moss' : 'neutral'">
+              {{ isPublic ? 'Pública' : 'Privada' }}
+            </ErTag>
+            <ErTag class="er-role-tag" :tone="roleTone">
+              {{ roleLabel }}
+            </ErTag>
           </div>
         </header>
 

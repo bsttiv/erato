@@ -3,7 +3,7 @@
     {{ info ? '¿?' : '—' }}
   </div>
   <div v-else class="er-chord-name" aria-live="polite">
-    {{ baseNote }}<sup v-if="quality">{{ quality }}</sup><small v-if="slash">{{ slash }}</small>
+    <span class="er-chord-root-note">{{ baseNote }}</span><sup v-if="quality" class="er-chord-quality">{{ quality }}</sup><small v-if="slash" class="er-chord-slash">{{ slash }}</small>
   </div>
 </template>
 

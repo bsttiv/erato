@@ -59,7 +59,7 @@ Specs: design-system-port (no overflow), app-shell-and-navigation (one Cancelar,
 ### REFACTOR / verify
 - [x] 3.1 `npm run test:unit -- format composition-create ErDemoPlayer layout-css composition-detail` all green; then full `npm run test:unit`.
 - [x] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
-- [ ] 3.3 Manual QA (author only): 360/390/768/1024px in Noche and Matine; compas input inside card, single Cancelar, link first, crumb contrast 4.5:1, dates like "1 oct 2026".
+- [x] 3.3 Manual QA (author only, confirmed by the author): 360/390/768/1024px in Noche and Matine; compas input inside card, single Cancelar, link first, crumb contrast 4.5:1, dates like "1 oct 2026".
 - [x] 3.4 Work-unit commit: `fix(ui): corrige desbordes, Cancelar duplicado, enlace lateral y fechas de demos` with explicit paths.
 
 ---
@@ -90,7 +90,7 @@ Specs: design-system-port (ErBrand), composition-content (status editing).
 ### REFACTOR / verify
 - [x] 3.1 Focused command green, then full `npm run test:unit` (ErSideNav is shared).
 - [x] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
-- [ ] 3.3 Manual QA (author only): 360/390/768/1024px, both themes; same logo on all five places; status persists after reload; offline failure reverts; viewer sees tag.
+- [x] 3.3 Manual QA (author only, confirmed by the author): 360/390/768/1024px, both themes; same logo on all five places; status persists after reload; offline failure reverts; viewer sees tag.
 - [x] 3.4 Work-unit commit: `feat(ui): unifica el logo con ErBrand y permite editar el estado` with explicit paths.
 
 ---
@@ -114,7 +114,7 @@ Specs: app-shell-and-navigation (drawer, one-column collapse).
 ### REFACTOR / verify
 - [x] 3.1 Focused command green, then full `npm run test:unit`.
 - [x] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
-- [ ] 3.3 Manual QA (author only): 360/390/768/1024px, both themes; no horizontal scroll at 360; drawer opens/closes via button, Escape, backdrop, link tap; focus returns; Tab skips hidden links; screen reader announces expanded state.
+- [x] 3.3 Manual QA (author only, confirmed by the author): 360/390/768/1024px, both themes; no horizontal scroll at 360; drawer opens/closes via button, Escape, backdrop, link tap; focus returns; Tab skips hidden links; screen reader announces expanded state.
 - [x] 3.4 Work-unit commit: `feat(ui): agrega diseno responsive con barra lateral tipo cajon` with explicit paths.
 
 ---
@@ -134,7 +134,7 @@ Specs: design-system-port (horizontal chord diagram, D6).
 ### REFACTOR / verify
 - [x] 3.1 `cd frontend && npm run test:unit -- ErChordEditor chord-grid` green, then full `npm run test:unit`.
 - [x] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
-- [ ] 3.3 Manual QA (author only): shapes F and Bm, open and muted strings, both themes, 360px inside the card; click sets/clears fret and marker toggles open/mute.
+- [x] 3.3 Manual QA (author only, confirmed by the author): shapes F and Bm, open and muted strings, both themes, 360px inside the card; click sets/clears fret and marker toggles open/mute.
 - [x] 3.4 Work-unit commit: `feat(ui): muestra el diagrama de acordes de guitarra en horizontal` with explicit paths, no AI attribution.
 
 ---
@@ -144,18 +144,55 @@ Specs: design-system-port (horizontal chord diagram, D6).
 Specs: design-system-port (carousel, usable from 360px). Depends on WU3 (breakpoint) and WU4 (card width derived from the horizontal diagram width).
 
 ### RED
-- [ ] 1.1 `chord-grid.spec.ts`: wrapper has `role="group"`, `aria-roledescription="carrusel"`, `aria-label="Acordes"`; track `tabindex="0"`; one Eliminar button per chord always present; prev/next (`data-test="chord-prev|chord-next"`, aria-labels "Acorde anterior/siguiente") call stubbed `scrollBy` with +/- width; reduced-motion `matchMedia` stub yields `behavior:'auto'`, otherwise `'smooth'`.
-- [ ] 1.2 `layout-css.spec.ts` (use `mediaBlock`): inside 768px block `.er-chord-grid` has `scroll-snap-type`, `.er-chord-grid > .er-field` has `scroll-snap-align`; `.er-chord-carousel`, `.er-chord-nav` exist and are token-only; nav hidden above 768px; polish rules present (tablature `overflow-x:auto`, lyrics toolbar wrap, demo comment row wrap and `min-width:0`, todos actions `flex-shrink:0`, sharing modal `max-height` with scroll).
-- [ ] 1.3 Run `npm run test:unit -- chord-grid layout-css`; confirm FAIL.
+- [x] 1.1 `chord-grid.spec.ts`: wrapper has `role="group"`, `aria-roledescription="carrusel"`, `aria-label="Acordes"`; track `tabindex="0"`; one Eliminar button per chord always present; prev/next (`data-test="chord-prev|chord-next"`, aria-labels "Acorde anterior/siguiente") call stubbed `scrollBy` with +/- width; reduced-motion `matchMedia` stub yields `behavior:'auto'`, otherwise `'smooth'`.
+- [x] 1.2 `layout-css.spec.ts` (use `mediaBlock`): inside 768px block `.er-chord-grid` has `scroll-snap-type`, `.er-chord-grid > .er-field` has `scroll-snap-align`; `.er-chord-carousel`, `.er-chord-nav` exist and are token-only; nav hidden above 768px; polish rules present (tablature `overflow-x:auto`, lyrics toolbar wrap, demo comment row wrap and `min-width:0`, todos actions `flex-shrink:0`, sharing modal `max-height` with scroll).
+- [x] 1.3 Run `npm run test:unit -- chord-grid layout-css`; confirm FAIL.
 
 ### GREEN
-- [ ] 2.1 `features/compositions/ChordGrid.vue`: add `.er-chord-carousel` wrapper, focusable track, prev/next buttons with `scrollBy` and reduced-motion behavior; keep Eliminar inside each slide.
-- [ ] 2.2 `layout.css`: carousel rules (flex track, `scroll-snap-type: x mandatory`, slide `flex:0 0 85%`, visible focus ring, nav hidden above 768px).
-- [ ] 2.3 `layout.css` polish inside the 768px block: tablature, lyrics toolbar and touch targets (40px minimum, per spec), demo player and comments, todos, sharing modal. Overflow and target fixes only.
+- [x] 2.1 `features/compositions/ChordGrid.vue`: add `.er-chord-carousel` wrapper, focusable track, prev/next buttons with `scrollBy` and reduced-motion behavior; keep Eliminar inside each slide.
+- [x] 2.2 `layout.css`: carousel rules (flex track, `scroll-snap-type: x mandatory`, slide `flex:0 0 85%`, visible focus ring, nav hidden above 768px).
+- [x] 2.3 `layout.css` polish inside the 768px block: tablature, lyrics toolbar and touch targets (40px minimum, per spec), demo player and comments, todos, sharing modal. Overflow and target fixes only.
 
 ### REFACTOR / verify
-- [ ] 3.1 `npm run test:unit -- chord-grid layout-css` green, then full `npm run test:unit`.
-- [ ] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
-- [ ] 3.3 Backend regression, once: `cd /home/bspc/proyectos/erato/backend && .venv/bin/pytest -q` (expect 81 passed; no backend files changed).
-- [ ] 3.4 Manual QA (author only): 360/390/768/1024px, both themes; swipe snaps, arrows/buttons scroll, Eliminar reachable, reduced-motion respected; tablature, lyrics maximize/autoscroll, demos/comments, todos, sharing modal usable; contrast 4.5:1.
-- [ ] 3.5 Work-unit commit: `feat(ui): agrega carrusel de acordes y ajusta secciones para pantallas pequenas` with explicit paths.
+- [x] 3.1 `npm run test:unit -- chord-grid layout-css` green, then full `npm run test:unit`.
+- [x] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
+- [x] 3.3 Backend regression, once: `cd /home/bspc/proyectos/erato/backend && .venv/bin/pytest -q` (expect 81 passed; no backend files changed).
+- [x] 3.4 Manual QA (author only, confirmed by the author): 360/390/768/1024px, both themes; swipe snaps, arrows/buttons scroll, Eliminar reachable, reduced-motion respected; tablature, lyrics maximize/autoscroll, demos/comments, todos, sharing modal usable; contrast 4.5:1.
+- [x] 3.5 Work-unit commit: `feat(ui): agrega carrusel de acordes y ajusta secciones para pantallas pequenas` with explicit paths.
+
+---
+
+## Post-Apply Polish & Refinements (branch `feature/erato-ajustes-ui-05-chord-carousel`)
+
+Review iterations and fine-tuning on top of WU5:
+
+- [x] 4.1 Responsive margins & header alignment:
+  - Fix right-margin cutoffs on screens <= 1024px for dashboard compositions grid and create composition view.
+  - Fix sidebar drawer toggle button alignment to respect page container padding.
+  - Reorganize composition detail header with `space-between` and balanced spacing.
+  - Remove redundant `+` glyph from "Agregar acorde", "Agregar tablatura", etc.
+  - Commit: `1d2320f` `fix(ui): ajusta margenes responsivos, encabezado, diapason y botones agregar`.
+- [x] 4.2 Content containment & chord card height homogenization:
+  - Fix lyrics viewer and todo list cards extending past right boundary on small/medium screens (`repeat(auto-fit, minmax(min(100%, 420px), 1fr))` and wrapping).
+  - Homogenize base chord card heights to prevent vertical layout shifts.
+  - Commit: `74dad8e` `fix(ui): homogeiniza altura de acordes y ajusta contencion de letra y tareas`.
+- [x] 4.3 Extended chords height homogenization & fretboard scaling:
+  - Neutralize font baseline shift from `sup.er-chord-quality` (`vertical-align: baseline; position: relative; top: -0.45em; line-height: 1`) so extended chords do not push fretboard or expand card height.
+  - Enlarge horizontal fretboard on large screens (`height: 210px`, `minmax(320px, 1fr)`) for better usability and chord customization.
+  - Commit: `e32076c` `fix(ui): homogeiniza altura de acordes extendidos y agranda diapason`.
+- [x] 4.4 Sidebar navigation cleanup:
+  - Remove redundant "← todas las composiciones" link from drawer sidebar (`CompositionDetailView.vue`), keeping single dashboard back button in header.
+  - Update `composition-detail-view.spec.ts` assertions to match clean layout.
+  - Commit: `f47c188` `fix(ui): elimina enlace a todas las composiciones de la sidebar`.
+
+---
+
+## Apply & TDD Evidence Summary
+
+Detailed audit trail recorded in `openspec/changes/erato-ajustes-ui/apply-progress.md`.
+
+- **Unit tests**: `npm run test:unit` → 46 test files passed, 286 passed (100%).
+- **Typecheck & Build**: `npx vue-tsc --noEmit && npm run build` → Zero TS errors, production build verified.
+- **Backend Regression**: `.venv/bin/pytest tests/ -q` → 81 passed (100%).
+- **TDD Compliance**: Strict RED/GREEN/REFACTOR followed across all 5 work units + polish iterations.
+

@@ -86,7 +86,7 @@ describe('CompositionDetailView', () => {
     vi.spyOn(compApi, 'listCompositions').mockResolvedValue(sampleSidebarList)
   })
 
-  it('renders persistent sidebar with link back to dashboard at the top (before ErSideNav)', async () => {
+  it('renders persistent sidebar with ErSideNav and dashboard link in header', async () => {
     const router = await setupRouter('/compositions/comp-100')
 
     const wrapper = mount(CompositionDetailView, {
@@ -97,16 +97,12 @@ describe('CompositionDetailView', () => {
     const sidebar = wrapper.find('.er-sidebar')
     expect(sidebar.exists()).toBe(true)
 
-    // "todas las composiciones" link precedes ErSideNav as first element
-    const firstChild = sidebar.element.firstElementChild
-    expect(firstChild?.textContent).toContain('todas las composiciones')
-
-    const backLink = sidebar.find('a[href="/"]')
-    expect(backLink.exists()).toBe(true)
-    expect(backLink.text()).toContain('todas las composiciones')
-
     const sideNav = wrapper.findComponent({ name: 'ErSideNav' })
     expect(sideNav.exists()).toBe(true)
+
+    const backBtn = wrapper.find('.er-comp-back-btn')
+    expect(backBtn.exists()).toBe(true)
+    expect(backBtn.text()).toContain('todas las composiciones')
   })
 
   it('unauthenticated visitor on public route drops sidebar (er-layout--noside)', async () => {

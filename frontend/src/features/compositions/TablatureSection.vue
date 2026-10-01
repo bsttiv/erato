@@ -45,11 +45,10 @@
         <ErButton
           size="sm"
           variant="quiet"
-          icon="plus"
           data-test="add-tab-btn"
           @click="onAddTab"
         >
-          + Agregar
+          Agregar
         </ErButton>
 
         <template v-if="activeTab && !isRenaming">
@@ -128,11 +127,10 @@
         v-if="editable"
         size="sm"
         variant="quiet"
-        icon="plus"
         data-test="add-tab-btn"
         @click="onAddTab"
       >
-        + Agregar tablatura
+        Agregar tablatura
       </ErButton>
     </div>
   </section>

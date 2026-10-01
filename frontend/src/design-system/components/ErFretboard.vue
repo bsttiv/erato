@@ -1,5 +1,6 @@
 <template>
   <svg
+    class="er-fretboard-svg"
     :width="W"
     :height="H"
     :viewBox="`0 0 ${W} ${H}`"
