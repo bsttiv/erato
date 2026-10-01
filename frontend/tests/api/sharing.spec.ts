@@ -44,7 +44,7 @@ describe('Sharing API client contract', () => {
     expect(result.visibility).toBe('public')
   })
 
-  it('createInvite(id, payload) sends POST /compositions/{id}/invites with { invited_email, role }', async () => {
+  it('createInvite(id, payload) sends POST /compositions/{id}/invites with role and optional invited_email', async () => {
     const mockInvite = {
       id: 'inv-1',
       composition_id: 'comp-1',
@@ -77,6 +77,28 @@ describe('Sharing API client contract', () => {
     })
     expect(result.invite_url).toBe('https://erato.app/invite/token123')
     expect(result.role).toBe('viewer')
+  })
+
+  it('createInvite(id, { role }) omits invited_email from the body when no email is given', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          id: 'inv-2',
+          composition_id: 'comp-1',
+          invite_url: 'https://erato.app/invite/t2',
+          role: 'editor',
+          expires_at: '2026-10-08T12:00:00Z',
+        }),
+        { status: 201, headers: { 'Content-Type': 'application/json' } }
+      )
+    )
+
+    await createInvite('comp-1', { role: 'editor' })
+
+    const [, init] = fetchSpy.mock.calls[0]
+    const body = JSON.parse(init?.body as string)
+    expect(body).toEqual({ role: 'editor' })
+    expect('invited_email' in body).toBe(false)
   })
 
   it('listInvites(id) calls GET /compositions/{id}/invites and returns InviteResponse[]', async () => {
@@ -125,8 +147,8 @@ describe('Sharing API client contract', () => {
 
   it('redeemInvite(token) calls POST /auth/redeem-invite with { token }', async () => {
     const mockRedeem = {
+      message: 'Invitación aceptada',
       composition_id: 'comp-1',
-      role: 'editor',
     }
 
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(

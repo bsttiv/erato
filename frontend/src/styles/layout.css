@@ -627,12 +627,20 @@
   position: fixed;
   inset: 0;
   z-index: 60;
-  background-color: var(--bg-000);
-  opacity: 0.85;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: var(--space-4);
+}
+
+/* Dim layer: opacity lives here, not on the backdrop, so the dialog child stays fully opaque */
+.er-modal-backdrop::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--bg-000);
+  opacity: 0.85;
 }
 
 .er-modal {

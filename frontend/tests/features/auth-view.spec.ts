@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import AuthView from '@/features/auth/AuthView.vue'
 import LoginForm from '@/features/auth/LoginForm.vue'
@@ -186,5 +186,43 @@ describe('AuthView and Split-Screen Shell', () => {
     expect(wrapper.find('input[placeholder*="banda" i]').exists()).toBe(false)
     const labels = wrapper.findAll('label').map((l) => l.text().toLowerCase())
     expect(labels.some((text) => text.includes('banda'))).toBe(false)
+  })
+
+  it('after authenticating returns to the internal next path', async () => {
+    const router = setupTestRouter('/login?next=/invite/tok-1')
+    router.addRoute({ path: '/invite/:token', name: 'invite-redeem', component: { template: '<div />' } })
+    await router.isReady()
+
+    const wrapper = mount(AuthView, { global: { plugins: [router] } })
+    wrapper.findComponent(LoginForm).vm.$emit('success')
+    await flushPromises()
+
+    expect(router.currentRoute.value.fullPath).toBe('/invite/tok-1')
+  })
+
+  it('ignores an external next target and goes to /', async () => {
+    const router = setupTestRouter('/login?next=https://evil.com')
+    await router.isReady()
+
+    const wrapper = mount(AuthView, { global: { plugins: [router] } })
+    wrapper.findComponent(LoginForm).vm.$emit('success')
+    await flushPromises()
+
+    expect(router.currentRoute.value.path).toBe('/')
+  })
+
+  it('keeps next on the login and register cross links', async () => {
+    const router = setupTestRouter('/login?next=/invite/tok-1')
+    await router.isReady()
+    const login = mount(LoginForm, { global: { plugins: [router] } })
+    expect(login.find('a[href^="/register"]').attributes('href')).toBe(
+      '/register?next=/invite/tok-1'
+    )
+
+    await router.push('/register?next=/invite/tok-1')
+    const reg = mount(RegisterForm, { global: { plugins: [router] } })
+    expect(reg.find('a[href^="/login"]').attributes('href')).toBe(
+      '/login?next=/invite/tok-1'
+    )
   })
 })

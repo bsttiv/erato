@@ -63,14 +63,13 @@ export async function createInvite(
 ): Promise<InviteResponse> {
   const role = payload?.role ?? 'editor'
   const invited_email = payload?.invited_email ?? payload?.email ?? null
+  const body: { role: 'editor' | 'viewer'; invited_email?: string } = { role }
+  if (invited_email) body.invited_email = invited_email
 
   const res = await apiClient(`/compositions/${compositionId}/invites`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      invited_email,
-      role,
-    }),
+    body: JSON.stringify(body),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -102,7 +101,7 @@ export async function revokeInvite(
 
 export async function redeemInvite(
   token: string
-): Promise<{ composition_id: string; role: string }> {
+): Promise<{ message: string; composition_id: string }> {
   const res = await apiClient('/auth/redeem-invite', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

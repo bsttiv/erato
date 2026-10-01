@@ -165,48 +165,125 @@ describe('SharingModal feature', () => {
     expect(permList.text().toLowerCase()).toContain('escuchar demos')
   })
 
-  it('invite row provides email input, role dropdown and Invitar button calling createInvite', async () => {
-    const createSpy = vi.spyOn(sharingApi, 'createInvite').mockResolvedValue({
-      id: 'inv-new',
-      composition_id: 'comp-100',
-      role: 'viewer',
-      expires_at: new Date().toISOString(),
-      invite_url: 'http://localhost/invite/plain-token',
-    } as InviteResponse)
+  const createdInvite = {
+    id: 'inv-new',
+    composition_id: 'comp-100',
+    role: 'viewer',
+    expires_at: '2026-10-08T12:00:00Z',
+    invite_url: 'http://localhost/invite/plain-token',
+  } as InviteResponse
 
-    const wrapper = mount(SharingModal, {
-      props: {
-        compositionId: 'comp-100',
-        title: 'Bajo el farol',
-        visibility: 'private',
-      },
+  function mountPrivate() {
+    return mount(SharingModal, {
+      props: { compositionId: 'comp-100', title: 'Bajo el farol', visibility: 'private' },
     })
+  }
+
+  it('invite row has no email input, a role dropdown and an enabled create-link button', async () => {
+    const wrapper = mountPrivate()
     await flushPromises()
 
     const inviteRow = wrapper.find('.er-invite-row')
     expect(inviteRow.exists()).toBe(true)
-
-    const emailInput = inviteRow.find('input[type="email"]')
-    expect(emailInput.exists()).toBe(true)
-    await emailInput.setValue('colaborador@banda.com')
+    expect(inviteRow.find('input[type="email"]').exists()).toBe(false)
+    expect(wrapper.html()).not.toContain('correo@ejemplo.com')
 
     const roleSelect = inviteRow.find('select')
-    expect(roleSelect.exists()).toBe(true)
     expect(roleSelect.text()).toContain('Editor')
     expect(roleSelect.text()).toContain('Solo ver')
-    await roleSelect.setValue('viewer')
 
     const inviteBtn = inviteRow.find('button[data-test="send-invite-btn"]')
-    expect(inviteBtn.exists()).toBe(true)
-    expect(inviteBtn.text()).toContain('Invitar')
+    expect(inviteBtn.text()).toContain('Crear enlace de invitación')
+    expect(inviteBtn.attributes('disabled')).toBeUndefined()
+  })
 
-    await inviteBtn.trigger('click')
+  it('creates the invite without invited_email and with the selected role', async () => {
+    const createSpy = vi.spyOn(sharingApi, 'createInvite').mockResolvedValue(createdInvite)
+    const wrapper = mountPrivate()
     await flushPromises()
 
-    expect(createSpy).toHaveBeenCalledWith('comp-100', {
-      invited_email: 'colaborador@banda.com',
-      role: 'viewer',
+    await wrapper.find('.er-invite-row select').setValue('viewer')
+    await wrapper.find('button[data-test="send-invite-btn"]').trigger('click')
+    await flushPromises()
+
+    expect(createSpy).toHaveBeenCalledTimes(1)
+    expect(createSpy).toHaveBeenCalledWith('comp-100', { role: 'viewer' })
+  })
+
+  it('shows the created link and the expiry date derived from expires_at', async () => {
+    vi.spyOn(sharingApi, 'createInvite').mockResolvedValue(createdInvite)
+    const wrapper = mountPrivate()
+    await flushPromises()
+
+    await wrapper.find('button[data-test="send-invite-btn"]').trigger('click')
+    await flushPromises()
+
+    const result = wrapper.find('[data-test="invite-result"]')
+    expect(result.exists()).toBe(true)
+    const input = result.find('input[readonly]')
+    expect((input.element as HTMLInputElement).value).toBe('http://localhost/invite/plain-token')
+
+    const expected = new Date('2026-10-08T12:00:00Z').toLocaleDateString('es')
+    expect(result.text()).toContain(`Vence el ${expected}`)
+    expect(result.text().toLowerCase()).not.toContain('un solo uso')
+  })
+
+  it('copy button writes the invite link to the clipboard and confirms', async () => {
+    vi.spyOn(sharingApi, 'createInvite').mockResolvedValue(createdInvite)
+    const wrapper = mountPrivate()
+    await flushPromises()
+
+    await wrapper.find('button[data-test="send-invite-btn"]').trigger('click')
+    await flushPromises()
+
+    const copyBtn = wrapper.find('[data-test="copy-invite-btn"]')
+    expect(copyBtn.text()).toContain('Copiar enlace')
+    await copyBtn.trigger('click')
+    await flushPromises()
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('http://localhost/invite/plain-token')
+    expect(wrapper.find('[data-test="invite-result"]').text()).toContain('Enlace copiado')
+  })
+
+  it('does not crash when the clipboard write fails', async () => {
+    vi.spyOn(sharingApi, 'createInvite').mockResolvedValue(createdInvite)
+    Object.assign(navigator, {
+      clipboard: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
     })
+    const wrapper = mountPrivate()
+    await flushPromises()
+
+    await wrapper.find('button[data-test="send-invite-btn"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-test="copy-invite-btn"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[data-test="invite-result"]').text()).not.toContain('Enlace copiado')
+  })
+
+  it('renders a pending invite without email as role plus pending label, never undefined', async () => {
+    vi.spyOn(sharingApi, 'listMembers').mockResolvedValue([
+      {
+        user_id: null,
+        invite_id: 'inv-x',
+        display_name: null,
+        email: null,
+        initials: null,
+        role: 'viewer',
+        pending: true,
+      },
+    ])
+    const wrapper = mountPrivate()
+    await flushPromises()
+
+    const item = wrapper.find('.er-member')
+    const text = item.text()
+    expect(text.toLowerCase()).toContain('invitación pendiente')
+    expect(text).toContain('Solo ver')
+    expect(text).not.toContain('undefined')
+    expect(text).not.toContain('null')
+    expect(text).not.toContain('()')
+    expect(item.find('.er-member-id').text()).toBe('Invitación por enlace')
   })
 
   it('member list displays owner, active members, and pending invitations with initials, name, email and role badge', async () => {

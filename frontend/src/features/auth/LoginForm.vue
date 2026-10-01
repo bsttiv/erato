@@ -51,7 +51,7 @@
     </ErButton>
 
     <div class="er-auth-links">
-      <router-link to="/register" class="er-auth-link">
+      <router-link :to="crossLink" class="er-auth-link">
         ¿No tienes cuenta? Regístrate
       </router-link>
     </div>
@@ -63,13 +63,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useRoute } from 'vue-router'
+import { safeNextPath } from '@/router/safeNext'
 import { ErButton } from '@/design-system'
 import { login } from '@/api/auth'
 
 const emit = defineEmits<{
   (e: 'success'): void
 }>()
+
+const route = useRoute()
+const crossLink = computed(() => {
+  const next = safeNextPath(route?.query?.next)
+  return next === '/' ? '/register' : { path: '/register', query: { next } }
+})
 
 const email = ref('')
 const password = ref('')

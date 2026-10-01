@@ -110,3 +110,37 @@ describe('Router navigation guard and authReady contract', () => {
     expect(current.params.ref).toBe('64b7f0c2a1b2c3d4e5f60718')
   })
 })
+
+describe('Invite route guard', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    setAccessToken(null)
+    resetAuthReadyForTesting()
+  })
+
+  it('anonymous visitor on /invite/:token is sent to /login keeping next', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ detail: 'No refresh token' }), { status: 401 })
+    )
+    const router = createRouter({ history: createMemoryHistory(), routes })
+    setupNavigationGuard(router)
+
+    await router.push('/invite/tok-123')
+    expect(router.currentRoute.value.path).toBe('/login')
+    expect(router.currentRoute.value.query.next).toBe('/invite/tok-123')
+  })
+
+  it('authenticated user can open /invite/:token', async () => {
+    setAccessToken('jwt')
+    setAuthenticated(true)
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ access_token: 'jwt' }), { status: 200 })
+    )
+    const router = createRouter({ history: createMemoryHistory(), routes })
+    setupNavigationGuard(router)
+
+    await router.push('/invite/tok-123')
+    expect(router.currentRoute.value.name).toBe('invite-redeem')
+    expect(router.currentRoute.value.params.token).toBe('tok-123')
+  })
+})
