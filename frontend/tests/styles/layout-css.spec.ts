@@ -188,6 +188,58 @@ describe('layout.css stylesheet contract', () => {
     ).toEqual([])
   })
 
+  describe('anchor and textarea rules', () => {
+    const css = () => stripCssComments(fs.readFileSync(LAYOUT_CSS_PATH, 'utf-8'))
+
+    function rulesFor(selector: string): string[] {
+      const out: string[] = []
+      const re = /([^{}@]+)\{([^{}]+)\}/g
+      let m: RegExpExecArray | null
+      const source = css()
+      while ((m = re.exec(source)) !== null) {
+        const sels = m[1].split(',').map((s) => s.trim())
+        if (sels.includes(selector)) out.push(m[2])
+      }
+      return out
+    }
+
+    function declaration(body: string[], prop: string): string | undefined {
+      for (const b of body) {
+        const hit = b.match(new RegExp(`(?:^|[;\\s])${prop}\\s*:\\s*([^;]+)`))
+        if (hit) return hit[1].trim()
+      }
+      return undefined
+    }
+
+    it.each([
+      '.er-crumb a',
+      '.er-sectionnav a',
+      '.er-sidebar-foot a',
+    ])('%s is styled with a token color and no underline', (selector) => {
+      const body = rulesFor(selector)
+      expect(body.length, `missing rule for ${selector}`).toBeGreaterThan(0)
+      expect(declaration(body, 'color')).toMatch(/^var\(--[a-z0-9-]+\)$/)
+      expect(declaration(body, 'text-decoration')).toBe('none')
+    })
+
+    it.each(['.er-crumb a', '.er-sectionnav a', '.er-sidebar-foot a'])(
+      '%s has hover and keyboard focus rules using tokens',
+      (selector) => {
+        const hover = rulesFor(`${selector}:hover`)
+        expect(declaration(hover, 'color')).toBe('var(--ink)')
+        const focus = rulesFor(`${selector}:focus-visible`)
+        expect(declaration(focus, 'outline')).toContain('var(--focus-ring)')
+      }
+    )
+
+    it('jump-nav links carry vertical padding and an amber hover indicator', () => {
+      const body = rulesFor('.er-sectionnav a')
+      expect(declaration(body, 'padding')).toMatch(/var\(--space-/)
+      const hover = rulesFor('.er-sectionnav a:hover')
+      expect(declaration(hover, 'border-bottom-color')).toBe('var(--amber)')
+    })
+  })
+
   it('no inline style attributes exist in frontend/src/features/', () => {
     function scanFiles(dir: string, fileList: string[] = []): string[] {
       const entries = fs.readdirSync(dir, { withFileTypes: true })
