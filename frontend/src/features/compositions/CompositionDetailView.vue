@@ -20,11 +20,6 @@
       ref="sidebarRef"
       :class="['er-sidebar', { 'er-sidebar--open': drawer.open.value }]"
     >
-      <div class="er-sidebar-foot">
-        <router-link to="/">
-          ← todas las composiciones
-        </router-link>
-      </div>
       <ErSideNav
         :items="sidebarNavItems"
         :model-value="comp.id"
