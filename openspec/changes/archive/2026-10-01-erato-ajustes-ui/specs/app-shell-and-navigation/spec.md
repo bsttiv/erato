@@ -10,13 +10,14 @@ The composition create view MUST render a single "Cancelar" button, located at t
 - WHEN the page renders
 - THEN exactly one control labelled "Cancelar" exists and it is in the form footer
 
-### Requirement: The sidebar link to all compositions MUST be first, and the breadcrumb word MUST be a visible link
-The sidebar MUST render the "todas las composiciones" link above the nav list. The breadcrumb word "composiciones" MUST be a link to the dashboard with hover and underline styling, text contrast >= 4.5:1 in Noche and Matine, and a visible focus ring.
+### Requirement: The header link to all compositions MUST exist, the sidebar MUST NOT repeat it, and the breadcrumb word MUST be a visible link
+The composition header MUST render the "todas las composiciones" link to the dashboard, and the sidebar MUST contain only the composition nav list (the author moved the link from the sidebar to the header after the first implementation). The breadcrumb word "composiciones" MUST be a link to the dashboard with hover and underline styling, text contrast >= 4.5:1 in Noche and Matine, and a visible focus ring.
 
-#### Scenario: Link order
+#### Scenario: Link location
 - GIVEN the composition detail view
-- WHEN the sidebar renders
-- THEN "todas las composiciones" precedes the first nav item in DOM order
+- WHEN the page renders
+- THEN the header contains the "todas las composiciones" link to the dashboard
+- AND the sidebar does not contain that link
 
 #### Scenario: Breadcrumb navigation
 - GIVEN the breadcrumb on a composition page
