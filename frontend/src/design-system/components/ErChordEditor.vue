@@ -1,9 +1,9 @@
 <template>
   <div :class="['er-chord', 'er-panel', 'er-chord-editor-card', customClass]">
-    <div class="er-chord-head">
-      <div>
+    <div class="er-chord-head er-chord-editor-head">
+      <div class="er-chord-editor-title-wrap">
         <ErChordName :info="info" />
-        <div class="er-chord-notes">
+        <div class="er-chord-notes er-chord-editor-notes">
           {{ info ? info.notes.join(' · ') : 'sin notas' }}
         </div>
       </div>

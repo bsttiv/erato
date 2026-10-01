@@ -1,10 +1,10 @@
 <template>
-  <div :class="['er-todo', 'er-panel', customClass]">
+  <div :class="['er-todo', 'er-panel', 'er-todo-card', customClass]">
     <div v-if="title" class="er-label">
       // {{ title }}
     </div>
 
-    <div class="er-compose">
+    <div class="er-compose er-todo-compose">
       <input
         v-model="draft"
         class="er-input"
@@ -51,7 +51,7 @@
       Nada pendiente. Toca otra vez desde el coro.
     </div>
 
-    <div class="er-todo-foot">
+    <div class="er-todo-foot er-todo-foot-row">
       <span>
         {{ left }} {{ left === 1 ? 'pendiente' : 'pendientes' }} ·
         {{ done }} {{ done === 1 ? 'hecha' : 'hechas' }}

@@ -432,6 +432,10 @@ body {
   flex-direction: column;
   gap: var(--space-4);
   scroll-margin-top: var(--space-8);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .er-section-head {
@@ -442,14 +446,22 @@ body {
 
 .er-comp-columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
   gap: var(--space-6);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .er-comp-column {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .er-role-tag {
@@ -911,14 +923,45 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
 }
 
 .er-chord-editor-card {
   width: 100%;
-  height: 100%;
+  max-width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  box-sizing: border-box;
+}
+
+.er-chord-editor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: 72px;
+  width: 100%;
+  min-width: 0;
+}
+
+.er-chord-editor-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1;
+}
+
+.er-chord-editor-notes {
+  height: 28px;
+  line-height: 14px;
+  font-size: 0.75rem;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .er-chord-editor-body {
@@ -929,6 +972,8 @@ body {
   gap: var(--space-2);
   min-width: 0;
   flex: 1;
+  min-height: 156px;
+  max-height: 156px;
 }
 
 .er-fretboard-svg {
@@ -937,6 +982,57 @@ body {
   height: auto;
   display: block;
   flex: 1;
+}
+
+.er-lyrics-viewer-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.er-lyrics-viewer-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line);
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.er-lyrics-viewer-speed {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.er-todo-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.er-todo-compose {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.er-todo-foot-row {
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .er-chord-palette {
