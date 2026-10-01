@@ -1,5 +1,12 @@
 # Delta for Sharing and Visibility
 
+## RENAMED Requirements
+
+### Requirement: Only invited users MUST be able to edit a public composition → Only invited editor-role users MUST be able to edit a public composition
+
+(Reason: the invite model now distinguishes an editor role from a viewer-only role, so the requirement must name the role that grants edit access.)
+(Migration: None. Tests and docs already reference the editor-role behavior; no external references use the old name.)
+
 ## MODIFIED Requirements
 
 ### Requirement: Only invited editor-role users MUST be able to edit a public composition
