@@ -293,3 +293,33 @@ describe('layout.css stylesheet contract', () => {
     ).toEqual([])
   })
 })
+
+describe('modal opacity', () => {
+  const css = stripCssComments(fs.readFileSync(LAYOUT_CSS_PATH, 'utf8'))
+
+  function ruleBody(selector: string): string | null {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const match = new RegExp(`(?:^|})\\s*${escaped}\\s*\\{([^}]*)\\}`).exec(css)
+    return match ? match[1] : null
+  }
+
+  it('does not apply opacity to the backdrop itself, which would also fade the dialog child', () => {
+    const body = ruleBody('.er-modal-backdrop')
+    expect(body).not.toBeNull()
+    expect(body).not.toMatch(/(^|[;\s])opacity\s*:/)
+  })
+
+  it('dims the page through a separate backdrop layer that uses a token color', () => {
+    const body = ruleBody('.er-modal-backdrop::before')
+    expect(body).not.toBeNull()
+    expect(body).toMatch(/background-color:\s*var\(--bg-000\)/)
+    expect(body).toMatch(/opacity\s*:/)
+  })
+
+  it('keeps the dialog on an opaque background token', () => {
+    const body = ruleBody('.er-modal')
+    expect(body).not.toBeNull()
+    expect(body).toMatch(/background-color:\s*var\(--bg-[0-9]+\)/)
+    expect(body).not.toMatch(/opacity\s*:/)
+  })
+})
