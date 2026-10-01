@@ -159,3 +159,40 @@ Specs: design-system-port (carousel, usable from 360px). Depends on WU3 (breakpo
 - [x] 3.3 Backend regression, once: `cd /home/bspc/proyectos/erato/backend && .venv/bin/pytest -q` (expect 81 passed; no backend files changed).
 - [ ] 3.4 Manual QA (author only): 360/390/768/1024px, both themes; swipe snaps, arrows/buttons scroll, Eliminar reachable, reduced-motion respected; tablature, lyrics maximize/autoscroll, demos/comments, todos, sharing modal usable; contrast 4.5:1.
 - [x] 3.5 Work-unit commit: `feat(ui): agrega carrusel de acordes y ajusta secciones para pantallas pequenas` with explicit paths.
+
+---
+
+## Post-Apply Polish & Refinements (branch `feature/erato-ajustes-ui-05-chord-carousel`)
+
+Review iterations and fine-tuning on top of WU5:
+
+- [x] 4.1 Responsive margins & header alignment:
+  - Fix right-margin cutoffs on screens <= 1024px for dashboard compositions grid and create composition view.
+  - Fix sidebar drawer toggle button alignment to respect page container padding.
+  - Reorganize composition detail header with `space-between` and balanced spacing.
+  - Remove redundant `+` glyph from "Agregar acorde", "Agregar tablatura", etc.
+  - Commit: `1d2320f` `fix(ui): ajusta margenes responsivos, encabezado, diapason y botones agregar`.
+- [x] 4.2 Content containment & chord card height homogenization:
+  - Fix lyrics viewer and todo list cards extending past right boundary on small/medium screens (`repeat(auto-fit, minmax(min(100%, 420px), 1fr))` and wrapping).
+  - Homogenize base chord card heights to prevent vertical layout shifts.
+  - Commit: `74dad8e` `fix(ui): homogeiniza altura de acordes y ajusta contencion de letra y tareas`.
+- [x] 4.3 Extended chords height homogenization & fretboard scaling:
+  - Neutralize font baseline shift from `sup.er-chord-quality` (`vertical-align: baseline; position: relative; top: -0.45em; line-height: 1`) so extended chords do not push fretboard or expand card height.
+  - Enlarge horizontal fretboard on large screens (`height: 210px`, `minmax(320px, 1fr)`) for better usability and chord customization.
+  - Commit: `e32076c` `fix(ui): homogeiniza altura de acordes extendidos y agranda diapason`.
+- [x] 4.4 Sidebar navigation cleanup:
+  - Remove redundant "← todas las composiciones" link from drawer sidebar (`CompositionDetailView.vue`), keeping single dashboard back button in header.
+  - Update `composition-detail-view.spec.ts` assertions to match clean layout.
+  - Commit: `f47c188` `fix(ui): elimina enlace a todas las composiciones de la sidebar`.
+
+---
+
+## Apply & TDD Evidence Summary
+
+Detailed audit trail recorded in `openspec/changes/erato-ajustes-ui/apply-progress.md`.
+
+- **Unit tests**: `npm run test:unit` → 46 test files passed, 286 passed (100%).
+- **Typecheck & Build**: `npx vue-tsc --noEmit && npm run build` → Zero TS errors, production build verified.
+- **Backend Regression**: `.venv/bin/pytest tests/ -q` → 81 passed (100%).
+- **TDD Compliance**: Strict RED/GREEN/REFACTOR followed across all 5 work units + polish iterations.
+
