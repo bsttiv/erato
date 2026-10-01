@@ -2,7 +2,7 @@
   <div class="er-createshell">
     <header class="er-createbar">
       <router-link to="/" class="er-topbar-brand">
-        Erato
+        <ErBrand />
       </router-link>
     </header>
 
@@ -62,6 +62,17 @@
               placeholder="4/4"
             >
           </div>
+        </div>
+
+        <div class="er-field">
+          <div class="er-label">
+            Estado
+          </div>
+          <ErSegmented
+            v-model="status"
+            label="Estado"
+            :options="STATUS_OPTIONS"
+          />
         </div>
 
         <div class="er-field">
@@ -167,8 +178,9 @@
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { ErButton } from '@/design-system'
-import { createComposition, type Visibility, type SectionsEnabled } from '@/api/compositions'
+import { ErButton, ErBrand, ErSegmented } from '@/design-system'
+import { createComposition, type Visibility, type SectionsEnabled, type CompositionStatus } from '@/api/compositions'
+import { STATUS_OPTIONS } from './status'
 
 const router = useRouter()
 
@@ -176,6 +188,7 @@ const title = ref('')
 const key = ref('')
 const bpm = ref<number | null>(null)
 const timeSignature = ref('')
+const status = ref<CompositionStatus>('idea')
 const visibility = ref<Visibility>('private')
 const error = ref<string | null>(null)
 const loading = ref(false)
@@ -198,6 +211,7 @@ async function handleSubmit() {
     const comp = await createComposition({
       title: title.value.trim(),
       visibility: visibility.value,
+      status: status.value,
       key: key.value.trim() || undefined,
       bpm: bpm.value || undefined,
       time_signature: timeSignature.value.trim() || undefined,

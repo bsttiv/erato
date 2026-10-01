@@ -209,6 +209,54 @@ describe('CompositionDetailView', () => {
 
     expect(wrapper.find('.er-save-btn').exists()).toBe(false)
     expect(wrapper.find('[data-test="share-btn"]').exists()).toBe(false)
+
+    // Non-editor sees ErTag with status and no segmented control
+    expect(wrapper.find('[data-test="status-segmented"]').exists()).toBe(false)
+    const statusTag = wrapper.findAll('.er-tag').find((t) => t.text().includes('En progreso'))
+    expect(statusTag).toBeDefined()
+  })
+
+  it('editor clicking "En progreso" calls updateComposition, disables in flight, and reverts with error on rejection', async () => {
+    const compWithIdea: CompositionResponse = {
+      ...sampleComposition,
+      status: 'idea',
+      user_role: 'editor',
+    }
+    const updateSpy = vi.spyOn(compApi, 'updateComposition')
+    let rejectUpdate!: (err: any) => void
+    updateSpy.mockReturnValue(
+      new Promise((_, reject) => {
+        rejectUpdate = reject
+      })
+    )
+
+    const router = await setupRouter('/compositions/comp-100')
+    const wrapper = mount(CompositionDetailView, {
+      props: { composition: compWithIdea },
+      global: { plugins: [router] },
+    })
+    await flushPromises()
+
+    // Segmented control is present for editor
+    const statusSegmented = wrapper.find('[data-test="status-segmented"]')
+    expect(statusSegmented.exists()).toBe(true)
+
+    // Find "En progreso" button and click
+    const inProgressBtn = statusSegmented.findAll('button').find((b) => b.text().includes('En progreso'))
+    expect(inProgressBtn).toBeDefined()
+    await inProgressBtn!.trigger('click')
+
+    // Called updateComposition with 'comp-100', { status: 'in_progress' }
+    expect(updateSpy).toHaveBeenCalledWith('comp-100', { status: 'in_progress' })
+
+    // Disabled while in flight
+    expect(inProgressBtn?.attributes('disabled')).toBeDefined()
+
+    // Rejection reverts value and shows error
+    rejectUpdate(new Error('Network error'))
+    await flushPromises()
+
+    expect(wrapper.find('.er-savestate').text()).toBe('No se pudo guardar el estado. Intenta de nuevo.')
   })
 
   it('renders count-bearing jump nav with all enabled sections stacked in page', async () => {

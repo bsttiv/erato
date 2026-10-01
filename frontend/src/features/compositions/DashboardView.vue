@@ -2,7 +2,7 @@
   <div class="er-app-main">
     <header class="er-topbar">
       <router-link to="/" class="er-topbar-brand">
-        Erato
+        <ErBrand />
       </router-link>
 
       <div class="er-field-row">
@@ -58,10 +58,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { ErSegmented, ErIcon, type SegmentedOption } from '@/design-system'
+import { ErSegmented, ErIcon, ErBrand, type SegmentedOption } from '@/design-system'
 import { listCompositions, type CompositionListItem } from '@/api/compositions'
 import { getMe } from '@/api/auth'
 import CompositionCard from './CompositionCard.vue'
+import { statusLabel } from './status'
 
 const compositions = ref<CompositionListItem[]>([])
 const loading = ref(false)
@@ -70,7 +71,7 @@ const filterMode = ref<'todas' | 'in_progress' | 'ready' | 'idea'>('todas')
 
 const filterOptions: SegmentedOption[] = [
   { value: 'todas', label: 'Todas' },
-  { value: 'in_progress', label: 'En progreso' },
+  { value: 'in_progress', label: statusLabel('in_progress') },
   { value: 'ready', label: 'Listas' },
   { value: 'idea', label: 'Ideas' },
 ]

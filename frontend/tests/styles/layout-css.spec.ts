@@ -359,3 +359,34 @@ describe('er-field-grid and er-crumb layout rules', () => {
   })
 })
 
+describe('er-brand and er-topbar-brand stylesheet contract', () => {
+  const css = stripCssComments(fs.readFileSync(LAYOUT_CSS_PATH, 'utf8'))
+
+  function ruleBody(selector: string): string | null {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const match = new RegExp(`(?:^|})\\s*${escaped}\\s*\\{([^}]*)\\}`).exec(css)
+    return match ? match[1] : null
+  }
+
+  it('.er-brand rule exists and uses only tokens without hex or rgb literals', () => {
+    const body = ruleBody('.er-brand')
+    expect(body, 'Expected .er-brand rule in layout.css').not.toBeNull()
+    if (body) {
+      expect(body).not.toMatch(/#([0-9a-fA-F]{3,8})\b/)
+      expect(body).not.toMatch(/\b(rgb|rgba|hsl|hsla)\s*\(/i)
+    }
+  })
+
+  it('.er-topbar-brand has no text styling (font-family, font-size, letter-spacing, color)', () => {
+    const body = ruleBody('.er-topbar-brand')
+    expect(body).not.toBeNull()
+    if (body) {
+      expect(body).not.toMatch(/(?:^|[;\s])font-family\s*:/)
+      expect(body).not.toMatch(/(?:^|[;\s])font-size\s*:/)
+      expect(body).not.toMatch(/(?:^|[;\s])letter-spacing\s*:/)
+      expect(body).not.toMatch(/(?:^|[;\s])color\s*:/)
+    }
+  })
+})
+
+

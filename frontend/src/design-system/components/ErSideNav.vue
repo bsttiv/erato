@@ -1,9 +1,8 @@
 <template>
   <nav class="er-nav" :aria-label="heading || 'Navegación'">
     <div class="er-nav-brand">
-      <span class="er-nav-lamp" aria-hidden="true" />
       <div>
-        <div class="er-nav-name">{{ brand || 'Erato' }}</div>
+        <ErBrand :label="brand" />
         <div v-if="subtitle" class="er-nav-sub">{{ subtitle }}</div>
       </div>
     </div>
@@ -27,6 +26,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import ErBrand from './ErBrand.vue'
 import { pad2 } from '../core/format'
 
 export interface SideNavItem {

@@ -69,29 +69,29 @@ Specs: design-system-port (no overflow), app-shell-and-navigation (one Cancelar,
 Specs: design-system-port (ErBrand), composition-content (status editing).
 
 ### RED
-- [ ] 1.1 New `frontend/tests/design-system/ErBrand.spec.ts`: renders `.er-brand` with `.er-nav-lamp` (aria-hidden) and `.er-nav-name`; default label "Erato"; custom `label` honored.
-- [ ] 1.2 Per view specs (`ErSideNav`, `auth-view`, `invite-accept-view`, `dashboard-view`, `composition-create-view`): `.er-brand` exists; no plain-text `.er-auth-wordmark` left; auth keeps a single h1.
-- [ ] 1.3 New `tests/compositions/status.spec.ts`: `STATUS_OPTIONS` has idea/in_progress/ready; `statusLabel` maps to Idea / En progreso / Lista.
-- [ ] 1.4 `composition-create-view.spec.ts`: status default `idea`; selecting "Lista" posts `status:'ready'`.
-- [ ] 1.5 `composition-detail-view.spec.ts`: editor clicking "En progreso" calls mocked `updateComposition(id, {status:'in_progress'})`; control disabled while in flight; rejection reverts value and shows "No se pudo guardar el estado. Intenta de nuevo."; non-editor sees `ErTag` and no segmented control.
-- [ ] 1.6 `dashboard-view.spec.ts` / card spec: card tag uses `statusLabel`; groups follow stored status.
-- [ ] 1.7 `layout-css.spec.ts`: `.er-brand` rule exists, token-only; `.er-topbar-brand` has no text styling.
-- [ ] 1.8 Run focused command; confirm FAIL.
+- [x] 1.1 New `frontend/tests/design-system/ErBrand.spec.ts`: renders `.er-brand` with `.er-nav-lamp` (aria-hidden) and `.er-nav-name`; default label "Erato"; custom `label` honored.
+- [x] 1.2 Per view specs (`ErSideNav`, `auth-view`, `invite-accept-view`, `dashboard-view`, `composition-create-view`): `.er-brand` exists; no plain-text `.er-auth-wordmark` left; auth keeps a single h1.
+- [x] 1.3 New `tests/compositions/status.spec.ts`: `STATUS_OPTIONS` has idea/in_progress/ready; `statusLabel` maps to Idea / En progreso / Lista.
+- [x] 1.4 `composition-create-view.spec.ts`: status default `idea`; selecting "Lista" posts `status:'ready'`.
+- [x] 1.5 `composition-detail-view.spec.ts`: editor clicking "En progreso" calls mocked `updateComposition(id, {status:'in_progress'})`; control disabled while in flight; rejection reverts value and shows "No se pudo guardar el estado. Intenta de nuevo."; non-editor sees `ErTag` and no segmented control.
+- [x] 1.6 `dashboard-view.spec.ts` / card spec: card tag uses `statusLabel`; groups follow stored status.
+- [x] 1.7 `layout-css.spec.ts`: `.er-brand` rule exists, token-only; `.er-topbar-brand` has no text styling.
+- [x] 1.8 Run focused command; confirm FAIL.
 
 ### GREEN
-- [ ] 2.1 Create `design-system/components/ErBrand.vue`; export in `components/index.ts` and `design-system/index.ts`.
-- [ ] 2.2 Swap in `ErSideNav.vue` (`<ErBrand :label="brand"/>`), `DashboardView.vue`, `CompositionCreateView.vue`, `InviteAcceptView.vue`, `AuthView.vue` (inside the existing h1).
-- [ ] 2.3 Create `features/compositions/status.ts` (`STATUS_OPTIONS`, `statusLabel`).
-- [ ] 2.4 `CompositionCreateView.vue`: status `ErSegmented`, default `idea`, included in payload.
-- [ ] 2.5 `CompositionDetailView.vue`: editor `ErSegmented` with optimistic update, disabled in flight, revert + `er-savestate` error on failure; non-editors get `ErTag`.
-- [ ] 2.6 `CompositionCard.vue`, `DashboardView.vue`: reuse `statusLabel`.
-- [ ] 2.7 `layout.css`: add `.er-brand`; trim `.er-topbar-brand` and `.er-auth-wordmark` to link/alignment only.
+- [x] 2.1 Create `design-system/components/ErBrand.vue`; export in `components/index.ts` and `design-system/index.ts`.
+- [x] 2.2 Swap in `ErSideNav.vue` (`<ErBrand :label="brand"/>`), `DashboardView.vue`, `CompositionCreateView.vue`, `InviteAcceptView.vue`, `AuthView.vue` (inside the existing h1).
+- [x] 2.3 Create `features/compositions/status.ts` (`STATUS_OPTIONS`, `statusLabel`).
+- [x] 2.4 `CompositionCreateView.vue`: status `ErSegmented`, default `idea`, included in payload.
+- [x] 2.5 `CompositionDetailView.vue`: editor `ErSegmented` with optimistic update, disabled in flight, revert + `er-savestate` error on failure; non-editors get `ErTag`.
+- [x] 2.6 `CompositionCard.vue`, `DashboardView.vue`: reuse `statusLabel`.
+- [x] 2.7 `layout.css`: add `.er-brand`; trim `.er-topbar-brand` and `.er-auth-wordmark` to link/alignment only.
 
 ### REFACTOR / verify
-- [ ] 3.1 Focused command green, then full `npm run test:unit` (ErSideNav is shared).
-- [ ] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
+- [x] 3.1 Focused command green, then full `npm run test:unit` (ErSideNav is shared).
+- [x] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
 - [ ] 3.3 Manual QA (author only): 360/390/768/1024px, both themes; same logo on all five places; status persists after reload; offline failure reverts; viewer sees tag.
-- [ ] 3.4 Work-unit commit: `feat(ui): unifica el logo con ErBrand y permite editar el estado` with explicit paths.
+- [x] 3.4 Work-unit commit: `feat(ui): unifica el logo con ErBrand y permite editar el estado` with explicit paths.
 
 ---
 

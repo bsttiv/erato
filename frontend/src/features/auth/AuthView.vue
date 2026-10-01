@@ -2,7 +2,7 @@
   <div class="er-auth-split">
     <div class="er-auth-hero">
       <div>
-        <h1 class="er-auth-wordmark">Erato</h1>
+        <h1 class="er-auth-wordmark"><ErBrand /></h1>
         <p class="er-auth-tagline">Tu música, tus acordes, tu banda.</p>
       </div>
 
@@ -29,6 +29,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { safeNextPath } from '@/router/safeNext'
+import { ErBrand } from '@/design-system'
 import LoginForm from './LoginForm.vue'
 import RegisterForm from './RegisterForm.vue'
 

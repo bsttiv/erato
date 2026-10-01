@@ -27,6 +27,9 @@ describe('InviteAcceptView', () => {
   it('shows a Spanish explanation and the accept button', async () => {
     const { wrapper } = await setup()
     expect(wrapper.find('.er-form-card').exists()).toBe(true)
+    expect(wrapper.find('.er-topbar-brand .er-brand').exists()).toBe(true)
+    expect(wrapper.find('.er-brand .er-nav-lamp').exists()).toBe(true)
+    expect(wrapper.find('.er-brand .er-nav-name').text()).toBe('Erato')
     expect(wrapper.text()).toContain('Te invitaron a colaborar')
     const btn = wrapper.find('button')
     expect(btn.text()).toContain('Aceptar invitación')
