@@ -182,7 +182,7 @@ Erato está preparado para ser desplegado en Vercel con configuración zero-conf
 2. Las rutas restantes sirven la aplicación de página única (SPA) generada por Vite en `frontend/dist`.
 3. Configurar en el panel de Vercel las variables de entorno de producción (`MONGODB_URI` apuntando a MongoDB Atlas, credenciales de Cloudinary, `JWT_SECRET`, etc.).
 4. Las tareas de mantenimiento (como la purga de audios huérfanos) se conectan mediante Vercel Cron llamando a `/api/cron/orphan-sweep` con el encabezado `Authorization: Bearer <CRON_SECRET>`.
-5. Tras configurar las variables de entorno, crear una sola vez los índices de MongoDB (únicos y TTL): exportar `MONGODB_URI` / `MONGODB_DB` en tu terminal (nunca se commitean) y ejecutar `python -m scripts.ensure_indexes` contra Atlas. En Docker local usa `docker compose exec backend python -m scripts.ensure_indexes`. El script es idempotente, por lo que se puede volver a ejecutar sin riesgo. No se ejecuta al arrancar la app a propósito, porque cada arranque en frío de la función serverless lo repetiría.
+5. Tras configurar las variables de entorno, crear una sola vez los índices de MongoDB (únicos y TTL): exportar `MONGODB_URI` / `MONGODB_DB` en tu terminal (nunca se commitean), junto con valores cualquiera para `JWT_SECRET`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` y `CLOUDINARY_API_SECRET` (la configuración de la app los exige para cargar, el script no los usa), y ejecutar `python -m scripts.ensure_indexes` contra Atlas. En Docker local usa `docker compose exec backend python -m scripts.ensure_indexes`. El script es idempotente, por lo que se puede volver a ejecutar sin riesgo. No se ejecuta al arrancar la app a propósito, porque cada arranque en frío de la función serverless lo repetiría.
 
 ---
 
