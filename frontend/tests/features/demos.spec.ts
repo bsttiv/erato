@@ -2,6 +2,129 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import DemoUploadModal from '@/features/demos/DemoUploadModal.vue'
 import * as demosApi from '@/api/demos'
+import * as clientModule from '@/api/client'
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+const backendDemo = {
+  demo_id: 'd1',
+  cloudinary_public_id: 'erato/compositions/c1/take',
+  title: 'Toma 1',
+  duration_s: 36.0065,
+  uploaded_by: 'u1',
+  uploaded_at: '2026-10-01T10:00:00Z',
+}
+
+const backendComment = {
+  id: 'cm1',
+  composition_id: 'c1',
+  demo_id: 'd1',
+  author_id: 'u1',
+  timestamp_s: 12.5,
+  text: 'Entra la guitarra',
+  created_at: '2026-10-01T10:05:00Z',
+}
+
+describe('demos API client contract', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('confirmUpload sends the exact backend body and maps the response', async () => {
+    const spy = vi
+      .spyOn(clientModule, 'apiClient')
+      .mockResolvedValueOnce(jsonResponse(backendDemo, 201))
+
+    const take = await demosApi.confirmUpload('c1', {
+      public_id: 'erato/compositions/c1/take',
+      version: 1790876123,
+      signature: 'sig',
+      title: 'Toma 1',
+      duration: 36.0065,
+    })
+
+    const [url, init] = spy.mock.calls[0]
+    expect(url).toBe('/compositions/c1/demos')
+    const body = JSON.parse(init!.body as string)
+    expect(body).toEqual({
+      public_id: 'erato/compositions/c1/take',
+      version: '1790876123',
+      signature: 'sig',
+      title: 'Toma 1',
+      duration_s: 36.0065,
+    })
+    expect(typeof body.version).toBe('string')
+    expect(body.duration).toBeUndefined()
+
+    expect(take).toEqual({
+      id: 'd1',
+      title: 'Toma 1',
+      public_id: 'erato/compositions/c1/take',
+      duration: 36.0065,
+      date: '2026-10-01T10:00:00Z',
+    })
+  })
+
+  it('confirmUpload defaults a missing duration to 0', async () => {
+    const spy = vi
+      .spyOn(clientModule, 'apiClient')
+      .mockResolvedValueOnce(jsonResponse(backendDemo, 201))
+    await demosApi.confirmUpload('c1', {
+      public_id: 'p',
+      version: 1,
+      signature: 's',
+      title: 't',
+    })
+    const body = JSON.parse(spy.mock.calls[0][1]!.body as string)
+    expect(body.duration_s).toBe(0)
+  })
+
+  it('confirmUpload throws a string message from the backend error envelope', async () => {
+    vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce(
+      jsonResponse({ error: 'validation', message: 'Firma inválida', detail: [{ loc: ['body'] }] }, 422)
+    )
+    await expect(
+      demosApi.confirmUpload('c1', { public_id: 'p', version: 1, signature: 's', title: 't' })
+    ).rejects.toThrow('Firma inválida')
+  })
+
+  it('addComment sends timestamp_s and maps the response', async () => {
+    const spy = vi
+      .spyOn(clientModule, 'apiClient')
+      .mockResolvedValueOnce(jsonResponse(backendComment, 201))
+
+    const comment = await demosApi.addComment('c1', 'd1', 'Entra la guitarra', 12.5)
+
+    const body = JSON.parse(spy.mock.calls[0][1]!.body as string)
+    expect(body).toEqual({ text: 'Entra la guitarra', timestamp_s: 12.5 })
+    expect(comment).toEqual({
+      id: 'cm1',
+      t: 12.5,
+      author: 'u1',
+      text: 'Entra la guitarra',
+      created_at: '2026-10-01T10:05:00Z',
+    })
+  })
+
+  it('listComments maps CommentResponse to DemoComment', async () => {
+    vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce(jsonResponse([backendComment]))
+    const list = await demosApi.listComments('c1', 'd1')
+    expect(list).toEqual([
+      {
+        id: 'cm1',
+        t: 12.5,
+        author: 'u1',
+        text: 'Entra la guitarra',
+        created_at: '2026-10-01T10:05:00Z',
+      },
+    ])
+  })
+})
 
 describe('Demos upload flow (direct-to-Cloudinary)', () => {
   beforeEach(() => {

@@ -120,10 +120,7 @@ async function handleSubmit() {
       public_id: cloudData.public_id,
       version: cloudData.version,
       signature: cloudData.signature,
-      resource_type: cloudData.resource_type || 'video',
       duration: cloudData.duration,
-      format: cloudData.format,
-      bytes: cloudData.bytes,
       title: title.value.trim(),
     })
 

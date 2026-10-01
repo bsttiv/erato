@@ -11,15 +11,61 @@ export interface UploadSignatureResponse {
   tags: string
 }
 
+/** Modal-facing shape (Cloudinary upload response + title); mapped to the backend body. */
 export interface ConfirmUploadPayload {
   public_id: string
-  version: number
+  version: number | string
   signature: string
-  resource_type: string
+  title: string
+  /** Seconds, as reported by Cloudinary; may be missing for some files. */
   duration?: number
-  format?: string
-  bytes?: number
-  title?: string
+}
+
+interface DemoResponse {
+  demo_id: string
+  cloudinary_public_id: string
+  title: string
+  duration_s: number
+  uploaded_by: string
+  uploaded_at: string
+}
+
+interface CommentResponse {
+  id: string
+  composition_id: string
+  demo_id: string
+  author_id: string
+  timestamp_s: number
+  text: string
+  created_at: string
+}
+
+function toDemoTake(d: DemoResponse): DemoTake {
+  return {
+    id: d.demo_id,
+    title: d.title,
+    public_id: d.cloudinary_public_id,
+    duration: d.duration_s,
+    date: d.uploaded_at,
+  }
+}
+
+function toDemoComment(c: CommentResponse): DemoComment {
+  return {
+    id: c.id,
+    t: c.timestamp_s,
+    author: c.author_id,
+    text: c.text,
+    created_at: c.created_at,
+  }
+}
+
+/** Backend envelope is `{error, message, detail, details}`; always yield a string. */
+async function errorMessage(res: Response, fallback: string): Promise<string> {
+  const err = await res.json().catch(() => ({}))
+  if (typeof err?.detail === 'string' && err.detail) return err.detail
+  if (typeof err?.message === 'string' && err.message) return err.message
+  return fallback
 }
 
 export interface DemoComment {
@@ -49,8 +95,7 @@ export async function requestUploadSignature(
     headers: { 'Content-Type': 'application/json' },
   })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al obtener firma de subida')
+    throw new Error(await errorMessage(res, 'Error al obtener firma de subida'))
   }
   return res.json()
 }
@@ -62,13 +107,18 @@ export async function confirmUpload(
   const res = await apiClient(`/compositions/${compositionId}/demos`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      public_id: payload.public_id,
+      version: String(payload.version),
+      signature: payload.signature,
+      title: payload.title,
+      duration_s: payload.duration ?? 0,
+    }),
   })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al confirmar demo')
+    throw new Error(await errorMessage(res, 'Error al confirmar demo'))
   }
-  return res.json()
+  return toDemoTake(await res.json())
 }
 
 export async function getPlaybackUrl(
@@ -77,8 +127,7 @@ export async function getPlaybackUrl(
 ): Promise<{ url: string; expires_at: number }> {
   const res = await apiClient(`/compositions/${compositionId}/demos/${demoId}/url`)
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al obtener enlace de reproducción')
+    throw new Error(await errorMessage(res, 'Error al obtener enlace de reproducción'))
   }
   return res.json()
 }
@@ -92,13 +141,12 @@ export async function addComment(
   const res = await apiClient(`/compositions/${compositionId}/demos/${demoId}/comments`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, t }),
+    body: JSON.stringify({ text, timestamp_s: t }),
   })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al agregar comentario')
+    throw new Error(await errorMessage(res, 'Error al agregar comentario'))
   }
-  return res.json()
+  return toDemoComment(await res.json())
 }
 
 export async function listComments(
@@ -107,7 +155,8 @@ export async function listComments(
 ): Promise<DemoComment[]> {
   const res = await apiClient(`/compositions/${compositionId}/demos/${demoId}/comments`)
   if (!res.ok) {
-    throw new Error('Error al listar comentarios')
+    throw new Error(await errorMessage(res, 'Error al listar comentarios'))
   }
-  return res.json()
+  const list: CommentResponse[] = await res.json()
+  return list.map(toDemoComment)
 }
