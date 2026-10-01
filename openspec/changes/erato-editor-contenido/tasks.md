@@ -129,7 +129,7 @@ branch merges into `main` after all units have passed review and verification.
 
 ### Split-screen auth layout with pure-CSS hero and cleaned forms
 
-- [ ] 4.1 RED: Create `frontend/tests/features/auth-view.spec.ts` asserting:
+- [x] 4.1 RED: Create `frontend/tests/features/auth-view.spec.ts` asserting:
   - Split-screen layout renders 50/50 hero panel and form panel.
   - Hero panel renders brand wordmark, tagline, and pure CSS geometric bars/glow without issuing any network `<img>` or background image request.
   - Form panel switches between `LoginForm.vue` and `RegisterForm.vue` based on current route (`/login` vs `/register`).
@@ -137,17 +137,17 @@ branch merges into `main` after all units have passed review and verification.
   - `LoginForm.vue` does NOT render Google button or password-reset link (D11).
   - `RegisterForm.vue` contains: title "Crea tu cuenta", subtitle "Organiza las canciones de tu banda en un solo lugar.", name input, email input, password input, primary button "Crear cuenta", and link to login.
   - `RegisterForm.vue` does NOT render Banda field, Google button, or terms/privacy links (D11).
-- [ ] 4.2 GREEN: Restructure `frontend/src/features/auth/AuthView.vue` with 50/50 split-screen container, CSS-only jazz hero (`er-auth-bars`, `er-auth-bar`, `er-auth-pill`, `er-auth-rules`, `radial-gradient` glow), and `<router-view>` or route-bound form container.
-- [ ] 4.3 GREEN: Update `frontend/src/features/auth/LoginForm.vue`:
+- [x] 4.2 GREEN: Restructure `frontend/src/features/auth/AuthView.vue` with 50/50 split-screen container, CSS-only jazz hero (`er-auth-bars`, `er-auth-bar`, `er-auth-pill`, `er-auth-rules`, `radial-gradient` glow), and `<router-view>` or route-bound form container.
+- [x] 4.3 GREEN: Update `frontend/src/features/auth/LoginForm.vue`:
   - Align copy with PDF page 1 ("Inicia sesión", "Bienvenido de vuelta...", "Entrar").
   - Add password visibility toggle button ("mostrar" / "ocultar").
   - Replace mode switch with `<router-link to="/register">¿No tienes cuenta? Regístrate</router-link>`.
   - Remove any disabled or placeholder Google button or reset password controls.
-- [ ] 4.4 GREEN: Update `frontend/src/features/auth/RegisterForm.vue`:
+- [x] 4.4 GREEN: Update `frontend/src/features/auth/RegisterForm.vue`:
   - Align copy with PDF page 1 ("Crea tu cuenta", "Organiza las canciones...", "Crear cuenta").
   - Replace mode switch with `<router-link to="/login">¿Ya tienes cuenta? Inicia sesión</router-link>`.
   - Ensure no Banda input, Google button, or legal terms placeholders exist.
-- [ ] 4.5 REFACTOR: Verify `frontend/tests/features/auth-view.spec.ts` and `frontend/tests/features/auth.spec.ts` pass cleanly under `npm run test:unit -- auth`.
+- [x] 4.5 REFACTOR: Verify `frontend/tests/features/auth-view.spec.ts` and `frontend/tests/features/auth.spec.ts` pass cleanly under `npm run test:unit -- auth`.
 
 ---
 

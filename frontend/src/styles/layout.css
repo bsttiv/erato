@@ -450,6 +450,18 @@
   background-color: var(--amber);
 }
 
+.er-auth-bar--ivory {
+  background-color: var(--key-ivory);
+}
+
+.er-auth-bar--wine {
+  background-color: var(--wine);
+}
+
+.er-auth-bar--ember {
+  background-color: var(--ember);
+}
+
 .er-auth-pill {
   height: 32px;
   border-radius: var(--radius-pill);
@@ -503,6 +515,20 @@
   gap: var(--space-2);
 }
 
+.er-auth-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--ink);
+  margin: 0;
+}
+
+.er-auth-subtitle {
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+  margin: 0;
+}
+
 .er-auth-form {
   display: flex;
   flex-direction: column;
@@ -518,12 +544,51 @@
   border: 1px solid var(--wine);
 }
 
+.er-password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.er-password-toggle {
+  position: absolute;
+  right: var(--space-3);
+  background: transparent;
+  border: none;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: var(--space-1);
+}
+
+.er-password-toggle:hover {
+  color: var(--amber);
+}
+
 .er-auth-links {
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-size: 0.875rem;
   color: var(--ink-muted);
+}
+
+.er-auth-link {
+  color: var(--amber);
+  text-decoration: none;
+  font-size: 0.875rem;
+}
+
+.er-auth-link:hover {
+  text-decoration: underline;
+}
+
+.er-auth-note {
+  font-size: 0.8125rem;
+  color: var(--ink-faint);
+  margin-top: var(--space-2);
+  text-align: center;
 }
 
 /* ── Modal Overlay Primitives ───────────────────────────────────────────── */

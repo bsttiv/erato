@@ -1,37 +1,59 @@
 <template>
-  <div class="er-auth-view er-panel">
-    <div class="er-auth-header">
-      <div class="er-label">
-        // cuenta
+  <div class="er-auth-split">
+    <div class="er-auth-hero">
+      <div>
+        <h1 class="er-auth-wordmark">Erato</h1>
+        <p class="er-auth-tagline">Tu música, tus acordes, tu banda.</p>
       </div>
-      <ErSegmented
-        v-model="mode"
-        label="Modo de autenticación"
-        :options="[
-          { value: 'login', label: 'Iniciar sesión' },
-          { value: 'register', label: 'Registrarse' },
-        ]"
-      />
+
+      <div class="er-auth-bars">
+        <div class="er-auth-bar" />
+        <div class="er-auth-bar er-auth-bar--ivory" />
+        <div class="er-auth-pill" />
+        <div class="er-auth-bar er-auth-bar--wine" />
+        <div class="er-auth-bar er-auth-bar--ember" />
+        <div class="er-auth-rules" />
+      </div>
     </div>
 
-    <LoginForm v-if="mode === 'login'" @success="onSuccess" />
-    <RegisterForm v-else @success="onSuccess" />
+    <div class="er-auth-pane">
+      <div class="er-auth-view">
+        <LoginForm v-if="mode === 'login'" @success="onSuccess" />
+        <RegisterForm v-else @success="onSuccess" />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { ErSegmented } from '@/design-system'
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import LoginForm from './LoginForm.vue'
 import RegisterForm from './RegisterForm.vue'
+
+const props = defineProps<{
+  initialMode?: 'login' | 'register'
+}>()
 
 const emit = defineEmits<{
   (e: 'authenticated'): void
 }>()
 
-const mode = ref<'login' | 'register'>('login')
+const route = useRoute()
+const router = useRouter()
+
+const mode = computed<'login' | 'register'>(() => {
+  if (props.initialMode) return props.initialMode
+  if (route && (route.path === '/register' || route.name === 'register')) {
+    return 'register'
+  }
+  return 'login'
+})
 
 function onSuccess() {
   emit('authenticated')
+  if (router) {
+    router.push('/')
+  }
 }
 </script>

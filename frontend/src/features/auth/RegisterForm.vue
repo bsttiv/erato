@@ -1,11 +1,16 @@
 <template>
   <form class="er-auth-form" @submit.prevent="handleSubmit">
+    <div class="er-auth-header">
+      <h2 class="er-auth-title">Crea tu cuenta</h2>
+      <p class="er-auth-subtitle">Organiza las canciones de tu banda en un solo lugar.</p>
+    </div>
+
     <div v-if="error" class="er-auth-error">
       {{ error }}
     </div>
 
     <div class="er-field">
-      <label for="reg-name" class="er-label">Nombre artístico / display name</label>
+      <label for="reg-name" class="er-label">Tu nombre</label>
       <input
         id="reg-name"
         v-model="displayName"
@@ -30,15 +35,24 @@
 
     <div class="er-field">
       <label for="reg-password" class="er-label">Contraseña</label>
-      <input
-        id="reg-password"
-        v-model="password"
-        type="password"
-        class="er-input"
-        placeholder="Al menos 8 caracteres"
-        minlength="8"
-        required
-      >
+      <div class="er-password-field">
+        <input
+          id="reg-password"
+          v-model="password"
+          :type="showPassword ? 'text' : 'password'"
+          class="er-input"
+          placeholder="Al menos 8 caracteres"
+          minlength="8"
+          required
+        >
+        <button
+          type="button"
+          class="er-password-toggle"
+          @click="showPassword = !showPassword"
+        >
+          {{ showPassword ? 'ocultar' : 'mostrar' }}
+        </button>
+      </div>
     </div>
 
     <ErButton
@@ -46,8 +60,14 @@
       variant="primary"
       :disabled="loading"
     >
-      {{ loading ? 'Creando cuenta…' : 'Registrarse' }}
+      {{ loading ? 'Creando cuenta…' : 'Crear cuenta' }}
     </ErButton>
+
+    <div class="er-auth-links">
+      <router-link to="/login" class="er-auth-link">
+        ¿Ya tienes cuenta? Inicia sesión
+      </router-link>
+    </div>
   </form>
 </template>
 
@@ -63,6 +83,7 @@ const emit = defineEmits<{
 const displayName = ref('')
 const email = ref('')
 const password = ref('')
+const showPassword = ref(false)
 const error = ref<string | null>(null)
 const loading = ref(false)
 
