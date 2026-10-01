@@ -247,7 +247,11 @@
   text-decoration: none;
 }
 
-.er-crumb a:hover,
+.er-crumb a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
 .er-sectionnav a:hover,
 .er-sidebar-foot a:hover {
   color: var(--ink);
@@ -407,8 +411,14 @@
 
 .er-field-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-4);
+}
+
+.er-field-grid input,
+.er-field-grid select {
+  width: 100%;
+  min-width: 0;
 }
 
 .er-hint {

@@ -8,16 +8,16 @@
   <div v-else :class="['er-layout', { 'er-layout--noside': !showSidebar }]">
     <!-- Persistent sidebar for authenticated users -->
     <aside v-if="showSidebar" class="er-sidebar">
-      <ErSideNav
-        :items="sidebarNavItems"
-        :model-value="comp.id"
-        @select="onSelectComposition"
-      />
       <div class="er-sidebar-foot">
         <router-link to="/">
           ← todas las composiciones
         </router-link>
       </div>
+      <ErSideNav
+        :items="sidebarNavItems"
+        :model-value="comp.id"
+        @select="onSelectComposition"
+      />
     </aside>
 
     <!-- Main composition content -->
@@ -192,6 +192,7 @@ import {
   ErTag,
   ErTodoList,
   ErSideNav,
+  formatDate,
   type SideNavItem,
   type TodoItem,
 } from '@/design-system'
@@ -306,7 +307,7 @@ function normalizeCompositionData(c: CompositionResponse) {
     id: d.id || d.demo_id || '',
     title: d.title || 'Demo',
     duration: d.duration || d.duration_s || 0,
-    date: d.date || d.uploaded_at,
+    date: formatDate(d.date || d.uploaded_at),
     note: d.note,
     src: d.src,
     comments: d.comments || [],

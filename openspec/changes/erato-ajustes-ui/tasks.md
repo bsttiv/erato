@@ -42,25 +42,25 @@ explicit paths, no AI attribution. UI text Spanish (tuteo, no exclamation marks,
 Specs: design-system-port (no overflow), app-shell-and-navigation (one Cancelar, sidebar link/crumb), composition-content (dates).
 
 ### RED
-- [ ] 1.1 Create `frontend/tests/design-system/format.spec.ts`: valid ISO yields day/year and 3-letter month prefix (regex); `null`/`undefined`/`''` return `''`; `'not-a-date'` returns raw string, never "Invalid".
-- [ ] 1.2 `composition-create-view.spec.ts`: update any assertion of the top Cancelar; assert exactly one button with text "Cancelar".
-- [ ] 1.3 `ErDemoPlayer.spec.ts`: update raw-ISO date expectations; assert take date has no `T`/`Z` and matches the formatted pattern.
-- [ ] 1.4 `composition-detail-view.spec.ts`: first child of the sidebar is the "todas las composiciones" link (before `ErSideNav`); crumb link `href="/"`; demo dates formatted.
-- [ ] 1.5 `frontend/tests/styles/layout-css.spec.ts`: `.er-field-grid` uses `minmax(0, 1fr)`; its input/select have `width: 100%` and `min-width: 0`; `.er-crumb a` has hover/underline rule with no hex/rgb.
-- [ ] 1.6 Run `npm run test:unit -- format composition-create ErDemoPlayer layout-css composition-detail`; confirm new assertions FAIL.
+- [x] 1.1 Create `frontend/tests/design-system/format.spec.ts`: valid ISO yields day/year and 3-letter month prefix (regex); `null`/`undefined`/`''` return `''`; `'not-a-date'` returns raw string, never "Invalid".
+- [x] 1.2 `composition-create-view.spec.ts`: update any assertion of the top Cancelar; assert exactly one button with text "Cancelar".
+- [x] 1.3 `ErDemoPlayer.spec.ts`: update raw-ISO date expectations; assert take date has no `T`/`Z` and matches the formatted pattern.
+- [x] 1.4 `composition-detail-view.spec.ts`: first child of the sidebar is the "todas las composiciones" link (before `ErSideNav`); crumb link `href="/"`; demo dates formatted.
+- [x] 1.5 `frontend/tests/styles/layout-css.spec.ts`: `.er-field-grid` uses `minmax(0, 1fr)`; its input/select have `width: 100%` and `min-width: 0`; `.er-crumb a` has hover/underline rule with no hex/rgb.
+- [x] 1.6 Run `npm run test:unit -- format composition-create ErDemoPlayer layout-css composition-detail`; confirm new assertions FAIL.
 
 ### GREEN
-- [ ] 2.1 `frontend/src/design-system/core/format.ts` + `core/index.ts`: add and export `formatDate` (module-level `Intl.DateTimeFormat('es', {day:'numeric', month:'short', year:'numeric'})`, invalid-date guard).
-- [ ] 2.2 `design-system/components/ErDemoPlayer.vue` (lines ~23, 53): render dates via `formatDate`.
-- [ ] 2.3 `features/compositions/CompositionCreateView.vue`: delete top Cancelar block (lines 7-9), keep the bottom one.
-- [ ] 2.4 `features/compositions/CompositionDetailView.vue`: move foot link (lines 16-20) above `ErSideNav`; use `formatDate` for demo dates.
-- [ ] 2.5 `frontend/src/styles/layout.css`: `.er-field-grid` to `repeat(3, minmax(0, 1fr))` with input/select `width:100%; min-width:0`; style `.er-crumb a` (hover, underline) with existing tokens only.
+- [x] 2.1 `frontend/src/design-system/core/format.ts` + `core/index.ts`: add and export `formatDate` (module-level `Intl.DateTimeFormat('es', {day:'numeric', month:'short', year:'numeric'})`, invalid-date guard).
+- [x] 2.2 `design-system/components/ErDemoPlayer.vue` (lines ~23, 53): render dates via `formatDate`.
+- [x] 2.3 `features/compositions/CompositionCreateView.vue`: delete top Cancelar block (lines 7-9), keep the bottom one.
+- [x] 2.4 `features/compositions/CompositionDetailView.vue`: move foot link (lines 16-20) above `ErSideNav`; use `formatDate` for demo dates.
+- [x] 2.5 `frontend/src/styles/layout.css`: `.er-field-grid` to `repeat(3, minmax(0, 1fr))` with input/select `width:100%; min-width:0`; style `.er-crumb a` (hover, underline) with existing tokens only.
 
 ### REFACTOR / verify
-- [ ] 3.1 `npm run test:unit -- format composition-create ErDemoPlayer layout-css composition-detail` all green; then full `npm run test:unit`.
-- [ ] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
+- [x] 3.1 `npm run test:unit -- format composition-create ErDemoPlayer layout-css composition-detail` all green; then full `npm run test:unit`.
+- [x] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
 - [ ] 3.3 Manual QA (author only): 360/390/768/1024px in Noche and Matine; compas input inside card, single Cancelar, link first, crumb contrast 4.5:1, dates like "1 oct 2026".
-- [ ] 3.4 Work-unit commit: `fix(ui): corrige desbordes, Cancelar duplicado, enlace lateral y fechas de demos` with explicit paths.
+- [x] 3.4 Work-unit commit: `fix(ui): corrige desbordes, Cancelar duplicado, enlace lateral y fechas de demos` with explicit paths.
 
 ---
 

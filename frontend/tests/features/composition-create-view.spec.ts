@@ -34,12 +34,14 @@ describe('CompositionCreateView', () => {
     expect(wrapper.find('.er-form-card').exists()).toBe(true)
     expect(wrapper.find('.er-modal').exists()).toBe(false)
 
-    // Minimal bar contains brand and Cancel link
+    // Minimal bar contains brand and NO top Cancel link
     expect(wrapper.find('.er-topbar-brand').text()).toContain('Erato')
-    const cancelLinks = wrapper.findAll('a[href="/"]')
-    const cancelLink = cancelLinks.find((l) => l.text().includes('Cancelar'))
-    expect(cancelLink).toBeDefined()
-    expect(cancelLink?.text()).toContain('Cancelar')
+    expect(wrapper.find('.er-createbar').text()).not.toContain('Cancelar')
+
+    // There is exactly one Cancelar action in the view (at the bottom)
+    const cancelLinks = wrapper.findAll('a').filter((l) => l.text().trim() === 'Cancelar')
+    expect(cancelLinks.length).toBe(1)
+    expect(cancelLinks[0].attributes('href')).toBe('/')
   })
 
   it('contains title, 3-column metadata inputs, two-option visibility, and section include cards', async () => {

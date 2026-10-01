@@ -86,7 +86,7 @@ describe('CompositionDetailView', () => {
     vi.spyOn(compApi, 'listCompositions').mockResolvedValue(sampleSidebarList)
   })
 
-  it('renders persistent sidebar with link back to dashboard in footer', async () => {
+  it('renders persistent sidebar with link back to dashboard at the top (before ErSideNav)', async () => {
     const router = await setupRouter('/compositions/comp-100')
 
     const wrapper = mount(CompositionDetailView, {
@@ -97,12 +97,16 @@ describe('CompositionDetailView', () => {
     const sidebar = wrapper.find('.er-sidebar')
     expect(sidebar.exists()).toBe(true)
 
-    const sideNav = wrapper.findComponent({ name: 'ErSideNav' })
-    expect(sideNav.exists()).toBe(true)
+    // "todas las composiciones" link precedes ErSideNav as first element
+    const firstChild = sidebar.element.firstElementChild
+    expect(firstChild?.textContent).toContain('todas las composiciones')
 
-    const backLink = sidebar.find('.er-sidebar-foot a[href="/"]')
+    const backLink = sidebar.find('a[href="/"]')
     expect(backLink.exists()).toBe(true)
     expect(backLink.text()).toContain('todas las composiciones')
+
+    const sideNav = wrapper.findComponent({ name: 'ErSideNav' })
+    expect(sideNav.exists()).toBe(true)
   })
 
   it('unauthenticated visitor on public route drops sidebar (er-layout--noside)', async () => {
@@ -135,7 +139,9 @@ describe('CompositionDetailView', () => {
     // Breadcrumb
     const crumb = wrapper.find('.er-crumb')
     expect(crumb.exists()).toBe(true)
-    expect(crumb.text()).toContain('composiciones')
+    const crumbLink = crumb.find('a[href="/"]')
+    expect(crumbLink.exists()).toBe(true)
+    expect(crumbLink.text().trim()).toBe('composiciones')
     expect(crumb.text().toLowerCase()).toContain('noche de otoño')
 
     // Title
@@ -157,6 +163,35 @@ describe('CompositionDetailView', () => {
     // Action buttons for owner
     expect(wrapper.find('[data-test="share-btn"]').exists()).toBe(true)
     expect(wrapper.find('.er-save-btn').exists()).toBe(true)
+  })
+
+  it('renders demo dates formatted via formatDate without raw ISO T or Z', async () => {
+    const compWithDemo: CompositionResponse = {
+      ...sampleComposition,
+      demos: [
+        {
+          demo_id: 'demo-1',
+          cloudinary_public_id: 'c-1',
+          uploaded_by: 'user-1',
+          title: 'Toma acústica',
+          uploaded_at: '2026-10-01T12:00:00Z',
+          duration_s: 120,
+        },
+      ],
+    }
+    const router = await setupRouter('/compositions/comp-100')
+    const wrapper = mount(CompositionDetailView, {
+      props: { composition: compWithDemo },
+      global: { plugins: [router] },
+    })
+    await flushPromises()
+
+    const demoSection = wrapper.find('#sec-demos')
+    expect(demoSection.exists()).toBe(true)
+    const text = demoSection.text()
+    expect(text).not.toContain('T12:00:00')
+    expect(text).not.toContain('Z')
+    expect(text).toMatch(/1\s+oct\.?\s+2026/i)
   })
 
   it('hides edit and save controls for viewer or anonymous visitors', async () => {

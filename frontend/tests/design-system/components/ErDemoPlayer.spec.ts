@@ -8,7 +8,7 @@ describe('ErDemoPlayer component', () => {
     {
       id: 'take-1',
       title: 'Toma acústica',
-      date: 'hace 2 días',
+      date: '2026-10-01T12:00:00Z',
       note: 'afinación en Re',
       duration: 120,
       comments: [
@@ -39,6 +39,17 @@ describe('ErDemoPlayer component', () => {
     expect(wrapper.find('.er-takes').exists()).toBe(true)
     expect(wrapper.findAll('.er-take').length).toBe(2)
     expect(wrapper.find('.er-now-title').text()).toBe('Toma acústica')
+
+    // Dates formatted via formatDate (no raw ISO 'T'/'Z', matches 1 oct 2026)
+    const takeMeta = wrapper.find('.er-take-meta').text()
+    expect(takeMeta).not.toContain('T')
+    expect(takeMeta).not.toContain('Z')
+    expect(takeMeta).toMatch(/1\s+oct\.?\s+2026/i)
+
+    const nowSub = wrapper.find('.er-now-sub').text()
+    expect(nowSub).not.toContain('T')
+    expect(nowSub).not.toContain('Z')
+    expect(nowSub).toMatch(/1\s+oct\.?\s+2026/i)
 
     // 72 waveform bars rendered via SVG
     const bars = wrapper.findAll('.er-wave-bar')

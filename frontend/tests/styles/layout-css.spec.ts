@@ -323,3 +323,39 @@ describe('modal opacity', () => {
     expect(body).not.toMatch(/opacity\s*:/)
   })
 })
+
+describe('er-field-grid and er-crumb layout rules', () => {
+  const css = stripCssComments(fs.readFileSync(LAYOUT_CSS_PATH, 'utf8'))
+
+  function ruleBody(selector: string): string | null {
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const match = new RegExp(`(?:^|})\\s*${escaped}\\s*\\{([^}]*)\\}`).exec(css)
+    return match ? match[1] : null
+  }
+
+  it('.er-field-grid uses minmax(0, 1fr) to prevent overflow', () => {
+    const body = ruleBody('.er-field-grid')
+    expect(body).not.toBeNull()
+    expect(body).toMatch(/grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\)/)
+  })
+
+  it('.er-field-grid input and select have width: 100% and min-width: 0', () => {
+    const match = css.match(/\.er-field-grid\s+(?:input|\.er-input)[^{]*\{([^}]*)\}/)
+    expect(match, 'Expected .er-field-grid input/select rule').not.toBeNull()
+    if (match) {
+      expect(match[1]).toMatch(/width:\s*100%/)
+      expect(match[1]).toMatch(/min-width:\s*0/)
+    }
+  })
+
+  it('.er-crumb a has hover/underline rule with no hex or rgb literals', () => {
+    const hoverMatch = css.match(/\.er-crumb\s+a:hover[^{]*\{([^}]*)\}/)
+    expect(hoverMatch, 'Expected .er-crumb a:hover rule').not.toBeNull()
+    if (hoverMatch) {
+      expect(hoverMatch[1]).toMatch(/text-decoration:\s*underline/)
+      expect(hoverMatch[1]).not.toMatch(/#([0-9a-fA-F]{3,8})\b/)
+      expect(hoverMatch[1]).not.toMatch(/\b(rgb|rgba|hsl|hsla)\s*\(/i)
+    }
+  })
+})
+
