@@ -42,6 +42,9 @@ describe('Compositions feature views', () => {
           user_role: 'viewer',
         },
       },
+      global: {
+        stubs: { 'router-link': true },
+      },
     })
 
     // ChordEditor editable should be false
@@ -64,6 +67,9 @@ describe('Compositions feature views', () => {
           ...sampleComposition,
           user_role: 'editor',
         },
+      },
+      global: {
+        stubs: { 'router-link': true },
       },
     })
 
