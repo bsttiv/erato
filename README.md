@@ -223,5 +223,5 @@ Erato's visual aesthetic is codified in the [`erato-design-system/`](./erato-des
 
 ## 7. License & Contact
 
-- **License:** All rights reserved. *(License terms to be defined by the author).*
+- **License:** [GNU AGPL-3.0](./LICENSE). Erato is free and open source; if you run a modified version of it as a network service, the AGPL requires you to make your modified source available to its users as well.
 - **Contact:** For inquiries, collaboration, or professional contact, please reach out via GitHub or professional contact channels.

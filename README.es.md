@@ -222,5 +222,5 @@ El diseño visual de Erato está contenido en el paquete [`erato-design-system/`
 
 ## 7. Licencia y contacto
 
-- **Licencia:** Todos los derechos reservados. *(Pendiente de definición por el autor).*
+- **Licencia:** [GNU AGPL-3.0](./LICENSE). Erato es software libre y de código abierto; si alguien aloja una versión modificada como servicio en red, la AGPL exige que también publique el código fuente de esa versión a sus usuarios.
 - **Contacto:** Para consultas, contacto profesional o información sobre el proyecto, por favor dirigirse al repositorio del autor en GitHub o mediante sus canales profesionales de contacto.
