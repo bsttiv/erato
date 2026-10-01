@@ -124,18 +124,18 @@ Specs: app-shell-and-navigation (drawer, one-column collapse).
 Specs: design-system-port (horizontal chord diagram, D6).
 
 ### RED
-- [ ] 1.1 Extend `frontend/tests/design-system/components/ErChordEditor.spec.ts`: string lines horizontal (`y1 == y2`); nut vertical (`x1 == x2`); high-e row above low-E row; clicking a cell emits the same `set(s, fret)` payloads as before; marker click toggles open/mute.
-- [ ] 1.2 Run `npm run test:unit -- ErChordEditor chord-grid`; confirm new assertions FAIL.
+- [x] 1.1 Extend `frontend/tests/design-system/components/ErChordEditor.spec.ts`: string lines horizontal (`y1 == y2`); nut vertical (`x1 == x2`); high-e row above low-E row; clicking a cell emits the same `set(s, fret)` payloads as before; marker click toggles open/mute.
+- [x] 1.2 Run `npm run test:unit -- ErChordEditor chord-grid`; confirm new assertions FAIL.
 
 ### GREEN
-- [ ] 2.1 `frontend/src/design-system/components/ErFretboard.vue`: rewrite geometry (frets as columns, strings as rows high e on top, markers left of the nut, base-fret label above first column, W/H swapped, hit rects remapped); keep `er-fb-*` classes, props and `emit('set', s, fret)`.
-- [ ] 2.2 `erato-design-system/components/bundle.css` (lines ~103-110): adjust only if a class needs a token-based tweak.
+- [x] 2.1 `frontend/src/design-system/components/ErFretboard.vue`: rewrite geometry (frets as columns, strings as rows high e on top, markers left of the nut, base-fret label above first column, W/H swapped, hit rects remapped); keep `er-fb-*` classes, props and `emit('set', s, fret)`.
+- [x] 2.2 `erato-design-system/components/bundle.css` (lines ~103-110): adjust only if a class needs a token-based tweak.
 
 ### REFACTOR / verify
-- [ ] 3.1 `cd frontend && npm run test:unit -- ErChordEditor chord-grid` green, then full `npm run test:unit`.
-- [ ] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
+- [x] 3.1 `cd frontend && npm run test:unit -- ErChordEditor chord-grid` green, then full `npm run test:unit`.
+- [x] 3.2 `npx vue-tsc --noEmit` and `npm run build` clean.
 - [ ] 3.3 Manual QA (author only): shapes F and Bm, open and muted strings, both themes, 360px inside the card; click sets/clears fret and marker toggles open/mute.
-- [ ] 3.4 Work-unit commit: `feat(ui): muestra el diagrama de acordes de guitarra en horizontal` with explicit paths, no AI attribution.
+- [x] 3.4 Work-unit commit: `feat(ui): muestra el diagrama de acordes de guitarra en horizontal` with explicit paths, no AI attribution.
 
 ---
 
