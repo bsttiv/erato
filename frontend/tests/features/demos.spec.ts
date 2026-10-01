@@ -26,6 +26,7 @@ const backendComment = {
   composition_id: 'c1',
   demo_id: 'd1',
   author_id: 'u1',
+  author_name: 'Ana',
   timestamp_s: 12.5,
   text: 'Entra la guitarra',
   created_at: '2026-10-01T10:05:00Z',
@@ -106,7 +107,7 @@ describe('demos API client contract', () => {
     expect(comment).toEqual({
       id: 'cm1',
       t: 12.5,
-      author: 'u1',
+      author: 'Ana',
       text: 'Entra la guitarra',
       created_at: '2026-10-01T10:05:00Z',
     })
@@ -119,11 +120,30 @@ describe('demos API client contract', () => {
       {
         id: 'cm1',
         t: 12.5,
-        author: 'u1',
+        author: 'Ana',
         text: 'Entra la guitarra',
         created_at: '2026-10-01T10:05:00Z',
       },
     ])
+  })
+
+  it.each([[null], [undefined], [''], ['   ']])(
+    'listComments falls back to "Usuario" when author_name is %j and never shows the id',
+    async (name) => {
+      vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce(
+        jsonResponse([{ ...backendComment, author_name: name }])
+      )
+      const [comment] = await demosApi.listComments('c1', 'd1')
+      expect(comment.author).toBe('Usuario')
+      expect(comment.author).not.toBe('u1')
+    }
+  )
+
+  it('addComment falls back to "Usuario" when author_name is missing', async () => {
+    const { author_name: _omit, ...withoutName } = backendComment
+    vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce(jsonResponse(withoutName, 201))
+    const comment = await demosApi.addComment('c1', 'd1', 'x', 1)
+    expect(comment.author).toBe('Usuario')
   })
 })
 
@@ -148,7 +168,7 @@ describe('DemosSection take resolution', () => {
     })
     vi.spyOn(demosApi, 'listComments').mockImplementation(async (_c, id) => {
       if (id === 'bad') throw new Error('boom')
-      return [{ t: 1, author: 'u1', text: 'hola' }]
+      return [{ t: 1, author: 'Ana', text: 'hola' }]
     })
 
     const original: demosApi.DemoTake[] = [

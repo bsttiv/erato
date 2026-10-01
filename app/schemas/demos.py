@@ -46,6 +46,7 @@ class CommentResponse(BaseModel):
     composition_id: str
     demo_id: str
     author_id: str
+    author_name: Optional[str] = None
     timestamp_s: float
     text: str
     created_at: datetime
