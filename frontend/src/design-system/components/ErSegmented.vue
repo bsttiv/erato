@@ -1,11 +1,13 @@
 <template>
-  <div class="er-seg" role="group" :aria-label="label">
+  <div class="er-seg" :role="role || 'group'" :aria-label="label">
     <button
       v-for="opt in options"
       :key="opt.value"
       type="button"
       class="er-seg-opt"
+      :role="role === 'tablist' ? 'tab' : undefined"
       :aria-pressed="opt.value === modelValue ? 'true' : 'false'"
+      :aria-selected="opt.value === modelValue ? 'true' : 'false'"
       @click="select(opt.value)"
     >
       {{ opt.label }}
@@ -23,6 +25,7 @@ defineProps<{
   options: SegmentedOption[]
   modelValue: string
   label?: string
+  role?: string
 }>()
 
 const emit = defineEmits<{

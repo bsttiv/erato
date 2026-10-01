@@ -270,18 +270,18 @@ branch merges into `main` after all units have passed review and verification.
 
 ### Multi-tab data model and tabbed tablature container
 
-- [ ] 9.1 RED: Create `frontend/tests/design-system/tab.spec.ts` updates asserting:
+- [x] 9.1 RED: Create `frontend/tests/design-system/tab.spec.ts` updates asserting:
   - `newTabId()` generates unique client-side identifiers.
   - `newTabEntry(title, strings)` returns a new `TabEntry` with blank columns and default 6 strings.
   - TabEntry conforms to `{ id, title, strings, columns }`.
-- [ ] 9.2 GREEN: Update `frontend/src/design-system/core/tab.ts` to export `TabEntry`, `newTabId`, and `newTabEntry` while keeping existing `tabToText`, `blankTab`, and `TECH` untouched.
-- [ ] 9.3 RED: Create `tests/test_tablature_tabs.py` asserting:
+- [x] 9.2 GREEN: Update `frontend/src/design-system/core/tab.ts` to export `TabEntry`, `newTabId`, and `newTabEntry` while keeping existing `tabToText`, `blankTab`, and `TECH` untouched.
+- [x] 9.3 RED: Create `tests/test_tablature_tabs.py` asserting:
   - `PUT /api/compositions/{id}/tablature` accepts `{ tabs: List[TabEntry] }`.
   - Validates `title` (1–80 chars), `strings` (default 6), and `columns` (list of strings or `"|"`).
   - Persists full tabs array in order without storing derived ASCII text.
   - Empty tabs array `{ tabs: [] }` is valid.
-- [ ] 9.4 GREEN: Ensure `app/schemas/compositions.py` `TablatureSection` model and `app/routers/sections.py` validate and persist `tabs` array.
-- [ ] 9.5 RED: Create `frontend/tests/features/tablature-section.spec.ts` asserting:
+- [x] 9.4 GREEN: Ensure `app/schemas/compositions.py` `TablatureSection` model and `app/routers/sections.py` validate and persist `tabs` array.
+- [x] 9.5 RED: Create `frontend/tests/features/tablature-section.spec.ts` asserting:
   - Tab strip renders all tabs from `tablature.tabs` plus a "+" button to add a tab.
   - Active tab is highlighted with `aria-selected="true"`.
   - Clicking a tab switches the active tab and remounts `ErTabEditor` via `:key="activeTab.id"` with the switched tab's columns.
@@ -289,8 +289,8 @@ branch merges into `main` after all units have passed review and verification.
   - User can delete a tab (with confirmation or prevent deleting last tab if required).
   - Editing columns in `ErTabEditor` emits updated `tabs` array to parent.
   - Read-only mode renders `ErTabEditor` with `readonly` attribute and hides tab manipulation actions.
-- [ ] 9.6 GREEN: Create `frontend/src/features/compositions/TablatureSection.vue` wrapping `ErTabEditor` with the horizontal tab strip and `:key` remount.
-- [ ] 9.7 REFACTOR: Run `.venv/bin/pytest tests/test_tablature_tabs.py` and `npm run test:unit -- tab tablature-section` to verify multi-tab tablature.
+- [x] 9.6 GREEN: Create `frontend/src/features/compositions/TablatureSection.vue` wrapping `ErTabEditor` with the horizontal tab strip and `:key` remount.
+- [x] 9.7 REFACTOR: Run `.venv/bin/pytest tests/test_tablature_tabs.py` and `npm run test:unit -- tab tablature-section` to verify multi-tab tablature.
 
 ---
 

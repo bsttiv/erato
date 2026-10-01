@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { tabToText, blankTab, EMPTY, TECH } from '@/design-system/core/tab'
+import {
+  tabToText,
+  blankTab,
+  EMPTY,
+  TECH,
+  newTabId,
+  newTabEntry,
+  type TabEntry,
+} from '@/design-system/core/tab'
 
 describe('tabToText & tab helpers', () => {
   it('formats an empty column correctly with default string names', () => {
@@ -77,5 +85,30 @@ describe('tabToText & tab helpers', () => {
 
   it('defines TECH constant matching bundle.js', () => {
     expect(TECH).toBe('hpbrs/\\~xv')
+  })
+
+  it('newTabId generates unique non-empty identifiers', () => {
+    const id1 = newTabId()
+    const id2 = newTabId()
+    expect(typeof id1).toBe('string')
+    expect(id1.length).toBeGreaterThan(0)
+    expect(id1).not.toBe(id2)
+  })
+
+  it('newTabEntry creates TabEntry with blank columns and default 6 strings', () => {
+    const entry: TabEntry = newTabEntry('Intro', 6)
+    expect(entry.title).toBe('Intro')
+    expect(entry.strings).toBe(6)
+    expect(Array.isArray(entry.columns)).toBe(true)
+    expect(entry.columns.length).toBe(16)
+    expect(entry.columns[0]).toEqual(['', '', '', '', '', ''])
+    expect(typeof entry.id).toBe('string')
+    expect(entry.id.length).toBeGreaterThan(0)
+  })
+
+  it('newTabEntry supports numeric index for default title', () => {
+    const entry = newTabEntry(0)
+    expect(entry.title).toBe('Tablatura 1')
+    expect(entry.strings).toBe(6)
   })
 })
