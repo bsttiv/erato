@@ -102,15 +102,15 @@ branch merges into `main` after all units have passed review and verification.
 
 ### Client-side routing with deep link resolution and navigation guards
 
-- [ ] 3.1 RED: Create `frontend/tests/router/guard.spec.ts` asserting:
+- [x] 3.1 RED: Create `frontend/tests/router/guard.spec.ts` asserting:
   - Navigation to protected routes (`/`, `/compositions/new`, `/compositions/:id`) when unauthenticated redirects to `/login`.
   - Public route `/c/:slug` and `/c/:id` is accessible without authentication.
   - `/invite/:token` is accessible without authentication (redirects to redemption flow).
   - Navigation guard waits on `authReady` promise before redirecting so initial refresh does not flash login.
   - `/c/:ref` resolves 24-character hex ID directly and falls back to by-slug on 404; non-hex ref queries by-slug directly.
-- [ ] 3.2 GREEN: Add `vue-router` to `frontend/package.json` and install runtime dependency.
-- [ ] 3.3 GREEN: Update `frontend/src/features/auth/useAuth.ts` to expose an `authReady: Promise<void>` resolving once initial token refresh check settles.
-- [ ] 3.4 GREEN: Create `frontend/src/router/routes.ts` defining route records:
+- [x] 3.2 GREEN: Add `vue-router` to `frontend/package.json` and install runtime dependency.
+- [x] 3.3 GREEN: Update `frontend/src/features/auth/useAuth.ts` to expose an `authReady: Promise<void>` resolving once initial token refresh check settles.
+- [x] 3.4 GREEN: Create `frontend/src/router/routes.ts` defining route records:
   - `/` -> Dashboard
   - `/login` -> Auth (login mode)
   - `/register` -> Auth (register mode)
@@ -118,10 +118,10 @@ branch merges into `main` after all units have passed review and verification.
   - `/compositions/:id` -> Composition detail page
   - `/c/:slug` -> Public composition view
   - `/invite/:token` -> Invitation redemption
-- [ ] 3.5 GREEN: Create `frontend/src/router/index.ts` instantiating `createRouter` with `createWebHistory()`, registering the navigation guard with `authReady` check and anonymous route exemptions.
-- [ ] 3.6 GREEN: Update `frontend/src/main.ts` to register router with `app.use(router)`.
-- [ ] 3.7 GREEN: Refactor `frontend/src/App.vue` from ref-based view switching to render `<router-view />` inside the top-level application shell.
-- [ ] 3.8 REFACTOR: Run `npm run test:unit -- guard` and verify all routing and guard scenarios pass.
+- [x] 3.5 GREEN: Create `frontend/src/router/index.ts` instantiating `createRouter` with `createWebHistory()`, registering the navigation guard with `authReady` check and anonymous route exemptions.
+- [x] 3.6 GREEN: Update `frontend/src/main.ts` to register router with `app.use(router)`.
+- [x] 3.7 GREEN: Refactor `frontend/src/App.vue` from ref-based view switching to render `<router-view />` inside the top-level application shell.
+- [x] 3.8 REFACTOR: Run `npm run test:unit -- guard` and verify all routing and guard scenarios pass.
 
 ---
 
