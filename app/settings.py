@@ -12,6 +12,8 @@ class Settings(BaseSettings):
         case_sensitive=False,
         # Blank values (`KEY=` in .env, empty variable in the host panel) count as unset.
         env_ignore_empty=True,
+        # Validation errors must not echo the received environment (secrets) into logs.
+        hide_input_in_errors=True,
     )
 
     # Database
