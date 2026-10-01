@@ -336,26 +336,26 @@ branch merges into `main` after all units have passed review and verification.
 
 ### Comprehensive test passes, styling audits, and visual checklist
 
-- [ ] 11.1 Run the full frontend unit and component test suite:
+- [x] 11.1 Run the full frontend unit and component test suite:
   ```bash
   npm run test:unit
   ```
   Assert 100% pass across all design-system and feature suites.
-- [ ] 11.2 Run frontend typecheck and production build:
+- [x] 11.2 Run frontend typecheck and production build:
   ```bash
   npm run build
   ```
   Assert zero TypeScript errors and successful Vite build output.
-- [ ] 11.3 Run full backend test suite:
+- [x] 11.3 Run full backend test suite:
   ```bash
   .venv/bin/pytest
   ```
   Assert zero regressions across auth, compositions, permissions, sharing, sections, and demos.
-- [ ] 11.4 Run stylesheet integrity assertions:
+- [x] 11.4 Run stylesheet integrity assertions:
   - Verify layout CSS disjointness test passes (`frontend/tests/styles/layout-css.spec.ts`).
   - Scan codebase to confirm zero inline `style="…"` attributes remain under `frontend/src/features/`.
   - Confirm every referenced `er-*` class resolves to a rule in `bundle.css` or `layout.css`.
-- [ ] 11.5 Manual accessibility and theme audit:
+- [x] 11.5 Manual accessibility and theme audit:
   - Verify both Noche (dark) and Matiné (light) themes render with WCAG AA 4.5:1 text contrast on Dashboard, Composition Detail, Creation, and Auth pages.
   - Verify keyboard navigation: focus rings visible, all modal dialogs trap and restore focus, and lyrics editor can be operated entirely without a mouse.
   - Confirm auth hero renders cleanly in both themes without issuing any image network requests.
