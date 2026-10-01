@@ -89,3 +89,19 @@ push to main.
 
 Engram: verify-report obs #122; ODD fix-up tracker obs #123 (`odd/erato-fix-verify-warnings/tasks`).
 Other SDD artifacts were read from the openspec folder, not from engram.
+
+## Addendum (post-archive, browser findings)
+
+After the archive commit the author exercised the app in the browser (Docker) and reported two more defects.
+Both were fixed on the tracker branch before the merge to main, with RED-first tests:
+
+- `ed250cc` `fix(frontend): estiliza los links de migas, jump nav y sidebar`: `.er-crumb a`, `.er-sectionnav a` and
+  `.er-sidebar-foot a` had no rules, so the browser-default blue showed. Token-only rules added in `layout.css`.
+- `27e4093` `feat(lyrics): permite escribir el texto de la letra`: SCOPE CHANGE approved by the author on
+  2026-10-01. The canonical `lyrics-chord-assignment` spec states that free-form lyrics text editing is out of
+  scope, which left no way to type lyrics in the UI. `LyricsSection` now has an "Editar letra" text mode with a
+  `<textarea class="er-textarea">` (new token-only variant in `layout.css`, same look as `.er-input` with free
+  height), saved through the existing typed lyrics endpoint. No data-model change. The canonical spec text was NOT
+  updated to reflect this; a follow-up spec delta is recommended.
+- Test evidence after these fixes: frontend `npm run test:unit` 40 files / 213 tests passed; `npm run build` OK.
+  These two fixes were not checked in a browser by the agent that wrote them.
