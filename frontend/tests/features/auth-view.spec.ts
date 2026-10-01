@@ -58,6 +58,14 @@ describe('AuthView and Split-Screen Shell', () => {
     expect(wordmark.exists()).toBe(true)
     expect(wordmark.text()).toContain('Erato')
 
+    // Single h1 containing .er-brand with lamp and name
+    expect(wrapper.findAll('h1').length).toBe(1)
+    expect(wrapper.find('h1').classes()).toContain('er-auth-wordmark')
+    const brand = wordmark.find('.er-brand')
+    expect(brand.exists()).toBe(true)
+    expect(brand.find('.er-nav-lamp').exists()).toBe(true)
+    expect(brand.find('.er-nav-name').exists()).toBe(true)
+
     const tagline = hero.find('.er-auth-tagline')
     expect(tagline.exists()).toBe(true)
     expect(tagline.text()).toContain('Tu música, tus acordes, tu banda.')

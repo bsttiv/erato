@@ -42,6 +42,18 @@
             </div>
 
             <div class="er-comp-meta">
+              <ErSegmented
+                v-if="canEdit"
+                data-test="status-segmented"
+                :model-value="comp.status || 'idea'"
+                :options="STATUS_OPTIONS"
+                label="Estado"
+                :disabled="isUpdatingStatus"
+                @update:model-value="onStatusChange"
+              />
+              <ErTag v-else :tone="statusTone" dot>
+                {{ statusLabel(comp.status) }}
+              </ErTag>
               <ErTag v-if="comp.key" tone="neutral">
                 {{ comp.key }}
               </ErTag>
@@ -192,9 +204,11 @@ import {
   ErTag,
   ErTodoList,
   ErSideNav,
+  ErSegmented,
   formatDate,
   type SideNavItem,
   type TodoItem,
+  type Tone,
 } from '@/design-system'
 import ChordGrid from './ChordGrid.vue'
 import TablatureSection from './TablatureSection.vue'
@@ -202,16 +216,19 @@ import LyricsSection from './LyricsSection.vue'
 import DemosSection from '@/features/demos/DemosSection.vue'
 import { resolveCompositionRef } from './resolveCompositionRef'
 import SharingModal from '@/features/sharing/SharingModal.vue'
+import { STATUS_OPTIONS, statusLabel } from './status'
 import type { TabEntry } from '@/design-system/core/tab'
 import {
   getComposition,
   listCompositions,
+  updateComposition,
   updateChordsSection,
   updateTablatureSection,
   updateLyricsSection,
   updateTodosSection,
   type CompositionResponse,
   type CompositionListItem,
+  type CompositionStatus,
   type ChordsSection,
   type SectionsEnabled,
 } from '@/api/compositions'
@@ -328,6 +345,41 @@ watch(
 const canEdit = computed(() => {
   return comp.value?.user_role === 'owner' || comp.value?.user_role === 'editor'
 })
+
+const statusTone = computed<Tone>(() => {
+  switch (comp.value?.status) {
+    case 'in_progress':
+      return 'amber'
+    case 'ready':
+      return 'moss'
+    case 'idea':
+    default:
+      return 'neutral'
+  }
+})
+
+const isUpdatingStatus = ref(false)
+
+async function onStatusChange(newStatus: string) {
+  if (!comp.value || isUpdatingStatus.value) return
+  const prevStatus = comp.value.status || 'idea'
+  if (newStatus === prevStatus) return
+
+  // Optimistic update
+  comp.value.status = newStatus as CompositionStatus
+  isUpdatingStatus.value = true
+
+  try {
+    await updateComposition(comp.value.id, { status: newStatus as CompositionStatus })
+    saveStateText.value = 'guardado'
+  } catch (err: any) {
+    // Revert optimistic update
+    comp.value.status = prevStatus
+    saveStateText.value = 'No se pudo guardar el estado. Intenta de nuevo.'
+  } finally {
+    isUpdatingStatus.value = false
+  }
+}
 
 const isPublic = computed(() => {
   return comp.value?.visibility === 'public' || comp.value?.is_public === true

@@ -34,3 +34,7 @@ export * from './ErChordPalette.vue'
 export { default as ErLyricsChordEditor } from './ErLyricsChordEditor.vue'
 export * from './ErLyricsChordEditor.vue'
 
+export { default as ErBrand } from './ErBrand.vue'
+export * from './ErBrand.vue'
+
+
