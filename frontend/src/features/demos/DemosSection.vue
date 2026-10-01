@@ -1,6 +1,6 @@
 <template>
   <div class="er-demos-section">
-    <div class="er-row" style="justify-content: space-between; align-items: center; margin-bottom: var(--space-4)">
+    <div class="er-section-head">
       <div class="er-label">
         // reproductor de demos
       </div>

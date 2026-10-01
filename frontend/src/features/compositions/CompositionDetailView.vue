@@ -1,13 +1,13 @@
 <template>
   <div class="er-comp-detail">
-    <div class="er-comp-header er-row" style="justify-content: space-between; align-items: center">
+    <div class="er-comp-header">
       <div>
         <h2 class="er-comp-title">
           {{ composition.title }}
         </h2>
-        <div class="er-comp-meta er-row" style="gap: var(--space-2); align-items: center">
-          <ErTag :tone="composition.is_public ? 'moss' : 'neutral'">
-            {{ composition.is_public ? 'Pública' : 'Privada' }}
+        <div class="er-comp-meta">
+          <ErTag :tone="(composition.visibility === 'public' || composition.is_public) ? 'moss' : 'neutral'">
+            {{ (composition.visibility === 'public' || composition.is_public) ? 'Pública' : 'Privada' }}
           </ErTag>
           <ErTag class="er-role-tag" :tone="roleTone">
             {{ roleLabel }}
@@ -15,7 +15,7 @@
         </div>
       </div>
 
-      <div v-if="canEdit" class="er-row" style="gap: var(--space-2)">
+      <div v-if="canEdit" class="er-comp-tags">
         <ErButton class="er-save-btn" variant="primary" @click="saveAll">
           Guardar cambios
         </ErButton>

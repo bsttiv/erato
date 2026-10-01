@@ -70,12 +70,12 @@ branch merges into `main` after all units have passed review and verification.
 
 ### App-level layout stylesheet and accessible modal dialog
 
-- [ ] 2.1 RED: Create `frontend/tests/styles/layout-css.spec.ts` asserting:
+- [x] 2.1 RED: Create `frontend/tests/styles/layout-css.spec.ts` asserting:
   - Disjointness: Top-level selector set of `frontend/src/styles/layout.css` does not intersect with `erato-design-system/components/bundle.css`.
   - Token purity: No literal hex colors, named colors, literal font stacks, or literal pixel/rem border radii (all use `var(--token)`).
   - Completeness: Every `er-*` class referenced in `layout.css` or existing feature components resolves to either `layout.css` or `bundle.css`.
   - Inline style hygiene: No inline `style="…"` attribute exists in files under `frontend/src/features/`.
-- [ ] 2.2 GREEN: Create `frontend/src/styles/layout.css` defining token-driven layout classes:
+- [x] 2.2 GREEN: Create `frontend/src/styles/layout.css` defining token-driven layout classes:
   - App shell: `er-app`, `er-app-main`.
   - Dashboard: `er-topbar`, `er-topbar-brand`, `er-avatar`, `er-dash`, `er-dash-hero`, `er-dash-headline`, `er-filterbar`, `er-dash-count`, `er-comp-grid`, `er-card`, `er-card-head`, `er-card-index`, `er-card-title`, `er-card-chords`, `er-card-counts`, `er-card-foot`, `er-card-new`.
   - Composition shell & page: `er-layout`, `er-layout--noside`, `er-sidebar`, `er-sidebar-foot`, `er-main`, `er-comp-detail`, `er-crumb`, `er-savestate`, `er-comp-header`, `er-comp-title`, `er-comp-meta`, `er-comp-tags`, `er-avatars`, `er-sectionnav`, `er-section`, `er-section-head`, `er-comp-columns`, `er-comp-column`, `er-role-tag`, `er-save-btn`.
@@ -84,17 +84,17 @@ branch merges into `main` after all units have passed review and verification.
   - Modal overlay: `er-modal-backdrop`, `er-modal`, `er-modal-head`, `er-modal-body`, `er-modal-foot` with `z-index: 60`.
   - Sharing: `er-share-cards`, `er-share-card`, `er-share-link`, `er-perm-list`, `er-invite-row`, `er-invites-block`, `er-invite-created`, `er-invites-list`, `er-member`, `er-member-id`, `er-member-role`.
   - Editors & utilities: `er-tabs-strip`, `er-tab-actions`, `er-chord-grid`, `er-chord-palette`, `er-chord-chip`, `er-lyrics-edit`, `er-lyrics-line`, `er-loading`, `er-empty`, `er-demos-section`.
-- [ ] 2.3 GREEN: Import `frontend/src/styles/layout.css` in `frontend/src/main.ts` immediately after `bundle.css`.
-- [ ] 2.4 RED: Create `frontend/tests/shared/app-modal.spec.ts` asserting:
+- [x] 2.3 GREEN: Import `frontend/src/styles/layout.css` in `frontend/src/main.ts` immediately after `bundle.css`.
+- [x] 2.4 RED: Create `frontend/tests/shared/app-modal.spec.ts` asserting:
   - Renders overlay with backdrop above page content (`z-index: 60`).
   - Emits `close` when backdrop is clicked.
   - Does NOT emit `close` when modal content itself is clicked.
   - Emits `close` when `Escape` key is pressed.
   - Traps keyboard focus within modal elements while open.
   - Restores keyboard focus to previous trigger element on close.
-- [ ] 2.5 GREEN: Create `frontend/src/shared/useFocusTrap.ts` implementing focus trap and restoration logic.
-- [ ] 2.6 GREEN: Create `frontend/src/shared/AppModal.vue` using `useFocusTrap` and `layout.css` modal classes.
-- [ ] 2.7 REFACTOR: Purge existing inline `style="…"` attributes from `frontend/src/features/demos/DemosSection.vue` and `frontend/src/features/demos/DemoUploadModal.vue`, replacing them with `layout.css` classes. Verify `npm run test:unit -- layout-css app-modal` passes.
+- [x] 2.5 GREEN: Create `frontend/src/shared/useFocusTrap.ts` implementing focus trap and restoration logic.
+- [x] 2.6 GREEN: Create `frontend/src/shared/AppModal.vue` using `useFocusTrap` and `layout.css` modal classes.
+- [x] 2.7 REFACTOR: Purge existing inline `style="…"` attributes from `frontend/src/features/demos/DemosSection.vue` and `frontend/src/features/demos/DemoUploadModal.vue`, replacing them with `layout.css` classes. Verify `npm run test:unit -- layout-css app-modal` passes.
 
 ---
 

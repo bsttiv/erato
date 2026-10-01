@@ -1,5 +1,6 @@
 import '@design-system/tokens.css'
 import '@design-system/components/bundle.css'
+import './styles/layout.css'
 import { createApp } from 'vue'
 import App from './App.vue'
 
