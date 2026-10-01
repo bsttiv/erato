@@ -38,3 +38,18 @@ def test_real_values_still_override_the_defaults(monkeypatch):
     monkeypatch.setenv("ACCESS_TOKEN_TTL_MINUTES", "5")
 
     assert load_settings().access_token_ttl_minutes == 5
+
+
+def test_configuration_errors_never_include_the_received_values(monkeypatch):
+    # Pydantic prints `input_value=...` with the received environment (secrets included) in the
+    # error message, and Vercel stores that message in its logs.
+    monkeypatch.delenv("MONGODB_URI", raising=False)
+    monkeypatch.setenv("JWT_SECRET", "LEAK_CANARY_SECRET_VALUE")
+
+    with pytest.raises(ValidationError) as error:
+        load_settings()
+
+    message = str(error.value)
+    assert "mongodb_uri" in message
+    assert "input_value" not in message
+    assert "LEAK_CANARY_SECRET_VALUE" not in message
