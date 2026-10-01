@@ -49,11 +49,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ErSideNav, ErButton, type SideNavItem } from '@/design-system'
-import { listCompositions, type CompositionResponse } from '@/api/compositions'
+import { listCompositions, type CompositionResponse, type CompositionListItem } from '@/api/compositions'
 import CompositionDetailView from './CompositionDetailView.vue'
 import CompositionCreateModal from './CompositionCreateModal.vue'
 
-const compositions = ref<CompositionResponse[]>([])
+const compositions = ref<(CompositionListItem | CompositionResponse)[]>([])
 const selectedId = ref<string>('')
 const loading = ref(false)
 const showCreateModal = ref(false)
@@ -62,12 +62,20 @@ const navItems = computed<SideNavItem[]>(() => {
   return compositions.value.map((c) => ({
     id: c.id,
     label: c.title,
-    meta: c.is_public ? 'Pública' : 'Privada',
+    meta: c.visibility === 'public' ? 'Pública' : 'Privada',
   }))
 })
 
-const selectedComposition = computed(() => {
-  return compositions.value.find((c) => c.id === selectedId.value)
+const selectedComposition = computed<CompositionResponse | undefined>(() => {
+  const c = compositions.value.find((item) => item.id === selectedId.value)
+  if (!c) return undefined
+  return {
+    todos: [],
+    members: [],
+    demos: [],
+    ...c,
+    visibility: c.visibility,
+  } as CompositionResponse
 })
 
 async function fetchCompositions() {

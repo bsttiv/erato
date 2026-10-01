@@ -42,7 +42,7 @@ branch merges into `main` after all units have passed review and verification.
 
 ### Frontend client contract correction matching FastAPI endpoints
 
-- [ ] 1.1 RED: Create `frontend/tests/api/compositions.spec.ts` asserting:
+- [x] 1.1 RED: Create `frontend/tests/api/compositions.spec.ts` asserting:
   - `listCompositions()` returns `CompositionListItem[]` matching the flat backend response.
   - `getComposition(id)` returns `CompositionResponse` with typed `chords`, `tablature`, `lyrics`, `todos`, `demos`, and `user_role` fields (no generic `sections` envelope, `share_slug` instead of `slug`, `visibility` instead of `is_public`).
   - `getCompositionBySlug(slug)` calls `/compositions/by-slug/${slug}`.
@@ -53,16 +53,16 @@ branch merges into `main` after all units have passed review and verification.
     - `updateLyricsSection(id, lyrics)` calls `PUT /api/compositions/{id}/lyrics`.
     - `updateTodosSection(id, todos)` calls `PUT /api/compositions/{id}/todos` with a bare array.
     - Generic `updateSection()` is removed or deprecated.
-- [ ] 1.2 GREEN: Rewrite `frontend/src/api/compositions.ts` to export:
+- [x] 1.2 GREEN: Rewrite `frontend/src/api/compositions.ts` to export:
   - Types: `Visibility`, `CompositionStatus`, `UserRole`, `TabColumn`, `TabEntry`, `TablatureSection`, `ChordsSection`, `LyricsSection`, `TodoItem`, `SectionsEnabled`, `CompositionCounts`, `CompositionListItem`, `CompositionResponse`, `CreateCompositionPayload`, `UpdateCompositionPayload`.
   - Functions: `listCompositions()`, `getComposition(id)`, `getCompositionBySlug(slug)`, `createComposition(payload)`, `updateComposition(id, payload)`, `updateChordsSection(id, payload)`, `updateTablatureSection(id, payload)`, `updateLyricsSection(id, payload)`, `updateTodosSection(id, payload)`.
-- [ ] 1.3 RED: Create `frontend/tests/api/sharing.spec.ts` asserting:
+- [x] 1.3 RED: Create `frontend/tests/api/sharing.spec.ts` asserting:
   - `setVisibility(id, visibility)` sends `PATCH /api/compositions/{id}/visibility` with `{ visibility }` (`"public"` | `"private"`), not `{ is_public }`.
   - `createInvite(id, payload)` sends `POST /api/compositions/{id}/invites` with `{ email, role }` where role is `"editor"` | `"viewer"`.
   - `listInvites(id)`, `revokeInvite(id, inviteId)`, and `redeemInvite(token)` match backend endpoints and response shapes.
   - `listMembers(id)` calls `GET /api/compositions/{id}/members` returning `MemberDetail[]`.
-- [ ] 1.4 GREEN: Update `frontend/src/api/sharing.ts` to implement corrected signatures and add `listMembers(id)`.
-- [ ] 1.5 REFACTOR: Update existing imports in `frontend/src/features/` to use the corrected `api/compositions.ts` and `api/sharing.ts` contracts without regressions. Run `npm run test:unit -- api` to verify.
+- [x] 1.4 GREEN: Update `frontend/src/api/sharing.ts` to implement corrected signatures and add `listMembers(id)`.
+- [x] 1.5 REFACTOR: Update existing imports in `frontend/src/features/` to use the corrected `api/compositions.ts` and `api/sharing.ts` contracts without regressions. Run `npm run test:unit -- api` to verify.
 
 ---
 
