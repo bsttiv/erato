@@ -215,4 +215,18 @@ describe('DashboardView and CompositionCard', () => {
     expect(foot.text()).toContain('G')
     expect(foot.text()).not.toContain('bpm')
   })
+
+  it('does not render sidebar or drawer toggle', async () => {
+    const router = setupRouter()
+    await router.push('/')
+    await router.isReady()
+
+    const wrapper = mount(DashboardView, {
+      global: { plugins: [router] },
+    })
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.find('.er-sidebar').exists()).toBe(false)
+    expect(wrapper.find('.er-drawer-toggle').exists()).toBe(false)
+  })
 })
