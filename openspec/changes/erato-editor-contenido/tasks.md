@@ -187,7 +187,7 @@ branch merges into `main` after all units have passed review and verification.
 
 ### Dashboard view with card grid and full-page composition creation shell
 
-- [ ] 6.1 RED: Create `frontend/tests/features/dashboard-view.spec.ts` asserting:
+- [x] 6.1 RED: Create `frontend/tests/features/dashboard-view.spec.ts` asserting:
   - Top app bar displays brand, "Nueva canción" button linking to `/compositions/new`, and user avatar initials.
   - Headline renders "Composiciones" display-serif title and subtitle.
   - Filter bar renders `ErSegmented` with options: "Todas", "En progreso", "Listas", "Ideas", updating view filter.
@@ -196,18 +196,18 @@ branch merges into `main` after all units have passed review and verification.
   - `CompositionCard.vue` renders: 2-digit index (`01`, `02`), status `ErTag` (`En progreso`, `Lista`, `Idea`), title, chord names row (up to 4 chords), counts badge row ("acordes X · tab X · demos X · tareas X/Y"), and footer with `updated_at` relative time ("editada hace ...").
   - Omits missing metadata chips (e.g. no bpm chip if bpm is unset).
   - Clicking card navigates to `/compositions/:id`.
-- [ ] 6.2 GREEN: Create `frontend/src/features/compositions/CompositionCard.vue` implementing card structure using `layout.css` classes and tokens.
-- [ ] 6.3 GREEN: Create `frontend/src/features/compositions/DashboardView.vue` implementing top bar, hero headline, `ErSegmented` filter, card grid, and navigation to creation flow.
-- [ ] 6.4 RED: Create `frontend/tests/features/composition-create-view.spec.ts` asserting:
+- [x] 6.2 GREEN: Create `frontend/src/features/compositions/CompositionCard.vue` implementing card structure using `layout.css` classes and tokens.
+- [x] 6.3 GREEN: Create `frontend/src/features/compositions/DashboardView.vue` implementing top bar, hero headline, `ErSegmented` filter, card grid, and navigation to creation flow.
+- [x] 6.4 RED: Create `frontend/tests/features/composition-create-view.spec.ts` asserting:
   - Renders full-page creation shell (minimal bar with brand + "Cancelar" link, centered form card; NOT a modal).
   - Form fields: Title input ("Título de la canción"), 3-column metadata row (Tonalidad, Tempo/BPM, Compás).
   - Visibility control presents exactly TWO options (D7): "Con enlace" (public) and "Privada" (private); no band option.
   - Five section include cards (chords, tablature, lyrics, demos, tasks) render as toggleable `<button aria-pressed>` elements with default states (tablature unselected, others selected).
   - Submitting form calls `createComposition()` with title, visibility, metadata, and `sections_enabled`, then navigates to `/compositions/:id`.
   - Canceling navigates back to dashboard `/`.
-- [ ] 6.5 GREEN: Create `frontend/src/features/compositions/CompositionCreateView.vue` matching PDF page 2 specifications.
-- [ ] 6.6 GREEN: Delete superseded files `frontend/src/features/compositions/CompositionsView.vue` and `frontend/src/features/compositions/CompositionCreateModal.vue`.
-- [ ] 6.7 REFACTOR: Update routes in `frontend/src/router/routes.ts` to map `/` to `DashboardView.vue` and `/compositions/new` to `CompositionCreateView.vue`. Run `npm run test:unit -- dashboard composition-create` to verify.
+- [x] 6.5 GREEN: Create `frontend/src/features/compositions/CompositionCreateView.vue` matching PDF page 2 specifications.
+- [x] 6.6 GREEN: Delete superseded files `frontend/src/features/compositions/CompositionsView.vue` and `frontend/src/features/compositions/CompositionCreateModal.vue`.
+- [x] 6.7 REFACTOR: Update routes in `frontend/src/router/routes.ts` to map `/` to `DashboardView.vue` and `/compositions/new` to `CompositionCreateView.vue`. Run `npm run test:unit -- dashboard composition-create` to verify.
 
 ---
 
