@@ -5,9 +5,9 @@
 Defines the behavior of assigning a chord to a position within a composition's lyrics: the
 pointer-drag interaction, the mandatory keyboard-equivalent interaction, their convergence on a
 single bracket-markup edit operation, and round-trip fidelity with the existing read path
-(`parseLine()` / `ErLyricsViewer.vue`, both of which remain unmodified). This is a new capability;
-it does not cover free-form lyrics text editing (adding/removing lyric lines or words), chord
-detection, or chord editing — those are out of scope.
+(`parseLine()` / `ErLyricsViewer.vue`, both of which remain unmodified). Free-form lyrics text
+editing (typing and removing lyric lines or words) is covered by its own requirement at the end of
+this spec; chord detection and chord editing remain out of scope.
 
 ## Requirements
 
@@ -104,3 +104,41 @@ unmodified `ErLyricsViewer.vue`.
 - GIVEN the lyrics chord-assignment editor is implemented
 - WHEN `ErLyricsViewer.vue` and `parseLine()` are inspected after implementation
 - THEN neither MUST have been modified to support the new editor
+
+### Requirement: The lyrics text MUST be editable as plain text by users who can edit the composition
+
+A user with edit permission on a composition MUST be able to type, change and delete the lyrics
+text directly, in a plain-text mode of the lyrics section that is separate from the chord-assignment
+mode. The text mode MUST accept the existing markup unchanged (`[Chord]` markers and `# Section`
+labels) and MUST NOT interpret or rewrite it. The edited text MUST be persisted as `lyrics.content`
+through the typed lyrics endpoint by the same explicit save action used for the other sections. No
+data-model change is involved. (Added after the initial release: the original scope left no way to
+enter lyrics from the UI.)
+
+#### Scenario: An editor switches to text mode and types lyrics
+
+- GIVEN a user with edit permission views the lyrics section
+- WHEN the user activates the "Editar letra" control
+- THEN a multi-line text field labelled "Letra" MUST appear containing the current lyrics content
+- AND typing in it MUST update the lyrics content held by the composition view immediately
+- AND the control's label MUST change to "Ver letra", which returns to the viewer
+
+#### Scenario: Typed lyrics are saved with the explicit save action
+
+- GIVEN the user typed new lyrics in text mode
+- WHEN the user activates "Guardar cambios"
+- THEN the client MUST send the typed text as `{ content: <typed text> }` to the typed lyrics endpoint
+- AND the viewer MUST display the new text after leaving text mode
+
+#### Scenario: Chord markup and section labels are preserved verbatim
+
+- GIVEN the lyrics content contains `"# Coro"` and `"Bajo el [Am7]farol..."`
+- WHEN the user opens text mode and leaves it without editing
+- THEN the content MUST be unchanged byte for byte
+
+#### Scenario: A read-only visitor cannot edit the lyrics text
+
+- GIVEN a user without edit permission (viewer role or anonymous visitor) views the lyrics section
+- WHEN the section renders
+- THEN neither the "Editar letra" nor the "Editar acordes" control MUST be rendered
+- AND the lyrics MUST remain visible in the viewer
