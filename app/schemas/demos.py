@@ -11,7 +11,7 @@ class UploadSignatureResponse(BaseModel):
     folder: str
     resource_type: str = "video"
     type: str = "authenticated"
-    tag: str = "pending"
+    tags: str = "pending"
 
 
 class CreateDemoRequest(BaseModel):

@@ -1,7 +1,193 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import DemoUploadModal from '@/features/demos/DemoUploadModal.vue'
+import DemosSection from '@/features/demos/DemosSection.vue'
 import * as demosApi from '@/api/demos'
+import * as clientModule from '@/api/client'
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+const backendDemo = {
+  demo_id: 'd1',
+  cloudinary_public_id: 'erato/compositions/c1/take',
+  title: 'Toma 1',
+  duration_s: 36.0065,
+  uploaded_by: 'u1',
+  uploaded_at: '2026-10-01T10:00:00Z',
+}
+
+const backendComment = {
+  id: 'cm1',
+  composition_id: 'c1',
+  demo_id: 'd1',
+  author_id: 'u1',
+  timestamp_s: 12.5,
+  text: 'Entra la guitarra',
+  created_at: '2026-10-01T10:05:00Z',
+}
+
+describe('demos API client contract', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('confirmUpload sends the exact backend body and maps the response', async () => {
+    const spy = vi
+      .spyOn(clientModule, 'apiClient')
+      .mockResolvedValueOnce(jsonResponse(backendDemo, 201))
+
+    const take = await demosApi.confirmUpload('c1', {
+      public_id: 'erato/compositions/c1/take',
+      version: 1790876123,
+      signature: 'sig',
+      title: 'Toma 1',
+      duration: 36.0065,
+    })
+
+    const [url, init] = spy.mock.calls[0]
+    expect(url).toBe('/compositions/c1/demos')
+    const body = JSON.parse(init!.body as string)
+    expect(body).toEqual({
+      public_id: 'erato/compositions/c1/take',
+      version: '1790876123',
+      signature: 'sig',
+      title: 'Toma 1',
+      duration_s: 36.0065,
+    })
+    expect(typeof body.version).toBe('string')
+    expect(body.duration).toBeUndefined()
+
+    expect(take).toEqual({
+      id: 'd1',
+      title: 'Toma 1',
+      public_id: 'erato/compositions/c1/take',
+      duration: 36.0065,
+      date: '2026-10-01T10:00:00Z',
+    })
+  })
+
+  it('confirmUpload defaults a missing duration to 0', async () => {
+    const spy = vi
+      .spyOn(clientModule, 'apiClient')
+      .mockResolvedValueOnce(jsonResponse(backendDemo, 201))
+    await demosApi.confirmUpload('c1', {
+      public_id: 'p',
+      version: 1,
+      signature: 's',
+      title: 't',
+    })
+    const body = JSON.parse(spy.mock.calls[0][1]!.body as string)
+    expect(body.duration_s).toBe(0)
+  })
+
+  it('confirmUpload throws a string message from the backend error envelope', async () => {
+    vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce(
+      jsonResponse({ error: 'validation', message: 'Firma inválida', detail: [{ loc: ['body'] }] }, 422)
+    )
+    await expect(
+      demosApi.confirmUpload('c1', { public_id: 'p', version: 1, signature: 's', title: 't' })
+    ).rejects.toThrow('Firma inválida')
+  })
+
+  it('addComment sends timestamp_s and maps the response', async () => {
+    const spy = vi
+      .spyOn(clientModule, 'apiClient')
+      .mockResolvedValueOnce(jsonResponse(backendComment, 201))
+
+    const comment = await demosApi.addComment('c1', 'd1', 'Entra la guitarra', 12.5)
+
+    const body = JSON.parse(spy.mock.calls[0][1]!.body as string)
+    expect(body).toEqual({ text: 'Entra la guitarra', timestamp_s: 12.5 })
+    expect(comment).toEqual({
+      id: 'cm1',
+      t: 12.5,
+      author: 'u1',
+      text: 'Entra la guitarra',
+      created_at: '2026-10-01T10:05:00Z',
+    })
+  })
+
+  it('listComments maps CommentResponse to DemoComment', async () => {
+    vi.spyOn(clientModule, 'apiClient').mockResolvedValueOnce(jsonResponse([backendComment]))
+    const list = await demosApi.listComments('c1', 'd1')
+    expect(list).toEqual([
+      {
+        id: 'cm1',
+        t: 12.5,
+        author: 'u1',
+        text: 'Entra la guitarra',
+        created_at: '2026-10-01T10:05:00Z',
+      },
+    ])
+  })
+})
+
+describe('DemosSection take resolution', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  const mountSection = (demos: demosApi.DemoTake[]) =>
+    mount(DemosSection, {
+      props: { compositionId: 'c1', demos },
+      global: { stubs: { ErDemoPlayer: true, DemoUploadModal: true } },
+    })
+
+  const playerTakes = (w: ReturnType<typeof mountSection>) =>
+    w.findComponent({ name: 'ErDemoPlayer' }).props('takes') as demosApi.DemoTake[]
+
+  it('resolves src and comments for existing demos on mount, tolerating failures', async () => {
+    vi.spyOn(demosApi, 'getPlaybackUrl').mockImplementation(async (_c, id) => {
+      if (id === 'bad') throw new Error('boom')
+      return { url: `https://cdn/${id}.mp3`, expires_at: 1 }
+    })
+    vi.spyOn(demosApi, 'listComments').mockImplementation(async (_c, id) => {
+      if (id === 'bad') throw new Error('boom')
+      return [{ t: 1, author: 'u1', text: 'hola' }]
+    })
+
+    const original: demosApi.DemoTake[] = [
+      { id: 'ok', title: 'A', public_id: 'p1', duration: 10 },
+      { id: 'bad', title: 'B', public_id: 'p2', duration: 20 },
+    ]
+    const w = mountSection(original)
+    await flushPromises()
+
+    const takes = playerTakes(w)
+    expect(takes.find((t) => t.id === 'ok')?.src).toBe('https://cdn/ok.mp3')
+    expect(takes.find((t) => t.id === 'ok')?.comments).toHaveLength(1)
+    expect(takes.find((t) => t.id === 'bad')?.src).toBeUndefined()
+    expect(takes.find((t) => t.id === 'bad')?.comments ?? []).toHaveLength(0)
+    // props are not mutated
+    expect(original[0].src).toBeUndefined()
+  })
+
+  it('resolves src and comments for a newly uploaded demo using its mapped id', async () => {
+    const urlSpy = vi
+      .spyOn(demosApi, 'getPlaybackUrl')
+      .mockResolvedValue({ url: 'https://cdn/new.mp3', expires_at: 1 })
+    vi.spyOn(demosApi, 'listComments').mockRejectedValue(new Error('boom'))
+
+    const w = mountSection([])
+    await flushPromises()
+    const modal = { id: 'new', title: 'N', public_id: 'p', duration: 5 }
+    ;(w.vm as any).showUploadModal = true
+    await flushPromises()
+    w.findComponent({ name: 'DemoUploadModal' }).vm.$emit('uploaded', modal)
+    await flushPromises()
+
+    expect(urlSpy).toHaveBeenCalledWith('c1', 'new')
+    const takes = playerTakes(w)
+    expect(takes).toHaveLength(1)
+    expect(takes[0].src).toBe('https://cdn/new.mp3')
+    expect(w.emitted('updated')).toBeTruthy()
+  })
+})
 
 describe('Demos upload flow (direct-to-Cloudinary)', () => {
   beforeEach(() => {
@@ -81,6 +267,8 @@ describe('Demos upload flow (direct-to-Cloudinary)', () => {
     expect(formData.get('file')).toBeDefined()
     expect(formData.get('api_key')).toBe('cloud_api_key_123')
     expect(formData.get('signature')).toBe('test_sha_sig')
+    expect(formData.get('tags')).toBe('pending')
+    expect(formData.get('tags')).not.toBe('undefined')
 
     // 4. Verify confirmation payload with references only (no audio binary)
     expect(confirmSpy).toHaveBeenCalledTimes(1)

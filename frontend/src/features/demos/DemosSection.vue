@@ -30,9 +30,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ErButton, ErDemoPlayer, type DemoTake, type DemoComment } from '@/design-system'
-import { addComment, getPlaybackUrl } from '@/api/demos'
+import { addComment, getPlaybackUrl, listComments } from '@/api/demos'
 import DemoUploadModal from './DemoUploadModal.vue'
 
 const props = withDefaults(
@@ -67,16 +67,39 @@ async function handleComment(takeId: string, comment: DemoComment) {
   }
 }
 
+/**
+ * Returns a copy of the take with its playback src and comments resolved.
+ * Each lookup is failure-tolerant: a failing request leaves that field untouched.
+ * Known limitation: signed URLs are short-lived (`expires_at`); no refresh logic yet.
+ */
+async function resolveTake(take: DemoTake): Promise<DemoTake> {
+  const [url, comments] = await Promise.allSettled([
+    getPlaybackUrl(props.compositionId, take.id),
+    listComments(props.compositionId, take.id),
+  ])
+  return {
+    ...take,
+    src: url.status === 'fulfilled' ? url.value.url : take.src,
+    comments: comments.status === 'fulfilled' ? comments.value : take.comments,
+  }
+}
+
+onMounted(async () => {
+  const initial = localDemos.value.slice()
+  if (initial.length === 0) return
+  const resolved = await Promise.allSettled(initial.map(resolveTake))
+  const byId = new Map<string, DemoTake>()
+  resolved.forEach((r, i) => {
+    if (r.status === 'fulfilled') byId.set(initial[i].id, r.value)
+  })
+  // Keep any take uploaded while resolving; swap in the resolved copies.
+  localDemos.value = localDemos.value.map((t) => byId.get(t.id) ?? t)
+})
+
 async function handleUploaded(demo: DemoTake) {
   showUploadModal.value = false
-  // Resolve playback url
-  try {
-    const { url } = await getPlaybackUrl(props.compositionId, demo.id)
-    demo.src = url
-  } catch {
-    // URL fallback
-  }
-  localDemos.value.push(demo)
+  const resolved = await resolveTake(demo)
+  localDemos.value.push(resolved)
   emit('updated', localDemos.value)
 }
 </script>
