@@ -87,3 +87,17 @@ class UsersRepository:
         if result:
             return result.get("token_version", 1)
         return None
+
+    async def get_by_ids(self, user_ids: list[Union[str, ObjectId]]) -> Dict[str, Dict[str, Any]]:
+        """Look up multiple users by document ObjectIds in a single batch query."""
+        oids = []
+        for uid in user_ids:
+            if isinstance(uid, str) and ObjectId.is_valid(uid):
+                oids.append(ObjectId(uid))
+            elif isinstance(uid, ObjectId):
+                oids.append(uid)
+        if not oids:
+            return {}
+        cursor = self.collection.find({"_id": {"$in": oids}})
+        users = await cursor.to_list(length=len(oids))
+        return {str(u["_id"]): u for u in users}

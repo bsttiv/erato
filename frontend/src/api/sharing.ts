@@ -4,7 +4,8 @@ import type { CompositionResponse, Visibility } from './compositions'
 export type MemberRole = 'owner' | 'editor' | 'viewer'
 
 export interface MemberDetail {
-  user_id: string
+  user_id?: string | null
+  invite_id?: string | null
   display_name?: string | null
   email?: string | null
   initials?: string | null

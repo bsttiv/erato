@@ -238,22 +238,22 @@ branch merges into `main` after all units have passed review and verification.
 
 ### Member projection endpoint, viewer-only invite role, and sharing dialog
 
-- [ ] 8.1 RED: Create `tests/test_sharing_roles.py` asserting:
+- [x] 8.1 RED: Create `tests/test_sharing_roles.py` asserting:
   - `POST /api/compositions/{id}/invites` accepts `role: "viewer"` in addition to `"editor"`; invalid roles reject with 422.
   - Redeeming a viewer-role invitation assigns role `"viewer"` in composition `members[]`.
   - User with `"viewer"` role can `GET` public or private composition.
   - User with `"viewer"` role is rejected with 403 on all write endpoints (`PATCH /api/compositions/{id}`, `PUT /chords`, `PUT /tablature`, `PUT /lyrics`, `PUT /todos`).
   - Authenticated non-invited user cannot edit public composition (returns 403).
-- [ ] 8.2 GREEN: Update `app/schemas/compositions.py` `CreateInviteRequest`:
+- [x] 8.2 GREEN: Update `app/schemas/compositions.py` `CreateInviteRequest`:
   - Validate `role: str = Field("editor", pattern="^(editor|viewer)$")`.
-- [ ] 8.3 RED: Create `tests/test_members_projection.py` asserting:
+- [x] 8.3 RED: Create `tests/test_members_projection.py` asserting:
   - `GET /api/compositions/{id}/members` returns `List[MemberDetail]`:
     - Active members include `user_id`, `display_name`, `email`, `initials`, `role`, and `pending: false`.
     - Pending invitations include `invite_id`, `email`, `role`, and `pending: true`.
   - Requires `MANAGE_SHARING` permission (owner only); rejected with 403 for editor/viewer.
   - `CompositionResponse` returned from `GET /compositions/{id}` and public by-slug route includes `MemberItem[]` with `display_name` and `initials`, but never `email` (D8).
-- [ ] 8.4 GREEN: Implement `GET /api/compositions/{id}/members` in `app/routers/compositions.py` resolving user display names, emails, and initials via batched repository lookup.
-- [ ] 8.5 RED: Create `frontend/tests/features/sharing-modal.spec.ts` asserting:
+- [x] 8.4 GREEN: Implement `GET /api/compositions/{id}/members` in `app/routers/compositions.py` resolving user display names, emails, and initials via batched repository lookup.
+- [x] 8.5 RED: Create `frontend/tests/features/sharing-modal.spec.ts` asserting:
   - Wrapped inside `AppModal.vue` with centered backdrop and escape dismissal.
   - Visibility control presents exactly two options (D7): "Con enlace" (public) and "Privada" (private).
   - Toggling visibility calls `setVisibility(id, visibility)`.
@@ -261,8 +261,8 @@ branch merges into `main` after all units have passed review and verification.
   - Displays permission checklist explaining access rules.
   - Invite row provides email input, role dropdown ("Editor" vs "Solo ver"), and "Invitar" button calling `createInvite()`.
   - Member list displays owner, active members, and pending invitations with avatar initials, display name, email, and role badge.
-- [ ] 8.6 GREEN: Restructure `frontend/src/features/sharing/SharingModal.vue` matching PDF page 5 design.
-- [ ] 8.7 REFACTOR: Run `.venv/bin/pytest tests/test_sharing_roles.py tests/test_members_projection.py` and `npm run test:unit -- sharing-modal` to verify sharing behavior.
+- [x] 8.6 GREEN: Restructure `frontend/src/features/sharing/SharingModal.vue` matching PDF page 5 design.
+- [x] 8.7 REFACTOR: Run `.venv/bin/pytest tests/test_sharing_roles.py tests/test_members_projection.py` and `npm run test:unit -- sharing-modal` to verify sharing behavior.
 
 ---
 
