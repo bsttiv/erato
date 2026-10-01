@@ -62,7 +62,8 @@ def verify_upload_response(
 
     # 1. Check folder prefix constraint to prevent arbitrary asset attachment
     if expected_folder_prefix and public_id:
-        if not public_id.startswith(expected_folder_prefix):
+        # Trailing slash: "compositions/123" must not match "compositions/1234/..."
+        if not public_id.startswith(expected_folder_prefix.rstrip("/") + "/"):
             return False
 
     # 2. Re-compute signature
