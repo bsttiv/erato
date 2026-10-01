@@ -1,0 +1,74 @@
+schema: spec-driven
+
+context: |
+  Project: erato
+
+  **What**: Web app for band members to manage song compositions (chords, tabs, lyrics, demo audio, tasks).
+
+  **Tech Stack** (detected):
+    - Backend: Python (FastAPI ASGI)
+    - Frontend: Vue.js 3 (Composition API)
+    - Database: MongoDB (AsyncIOMotorClient)
+    - Containers: Docker / docker-compose (planned for local dev and portability)
+    - Deploy: Vercel (frontend + Python serverless functions; strategy needs confirmation)
+    - Repository: GitHub (short feature branches + pull requests)
+    - Design System: erato-design-system/ (jazz bar aesthetic — Bodoni Moda, Libre Franklin, IBM Plex Mono; two themes: Noche and Matiné)
+
+  **Architecture** (from AGENTS.md):
+    - Compositions as core entity (songs with optional sections: chords, tabs, lyrics, demos, todos)
+    - Chord detection from notes (guitar or piano diagram editor)
+    - Tab editor for manual 6-string tablature
+    - Lyrics viewer with auto-scroll and fullscreen
+    - Demo player with timestamp-anchored comments
+    - Sharing model: public (viewable by link, editable by invited users) or private (invited users only)
+    - Permissions validated in backend on every request
+
+  **Testing** (current):
+    - Zero discovered projects (first commit; no backend or frontend code yet)
+    - No test runners, test commands, or coverage tools configured
+    - Strict TDD: false (no workspace-level test command covers in-scope projects)
+    - Tests required once implementation begins: backend CRUD + permissions + visibility; frontend chord detection + tab editing
+
+  **Style**:
+    - Commits in Spanish, present tense, descriptive
+    - Interface text in Spanish, informal, no exclamation marks or emoji
+    - Accessibility: 4.5:1 contrast minimum, visible keyboard focus, semantic HTML
+    - Two themes (Noche primary, Matiné light); design in Noche first
+    - Use design system tokens; no custom colors/sizes/radii
+    - Small, reviewable steps; 400-line budget per PR
+
+pending_decisions: []
+
+rules:
+  proposal:
+    - Identify which pending decisions affect this change
+    - Propose options for pending decisions; do not assume or lock in
+    - Include rollback plan for risky changes (schema, auth, storage)
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Reference AGENTS.md rules 1–4 when affecting data, design, ambiguity, or security
+  design:
+    - Include sequence diagrams for complex flows (auth, sharing, permissions)
+    - Document architecture decisions with rationale
+    - Confirm with author before proposing framework, schema, or auth changes
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session (~400 lines authored)
+    - Include tests alongside implementation
+  apply:
+    guidelines:
+      - Follow existing code patterns
+      - Preserve design system; do not invent components or colors
+      - Run linter before committing
+    tdd: true
+    test_command: ".venv/bin/pytest tests/ && cd frontend && npm run test:unit"
+  verify:
+    test_command: ".venv/bin/pytest tests/ && cd frontend && npm run test:unit"
+    build_command: "cd frontend && npm run build"
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas (schema deletions, permission changes)
+
+notes: |
+  The author explicitly guides all code agents through AGENTS.md. This project is part of their professional portfolio; emphasize their role in system design and decision-making, not AI-generated implementation. Roles must be credited in the README.md.
