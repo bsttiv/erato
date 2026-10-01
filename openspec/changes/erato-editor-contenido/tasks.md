@@ -215,13 +215,13 @@ branch merges into `main` after all units have passed review and verification.
 
 ### Detail page shell, persistent sidebar, jump nav, and chord editor grid
 
-- [ ] 7.1 RED: Create `frontend/tests/features/chord-grid.spec.ts` asserting:
+- [x] 7.1 RED: Create `frontend/tests/features/chord-grid.spec.ts` asserting:
   - Renders a responsive grid of `ErChordEditor` components from `chords.entries[]`.
   - Supports adding a new chord diagram and removing an existing chord diagram.
   - Emits updated `ChordsSection` payload when any chord changes.
   - Instrument toggle changes diagram between guitar and piano.
-- [ ] 7.2 GREEN: Create `frontend/src/features/compositions/ChordGrid.vue` composing `ErChordEditor` instances with add/remove buttons.
-- [ ] 7.3 RED: Create `frontend/tests/features/composition-detail-view.spec.ts` asserting:
+- [x] 7.2 GREEN: Create `frontend/src/features/compositions/ChordGrid.vue` composing `ErChordEditor` instances with add/remove buttons.
+- [x] 7.3 RED: Create `frontend/tests/features/composition-detail-view.spec.ts` asserting:
   - Persistent sidebar (`ErSideNav`) with link back to dashboard `← todas las composiciones` in `er-sidebar-foot`.
   - Unauthenticated visitor on public share route drops sidebar (`er-layout--noside`).
   - Header displays breadcrumb, display-serif title, save status indicator, metadata chips (tonalidad, tempo, compás, style tags), avatar stack, and actions: "Compartir" button, "Guardar" button.
@@ -229,8 +229,8 @@ branch merges into `main` after all units have passed review and verification.
   - Jump nav strip renders all enabled sections with live counts ("acordes X", "tablatura Y", "demos Z", "tareas A/B").
   - Jump nav activation scrolls to section without hiding other sections (all panels stacked in document simultaneously).
   - Sections rendered: chords panel (`ChordGrid.vue`), tablature panel (`TablatureSection.vue`), lyrics panel (`LyricsSection.vue`), demos panel (`DemosSection.vue`), todos panel (`ErTodoList.vue`).
-- [ ] 7.4 GREEN: Restructure `frontend/src/features/compositions/CompositionDetailView.vue` to implement sidebar, PDF header, count-bearing section jump navigation, and stacked section containers.
-- [ ] 7.5 REFACTOR: Update `frontend/src/features/demos/DemosSection.vue` to integrate cleanly into the stacked layout without inline styles. Run `npm run test:unit -- composition-detail chord-grid` to verify.
+- [x] 7.4 GREEN: Restructure `frontend/src/features/compositions/CompositionDetailView.vue` to implement sidebar, PDF header, count-bearing section jump navigation, and stacked section containers.
+- [x] 7.5 REFACTOR: Update `frontend/src/features/demos/DemosSection.vue` to integrate cleanly into the stacked layout without inline styles. Run `npm run test:unit -- composition-detail chord-grid` to verify.
 
 ---
 

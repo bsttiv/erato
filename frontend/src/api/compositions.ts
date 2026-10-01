@@ -14,6 +14,8 @@ export interface TabEntry {
 }
 
 export interface TablatureSection {
+  strings?: number
+  content?: string
   tabs: TabEntry[]
 }
 
@@ -33,6 +35,7 @@ export interface LyricsSection {
 }
 
 export interface TodoItem {
+  id?: string
   text: string
   done: boolean
 }
