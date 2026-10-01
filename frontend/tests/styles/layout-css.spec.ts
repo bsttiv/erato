@@ -238,6 +238,24 @@ describe('layout.css stylesheet contract', () => {
       const hover = rulesFor('.er-sectionnav a:hover')
       expect(declaration(hover, 'border-bottom-color')).toBe('var(--amber)')
     })
+
+    it('.er-textarea exists, mirrors .er-input tokens and holds no literal colors', () => {
+      const body = rulesFor('.er-textarea')
+      expect(body.length).toBeGreaterThan(0)
+      expect(declaration(body, 'border')).toContain('var(--line-strong)')
+      expect(declaration(body, 'background')).toBe('var(--bg-100)')
+      expect(declaration(body, 'color')).toBe('var(--ink)')
+      expect(declaration(body, 'border-radius')).toBe('var(--radius-control)')
+      expect(declaration(body, 'width')).toBe('100%')
+      expect(declaration(body, 'resize')).toBe('vertical')
+      expect(declaration(body, 'padding')).toMatch(/var\(--space-/)
+      expect(declaration(body, 'font-family')).toMatch(/var\(--font-/)
+      expect(declaration(rulesFor('.er-textarea::placeholder'), 'color')).toBe('var(--ink-faint)')
+      expect(declaration(rulesFor('.er-textarea:focus-visible'), 'outline')).toContain(
+        'var(--focus-ring)'
+      )
+      expect(body.join('\n')).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(/)
+    })
   })
 
   it('no inline style attributes exist in frontend/src/features/', () => {

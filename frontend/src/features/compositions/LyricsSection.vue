@@ -2,18 +2,37 @@
   <section class="er-section" id="sec-lyrics">
     <div v-if="editable" class="er-section-head">
       <span />
-      <ErButton
-        size="sm"
-        variant="ghost"
-        data-test="toggle-lyrics-edit-btn"
-        @click="isEditing = !isEditing"
-      >
-        {{ isEditing ? 'Ver letra' : 'Editar acordes' }}
-      </ErButton>
+      <div class="er-comp-tags">
+        <ErButton
+          size="sm"
+          variant="ghost"
+          data-test="edit-lyrics-text-btn"
+          @click="toggleMode('text')"
+        >
+          {{ mode === 'text' ? 'Ver letra' : 'Editar letra' }}
+        </ErButton>
+        <ErButton
+          size="sm"
+          variant="ghost"
+          data-test="toggle-lyrics-edit-btn"
+          @click="toggleMode('chords')"
+        >
+          {{ mode === 'chords' ? 'Ver letra' : 'Editar acordes' }}
+        </ErButton>
+      </div>
     </div>
 
+    <textarea
+      v-if="mode === 'text' && editable"
+      class="er-textarea"
+      aria-label="Letra"
+      data-test="lyrics-textarea"
+      placeholder="Escribe la letra. Usa [Am7] antes de la sílaba para un acorde y # Coro para un rótulo."
+      :value="lyrics"
+      @input="onTextInput"
+    />
     <ErLyricsChordEditor
-      v-if="isEditing && editable"
+      v-else-if="mode === 'chords' && editable"
       :lyrics="lyrics"
       :chords="chords"
       @update:lyrics="onLyricsUpdate"
@@ -53,7 +72,16 @@ const emit = defineEmits<{
   (e: 'change', val: string): void
 }>()
 
-const isEditing = ref(false)
+type Mode = 'view' | 'text' | 'chords'
+const mode = ref<Mode>('view')
+
+function toggleMode(target: 'text' | 'chords') {
+  mode.value = mode.value === target ? 'view' : target
+}
+
+function onTextInput(event: Event) {
+  onLyricsUpdate((event.target as HTMLTextAreaElement).value)
+}
 
 function onLyricsUpdate(val: string) {
   emit('update:lyrics', val)

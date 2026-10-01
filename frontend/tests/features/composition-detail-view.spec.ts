@@ -245,6 +245,21 @@ describe('CompositionDetailView', () => {
       expect(wrapper.find('.er-savestate').text()).toBe('guardado')
     })
 
+    it('saves lyrics typed in the textarea and shows them in the viewer', async () => {
+      const spies = mockSectionApis()
+      const wrapper = await mountOwner()
+
+      await wrapper.find('[data-test="edit-lyrics-text-btn"]').trigger('click')
+      await wrapper.find('[data-test="lyrics-textarea"]').setValue('# Coro\n[G]Letra nueva')
+      await wrapper.find('.er-save-btn').trigger('click')
+      await flushPromises()
+
+      expect(spies.lyrics).toHaveBeenCalledWith('comp-100', { content: '# Coro\n[G]Letra nueva' })
+
+      await wrapper.find('[data-test="edit-lyrics-text-btn"]').trigger('click')
+      expect(wrapper.find('#sec-lyrics').text()).toContain('Letra nueva')
+    })
+
     it('shows an error state when any section save rejects', async () => {
       const spies = mockSectionApis()
       spies.lyrics.mockRejectedValue(new Error('boom'))

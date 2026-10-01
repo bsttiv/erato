@@ -841,3 +841,27 @@
   flex-direction: column;
   gap: var(--space-4);
 }
+
+.er-textarea {
+  width: 100%;
+  min-height: calc(var(--space-16) * 3);
+  box-sizing: border-box;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-control);
+  background: var(--bg-100);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.er-textarea::placeholder {
+  color: var(--ink-faint);
+}
+
+.er-textarea:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
