@@ -205,7 +205,10 @@ import {
   getComposition,
   getCompositionBySlug,
   listCompositions,
-  updateSection,
+  updateChordsSection,
+  updateTablatureSection,
+  updateLyricsSection,
+  updateTodosSection,
   type CompositionResponse,
   type CompositionListItem,
   type ChordsSection,
@@ -444,11 +447,12 @@ async function saveAll() {
   saveStateText.value = 'guardando...'
 
   try {
+    const id = comp.value.id
     await Promise.all([
-      updateSection(comp.value.id, 'chords', compChords.value).catch(() => {}),
-      updateSection(comp.value.id, 'tablature', { tabs: compTabs.value }).catch(() => {}),
-      updateSection(comp.value.id, 'lyrics', { content: lyricsText.value }).catch(() => {}),
-      updateSection(comp.value.id, 'todos', { items: todoItems.value }).catch(() => {}),
+      updateChordsSection(id, compChords.value),
+      updateTablatureSection(id, { tabs: compTabs.value }),
+      updateLyricsSection(id, { content: lyricsText.value }),
+      updateTodosSection(id, todoItems.value),
     ])
     saveStateText.value = 'guardado'
   } catch {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import CompositionDetailView from '@/features/compositions/CompositionDetailView.vue'
 import ChordGrid from '@/features/compositions/ChordGrid.vue'
@@ -204,5 +204,56 @@ describe('CompositionDetailView', () => {
     // Components rendered
     expect(wrapper.findComponent(ChordGrid).exists()).toBe(true)
     expect(wrapper.findComponent(DemosSection).exists()).toBe(true)
+  })
+  describe('saveAll', () => {
+    async function mountOwner() {
+      const router = await setupRouter('/compositions/comp-100')
+      const wrapper = mount(CompositionDetailView, {
+        props: { composition: sampleComposition },
+        global: { plugins: [router] },
+      })
+      await flushPromises()
+      return wrapper
+    }
+
+    function mockSectionApis() {
+      return {
+        chords: vi.spyOn(compApi, 'updateChordsSection').mockResolvedValue(sampleComposition.chords!),
+        tablature: vi
+          .spyOn(compApi, 'updateTablatureSection')
+          .mockResolvedValue(sampleComposition.tablature!),
+        lyrics: vi.spyOn(compApi, 'updateLyricsSection').mockResolvedValue(sampleComposition.lyrics!),
+        todos: vi.spyOn(compApi, 'updateTodosSection').mockResolvedValue(sampleComposition.todos!),
+      }
+    }
+
+    it('calls each typed section endpoint with the right id and payload', async () => {
+      const spies = mockSectionApis()
+      const wrapper = await mountOwner()
+
+      await wrapper.find('.er-save-btn').trigger('click')
+      await flushPromises()
+
+      expect(spies.chords).toHaveBeenCalledWith('comp-100', sampleComposition.chords)
+      expect(spies.tablature).toHaveBeenCalledWith('comp-100', {
+        tabs: sampleComposition.tablature!.tabs,
+      })
+      expect(spies.lyrics).toHaveBeenCalledWith('comp-100', {
+        content: sampleComposition.lyrics!.content,
+      })
+      expect(spies.todos).toHaveBeenCalledWith('comp-100', sampleComposition.todos)
+      expect(wrapper.find('.er-savestate').text()).toBe('guardado')
+    })
+
+    it('shows an error state when any section save rejects', async () => {
+      const spies = mockSectionApis()
+      spies.lyrics.mockRejectedValue(new Error('boom'))
+      const wrapper = await mountOwner()
+
+      await wrapper.find('.er-save-btn').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.find('.er-savestate').text()).toBe('error al guardar')
+    })
   })
 })
