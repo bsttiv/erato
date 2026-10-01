@@ -125,8 +125,8 @@ describe('Sharing API client contract', () => {
 
   it('redeemInvite(token) calls POST /auth/redeem-invite with { token }', async () => {
     const mockRedeem = {
+      message: 'Invitación aceptada',
       composition_id: 'comp-1',
-      role: 'editor',
     }
 
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(

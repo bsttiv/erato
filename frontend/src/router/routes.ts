@@ -44,8 +44,8 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/invite/:token',
     name: 'invite-redeem',
-    component: () => import('@/features/auth/AuthView.vue'),
-    meta: { public: true },
+    component: () => import('@/features/sharing/InviteAcceptView.vue'),
+    meta: { requiresAuth: true },
   },
   {
     path: '/:pathMatch(.*)*',

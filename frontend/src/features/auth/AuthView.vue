@@ -28,6 +28,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { safeNextPath } from '@/router/safeNext'
 import LoginForm from './LoginForm.vue'
 import RegisterForm from './RegisterForm.vue'
 
@@ -53,7 +54,7 @@ const mode = computed<'login' | 'register'>(() => {
 function onSuccess() {
   emit('authenticated')
   if (router) {
-    router.push('/')
+    router.push(safeNextPath(route?.query?.next))
   }
 }
 </script>

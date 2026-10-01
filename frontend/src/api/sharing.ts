@@ -102,7 +102,7 @@ export async function revokeInvite(
 
 export async function redeemInvite(
   token: string
-): Promise<{ composition_id: string; role: string }> {
+): Promise<{ message: string; composition_id: string }> {
   const res = await apiClient('/auth/redeem-invite', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
