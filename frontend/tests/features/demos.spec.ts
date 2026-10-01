@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import DemoUploadModal from '@/features/demos/DemoUploadModal.vue'
+import DemosSection from '@/features/demos/DemosSection.vue'
 import * as demosApi from '@/api/demos'
 import * as clientModule from '@/api/client'
 
@@ -123,6 +124,68 @@ describe('demos API client contract', () => {
         created_at: '2026-10-01T10:05:00Z',
       },
     ])
+  })
+})
+
+describe('DemosSection take resolution', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  const mountSection = (demos: demosApi.DemoTake[]) =>
+    mount(DemosSection, {
+      props: { compositionId: 'c1', demos },
+      global: { stubs: { ErDemoPlayer: true, DemoUploadModal: true } },
+    })
+
+  const playerTakes = (w: ReturnType<typeof mountSection>) =>
+    w.findComponent({ name: 'ErDemoPlayer' }).props('takes') as demosApi.DemoTake[]
+
+  it('resolves src and comments for existing demos on mount, tolerating failures', async () => {
+    vi.spyOn(demosApi, 'getPlaybackUrl').mockImplementation(async (_c, id) => {
+      if (id === 'bad') throw new Error('boom')
+      return { url: `https://cdn/${id}.mp3`, expires_at: 1 }
+    })
+    vi.spyOn(demosApi, 'listComments').mockImplementation(async (_c, id) => {
+      if (id === 'bad') throw new Error('boom')
+      return [{ t: 1, author: 'u1', text: 'hola' }]
+    })
+
+    const original: demosApi.DemoTake[] = [
+      { id: 'ok', title: 'A', public_id: 'p1', duration: 10 },
+      { id: 'bad', title: 'B', public_id: 'p2', duration: 20 },
+    ]
+    const w = mountSection(original)
+    await flushPromises()
+
+    const takes = playerTakes(w)
+    expect(takes.find((t) => t.id === 'ok')?.src).toBe('https://cdn/ok.mp3')
+    expect(takes.find((t) => t.id === 'ok')?.comments).toHaveLength(1)
+    expect(takes.find((t) => t.id === 'bad')?.src).toBeUndefined()
+    expect(takes.find((t) => t.id === 'bad')?.comments ?? []).toHaveLength(0)
+    // props are not mutated
+    expect(original[0].src).toBeUndefined()
+  })
+
+  it('resolves src and comments for a newly uploaded demo using its mapped id', async () => {
+    const urlSpy = vi
+      .spyOn(demosApi, 'getPlaybackUrl')
+      .mockResolvedValue({ url: 'https://cdn/new.mp3', expires_at: 1 })
+    vi.spyOn(demosApi, 'listComments').mockRejectedValue(new Error('boom'))
+
+    const w = mountSection([])
+    await flushPromises()
+    const modal = { id: 'new', title: 'N', public_id: 'p', duration: 5 }
+    ;(w.vm as any).showUploadModal = true
+    await flushPromises()
+    w.findComponent({ name: 'DemoUploadModal' }).vm.$emit('uploaded', modal)
+    await flushPromises()
+
+    expect(urlSpy).toHaveBeenCalledWith('c1', 'new')
+    const takes = playerTakes(w)
+    expect(takes).toHaveLength(1)
+    expect(takes[0].src).toBe('https://cdn/new.mp3')
+    expect(w.emitted('updated')).toBeTruthy()
   })
 })
 
