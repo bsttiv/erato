@@ -21,7 +21,7 @@ body {
 :where(.er-root) button { font: inherit; }
 .er-focus:focus-visible,
 .er-btn:focus-visible, .er-seg-opt:focus-visible, .er-nav-item:focus-visible, .er-input:focus-visible,
-.er-check:focus-visible, .er-take:focus-visible, .er-tab-grid:focus-visible, .er-iconbtn:focus-visible {
+.er-check:focus-visible, .er-take:focus-visible, .er-tab-grid:focus-visible, .er-iconbtn:focus-visible, .er-drop-target:focus-visible {
   outline: 2px solid var(--focus-ring); outline-offset: 2px;
 }
 
@@ -241,3 +241,38 @@ body {
 .er-todo-item:hover .er-iconbtn, .er-todo-item .er-iconbtn:focus-visible { opacity: 1; }
 .er-todo-foot { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-mono); font-size: 12px; color: var(--ink-faint); }
 .er-todo-empty { padding: var(--space-4) var(--space-2); color: var(--ink-faint); font-style: italic; }
+
+/* ── Lyrics Chord Editor Drag & Drop (D4) ───────────────────────────── */
+.er-drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.85;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+.er-drop-target {
+  appearance: none;
+  background: transparent;
+  border: 1px dashed transparent;
+  border-radius: var(--radius-sm);
+  padding: 0 2px;
+  cursor: pointer;
+  display: inline-flex;
+  flex-direction: column;
+  vertical-align: bottom;
+  white-space: pre;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+}
+.er-drop-target.is-armed {
+  border-color: var(--amber);
+  background-color: var(--amber-soft);
+}
+.er-drop-target.is-over {
+  border-color: var(--ember);
+  background-color: var(--amber-soft);
+  box-shadow: 0 0 8px var(--amber-soft);
+}
+

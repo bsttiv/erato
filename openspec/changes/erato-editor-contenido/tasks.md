@@ -298,7 +298,7 @@ branch merges into `main` after all units have passed review and verification.
 
 ### Pure bracket-markup algebra, chord palette, and drag/keyboard editor
 
-- [ ] 10.1 RED: Create `frontend/tests/design-system/lyrics.spec.ts` updates asserting:
+- [x] 10.1 RED: Create `frontend/tests/design-system/lyrics.spec.ts` updates asserting:
   - `decomposeLine(line)` breaks a lyrics line into syllable tokens with their current chord annotation.
   - `composeLine(tokens)` reconstructs the bracket-markup string from tokens.
   - `setChordAt(content, target, chord)`:
@@ -307,11 +307,11 @@ branch merges into `main` after all units have passed review and verification.
     - Removing a chord (sentinel chip `null` or empty string) deletes the bracket marker without modifying lyric text.
   - Round-trip fidelity: `parseLine(composeLine(decomposeLine(text)))` produces identical segments to `parseLine(text)`.
   - Unmodified read path: `parseLine()` remains untouched.
-- [ ] 10.2 GREEN: Implement `decomposeLine`, `composeLine`, and `setChordAt` in `frontend/src/design-system/core/lyrics.ts`.
-- [ ] 10.3 GREEN: Add drag and drop utility classes to `erato-design-system/components/bundle.css` (D4):
+- [x] 10.2 GREEN: Implement `decomposeLine`, `composeLine`, and `setChordAt` in `frontend/src/design-system/core/lyrics.ts`.
+- [x] 10.3 GREEN: Add drag and drop utility classes to `erato-design-system/components/bundle.css` (D4):
   - `.er-drag-ghost` (semi-transparent floating chip during pointer drag).
   - `.er-drop-target` with states `.is-armed` and `.is-over`.
-- [ ] 10.4 RED: Create `frontend/tests/features/lyrics-chord-editor.spec.ts` asserting:
+- [x] 10.4 RED: Create `frontend/tests/features/lyrics-chord-editor.spec.ts` asserting:
   - Chord palette renders an `ErButton` chip for each chord in `chords.entries[]`, plus the sentinel chip `✕ quitar`.
   - Keyboard path: Focus palette button, press `Enter`/`Space` to arm; focus syllable `<button>` target, press `Enter`/`Space` to commit chord.
   - Escape key disarms the currently armed chord.
@@ -319,16 +319,16 @@ branch merges into `main` after all units have passed review and verification.
   - Parity: Dragging chord `C` to syllable at offset X produces byte-identical `lyrics.content` as arming `C` and pressing `Enter` on target at offset X.
   - Sentinel chip `✕ quitar` removes chord marker from target syllable via both keyboard and drag paths.
   - All interactive elements are real `<button>` elements with visible focus rings.
-- [ ] 10.5 GREEN: Create `frontend/src/design-system/components/ErChordPalette.vue` rendering chord buttons and sentinel chip with `touch-action: none`.
-- [ ] 10.6 GREEN: Create `frontend/src/design-system/components/ErLyricsChordEditor.vue` implementing the syllable drop targets, keyboard arm/commit, and pointer event drag handling.
-- [ ] 10.7 GREEN: Export `ErChordPalette` and `ErLyricsChordEditor` from `frontend/src/design-system/components/index.ts`.
-- [ ] 10.8 RED: Create `frontend/tests/features/lyrics-section.spec.ts` asserting:
+- [x] 10.5 GREEN: Create `frontend/src/design-system/components/ErChordPalette.vue` rendering chord buttons and sentinel chip with `touch-action: none`.
+- [x] 10.6 GREEN: Create `frontend/src/design-system/components/ErLyricsChordEditor.vue` implementing the syllable drop targets, keyboard arm/commit, and pointer event drag handling.
+- [x] 10.7 GREEN: Export `ErChordPalette` and `ErLyricsChordEditor` from `frontend/src/design-system/components/index.ts`.
+- [x] 10.8 RED: Create `frontend/tests/features/lyrics-section.spec.ts` asserting:
   - In read mode, renders `ErLyricsViewer.vue` with auto-scroll and full-screen controls.
   - In edit mode, renders `ErLyricsChordEditor.vue` with chord palette.
   - "Editar acordes" toggle switches between read and edit modes for authorized editors.
   - Read-only visitors never see the edit toggle.
-- [ ] 10.9 GREEN: Create `frontend/src/features/compositions/LyricsSection.vue` toggling between viewer and chord editor.
-- [ ] 10.10 REFACTOR: Run `npm run test:unit -- lyrics lyrics-chord-editor lyrics-section` to verify all lyrics features.
+- [x] 10.9 GREEN: Create `frontend/src/features/compositions/LyricsSection.vue` toggling between viewer and chord editor.
+- [x] 10.10 REFACTOR: Run `npm run test:unit -- lyrics lyrics-chord-editor lyrics-section` to verify all lyrics features.
 
 ---
 
