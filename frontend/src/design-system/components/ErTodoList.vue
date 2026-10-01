@@ -13,7 +13,6 @@
       >
       <ErButton
         variant="primary"
-        icon="plus"
         :disabled="!draft.trim()"
         @click="add"
       >

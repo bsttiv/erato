@@ -1,5 +1,5 @@
 <template>
-  <div :class="['er-chord', 'er-panel', customClass]">
+  <div :class="['er-chord', 'er-panel', 'er-chord-editor-card', customClass]">
     <div class="er-chord-head">
       <div>
         <ErChordName :info="info" />
@@ -19,7 +19,7 @@
       />
     </div>
 
-    <div class="er-chord-body">
+    <div class="er-chord-body er-chord-editor-body">
       <button
         v-if="inst === 'guitar' && editable"
         type="button"

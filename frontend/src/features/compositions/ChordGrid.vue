@@ -19,7 +19,6 @@
         <ErButton
           v-if="editable"
           variant="primary"
-          icon="plus"
           data-test="add-chord-btn"
           @click="addChord"
         >
