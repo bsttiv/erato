@@ -1,5 +1,10 @@
 <template>
   <form class="er-auth-form" @submit.prevent="handleSubmit">
+    <div class="er-auth-header">
+      <h2 class="er-auth-title">Inicia sesión</h2>
+      <p class="er-auth-subtitle">Bienvenido de vuelta a tu espacio de composición.</p>
+    </div>
+
     <div v-if="error" class="er-auth-error">
       {{ error }}
     </div>
@@ -18,14 +23,23 @@
 
     <div class="er-field">
       <label for="login-password" class="er-label">Contraseña</label>
-      <input
-        id="login-password"
-        v-model="password"
-        type="password"
-        class="er-input"
-        placeholder="••••••••"
-        required
-      >
+      <div class="er-password-field">
+        <input
+          id="login-password"
+          v-model="password"
+          :type="showPassword ? 'text' : 'password'"
+          class="er-input"
+          placeholder="••••••••"
+          required
+        >
+        <button
+          type="button"
+          class="er-password-toggle"
+          @click="showPassword = !showPassword"
+        >
+          {{ showPassword ? 'ocultar' : 'mostrar' }}
+        </button>
+      </div>
     </div>
 
     <ErButton
@@ -33,8 +47,18 @@
       variant="primary"
       :disabled="loading"
     >
-      {{ loading ? 'Iniciando sesión…' : 'Iniciar sesión' }}
+      {{ loading ? 'Entrando…' : 'Entrar' }}
     </ErButton>
+
+    <div class="er-auth-links">
+      <router-link to="/register" class="er-auth-link">
+        ¿No tienes cuenta? Regístrate
+      </router-link>
+    </div>
+
+    <p class="er-auth-note">
+      Si tienes un enlace a una canción pública, puedes verla sin cuenta.
+    </p>
   </form>
 </template>
 
@@ -49,6 +73,7 @@ const emit = defineEmits<{
 
 const email = ref('')
 const password = ref('')
+const showPassword = ref(false)
 const error = ref<string | null>(null)
 const loading = ref(false)
 
