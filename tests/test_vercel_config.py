@@ -1,4 +1,5 @@
 import json
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -39,3 +40,11 @@ def test_every_cron_points_to_an_existing_backend_route():
 def test_python_version_is_pinned_to_a_version_supported_by_vercel():
     version = (ROOT / ".python-version").read_text(encoding="utf-8").strip()
     assert version in SUPPORTED_PYTHON
+
+
+def test_dependencies_are_installed_from_requirements_txt_without_a_projectless_pyproject():
+    # With a pyproject.toml present, Vercel runs `uv lock`, which fails when it has no [project] table.
+    assert (ROOT / "requirements.txt").is_file()
+    pyproject = ROOT / "pyproject.toml"
+    if pyproject.exists():
+        assert "project" in tomllib.loads(pyproject.read_text(encoding="utf-8"))
