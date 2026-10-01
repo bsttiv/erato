@@ -4,7 +4,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'dashboard',
-    component: () => import('@/features/compositions/CompositionsView.vue'),
+    component: () => import('@/features/compositions/DashboardView.vue'),
     meta: { requiresAuth: true },
   },
   {
@@ -22,7 +22,7 @@ export const routes: RouteRecordRaw[] = [
   {
     path: '/compositions/new',
     name: 'composition-create',
-    component: () => import('@/features/compositions/CompositionsView.vue'),
+    component: () => import('@/features/compositions/CompositionCreateView.vue'),
     meta: { requiresAuth: true },
   },
   {
