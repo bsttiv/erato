@@ -1,21 +1,29 @@
-from typing import Any, List
-from fastapi import APIRouter, Depends, status
+from typing import Any, List, Optional
+from fastapi import APIRouter, Depends, Query, status
 
 from app.core.permissions import Action
 from app.deps import AuthContext, require
 from app.schemas.compositions import (
     ChordsSection,
+    ChordsWriteResponse,
     LyricsSection,
+    LyricsWriteResponse,
     TablatureSection,
+    TablatureWriteResponse,
     TodoItem,
 )
 from app.services.composition_service import CompositionService
+from app.services.versioning_service import VersioningService
 
 router = APIRouter(prefix="/api/compositions/{composition_id}", tags=["sections"])
 
 
 def get_service() -> CompositionService:
     return CompositionService()
+
+
+def get_versioning_service() -> VersioningService:
+    return VersioningService()
 
 
 # Chords
@@ -27,15 +35,23 @@ async def get_chords(
     return auth.composition.get("chords") or ChordsSection()
 
 
-@router.put("/chords", response_model=ChordsSection, status_code=status.HTTP_200_OK)
+@router.put("/chords", response_model=ChordsWriteResponse, status_code=status.HTTP_200_OK)
 async def update_chords(
     composition_id: str,
     body: ChordsSection,
+    expected_rev: Optional[int] = Query(None, ge=0),
     auth: AuthContext = Depends(require(Action.EDIT)),
-    service: CompositionService = Depends(get_service),
+    versioning_service: VersioningService = Depends(get_versioning_service),
 ) -> Any:
-    updated = await service.update_section(composition_id, "chords", body.model_dump())
-    return updated.get("chords") or ChordsSection()
+    author_id = auth.user["id"] if auth.user else str(auth.composition.get("owner_id"))
+    content, new_rev = await versioning_service.update_versioned_section(
+        composition_id=composition_id,
+        section_name="chords",
+        content=body.model_dump(),
+        author_id=author_id,
+        expected_rev=expected_rev,
+    )
+    return ChordsWriteResponse(**content, rev=new_rev)
 
 
 # Tablature
@@ -47,15 +63,23 @@ async def get_tablature(
     return auth.composition.get("tablature") or TablatureSection()
 
 
-@router.put("/tablature", response_model=TablatureSection, status_code=status.HTTP_200_OK)
+@router.put("/tablature", response_model=TablatureWriteResponse, status_code=status.HTTP_200_OK)
 async def update_tablature(
     composition_id: str,
     body: TablatureSection,
+    expected_rev: Optional[int] = Query(None, ge=0),
     auth: AuthContext = Depends(require(Action.EDIT)),
-    service: CompositionService = Depends(get_service),
+    versioning_service: VersioningService = Depends(get_versioning_service),
 ) -> Any:
-    updated = await service.update_section(composition_id, "tablature", body.model_dump())
-    return updated.get("tablature") or TablatureSection()
+    author_id = auth.user["id"] if auth.user else str(auth.composition.get("owner_id"))
+    content, new_rev = await versioning_service.update_versioned_section(
+        composition_id=composition_id,
+        section_name="tablature",
+        content=body.model_dump(),
+        author_id=author_id,
+        expected_rev=expected_rev,
+    )
+    return TablatureWriteResponse(**content, rev=new_rev)
 
 
 # Lyrics
@@ -67,15 +91,24 @@ async def get_lyrics(
     return auth.composition.get("lyrics") or LyricsSection()
 
 
-@router.put("/lyrics", response_model=LyricsSection, status_code=status.HTTP_200_OK)
+@router.put("/lyrics", response_model=LyricsWriteResponse, status_code=status.HTTP_200_OK)
 async def update_lyrics(
     composition_id: str,
     body: LyricsSection,
+    expected_rev: Optional[int] = Query(None, ge=0),
     auth: AuthContext = Depends(require(Action.EDIT)),
-    service: CompositionService = Depends(get_service),
+    versioning_service: VersioningService = Depends(get_versioning_service),
 ) -> Any:
-    updated = await service.update_section(composition_id, "lyrics", body.model_dump())
-    return updated.get("lyrics") or LyricsSection()
+    author_id = auth.user["id"] if auth.user else str(auth.composition.get("owner_id"))
+    content, new_rev = await versioning_service.update_versioned_section(
+        composition_id=composition_id,
+        section_name="lyrics",
+        content=body.model_dump(),
+        author_id=author_id,
+        expected_rev=expected_rev,
+    )
+    return LyricsWriteResponse(**content, rev=new_rev)
+
 
 
 # Todos

@@ -46,8 +46,12 @@ async def test_run_creates_expected_indexes(indexes_db, capsys):
     comments = await _indexes(indexes_db, "composition_comments")
     assert "idx_composition_demo_comments_created" in comments
 
+    sec_revs = await _indexes(indexes_db, "section_revisions")
+    assert sec_revs["uq_section_revisions_comp_section_rev"]["unique"] is True
+
     out = capsys.readouterr().out
     assert "users: ok" in out
+    assert "section_revisions: ok" in out
     assert "mongodb" not in out.lower()
 
 
@@ -73,3 +77,15 @@ async def test_failure_returns_1_and_continues(indexes_db, monkeypatch, capsys):
     assert "idx_composition_demo_comments_created" in await _indexes(
         indexes_db, "composition_comments"
     )
+
+
+@pytest.mark.asyncio
+async def test_rollback_drops_registered_indexes(indexes_db):
+    assert await run() == 0
+    sec_revs = await _indexes(indexes_db, "section_revisions")
+    assert "uq_section_revisions_comp_section_rev" in sec_revs
+
+    assert await run(rollback=True) == 0
+    sec_revs_after = await _indexes(indexes_db, "section_revisions")
+    assert "uq_section_revisions_comp_section_rev" not in sec_revs_after
+

@@ -42,7 +42,9 @@ async def test_create_and_list_compositions():
         assert comp["title"] == "Mi Primera Cancion"
         assert comp["visibility"] == "private"
         assert comp["owner_id"] == uid
+        assert comp["section_revs"] == {"lyrics": 0, "chords": 0, "tablature": 0}
         cid = comp["id"]
+
 
         # List user's compositions
         res_list = await client.get(
