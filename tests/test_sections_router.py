@@ -152,3 +152,125 @@ async def test_sections_permissions_viewer_and_stranger():
             headers={"Authorization": f"Bearer {stranger_token}"},
         )
         assert res_write_priv.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_sections_versioning_and_conflict():
+    from app.main import app
+    users_repo = UsersRepository()
+    owner = await users_repo.create_user("owner_v1@test.com", "hash", "Owner V1")
+    editor = await users_repo.create_user("editor_v1@test.com", "hash", "Editor V1")
+
+    owner_token = mint_access_token(str(owner["_id"]))
+    editor_token = mint_access_token(str(editor["_id"]))
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # Create composition
+        res_create = await client.post(
+            "/api/compositions",
+            json={"title": "Song Versioned", "visibility": "private"},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+        cid = res_create.json()["id"]
+
+        comp_repo = CompositionsRepository()
+        await comp_repo.add_member(cid, user_id=editor["_id"], role="editor")
+
+        # 1. Negative expected_rev -> 422
+        res_neg = await client.put(
+            f"/api/compositions/{cid}/lyrics?expected_rev=-1",
+            json={"content": "v1"},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+        assert res_neg.status_code == 422
+
+        # 2. Update lyrics with expected_rev=0 -> 200, rev=1
+        res_v1 = await client.put(
+            f"/api/compositions/{cid}/lyrics?expected_rev=0",
+            json={"content": "v1 content"},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+        assert res_v1.status_code == 200
+        assert res_v1.json()["content"] == "v1 content"
+        assert res_v1.json()["rev"] == 1
+
+        # 3. Update lyrics with expected_rev=1 -> 200, rev=2 (by editor)
+        res_v2 = await client.put(
+            f"/api/compositions/{cid}/lyrics?expected_rev=1",
+            json={"content": "v2 content"},
+            headers={"Authorization": f"Bearer {editor_token}"},
+        )
+        assert res_v2.status_code == 200
+        assert res_v2.json()["content"] == "v2 content"
+        assert res_v2.json()["rev"] == 2
+
+        # 4. Update lyrics with stale expected_rev=1 -> 409 conflict
+        res_conflict = await client.put(
+            f"/api/compositions/{cid}/lyrics?expected_rev=1",
+            json={"content": "stale edit"},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+        assert res_conflict.status_code == 409
+        conflict_data = res_conflict.json()
+        assert conflict_data["error"] == "section_conflict"
+        assert conflict_data["section"] == "lyrics"
+        assert conflict_data["current_rev"] == 2
+        assert conflict_data["content"] == {"content": "v2 content"}
+        assert conflict_data["author"]["id"] == str(editor["_id"])
+
+        assert conflict_data["author"]["display_name"] == "Editor V1"
+        assert "updated_at" in conflict_data
+
+        # 5. Check GET composition contains section_revs
+        res_get_comp = await client.get(
+            f"/api/compositions/{cid}",
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+        assert res_get_comp.status_code == 200
+        comp_data = res_get_comp.json()
+        assert "section_revs" in comp_data
+        assert comp_data["section_revs"]["lyrics"] == 2
+        assert comp_data["section_revs"]["chords"] == 0
+        assert comp_data["section_revs"]["tablature"] == 0
+
+
+@pytest.mark.asyncio
+async def test_section_snapshot_attributed_to_editor_not_owner():
+    from app.main import app
+    from app.db.repositories.section_revisions import SectionRevisionsRepository
+
+    users_repo = UsersRepository()
+    owner = await users_repo.create_user("comp_owner@test.com", "hash", "Owner User")
+    editor = await users_repo.create_user("comp_editor@test.com", "hash", "Editor User")
+
+    owner_token = mint_access_token(str(owner["_id"]))
+    editor_token = mint_access_token(str(editor["_id"]))
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # Create composition as owner
+        res_create = await client.post(
+            "/api/compositions",
+            json={"title": "Attribution Test", "visibility": "private"},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+        cid = res_create.json()["id"]
+
+        comp_repo = CompositionsRepository()
+        await comp_repo.add_member(cid, user_id=editor["_id"], role="editor")
+
+        # Editor updates lyrics
+        res_edit = await client.put(
+            f"/api/compositions/{cid}/lyrics",
+            json={"content": "Editor lyrics line"},
+            headers={"Authorization": f"Bearer {editor_token}"},
+        )
+        assert res_edit.status_code == 200
+
+        # Snapshot in section_revisions must have author_id == editor["_id"], NOT owner["_id"]
+        sec_repo = SectionRevisionsRepository()
+        snaps = await sec_repo.list_revisions(cid, "lyrics")
+        assert len(snaps) == 1
+        assert snaps[0]["author_id"] == editor["_id"]
+        assert snaps[0]["author_id"] != owner["_id"]
+
+

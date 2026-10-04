@@ -4,6 +4,7 @@ from bson import ObjectId
 
 from app.core.errors import NotFoundError
 from app.db.repositories.compositions import CompositionsRepository
+from app.db.repositories.section_revisions import SectionRevisionsRepository
 
 
 def generate_share_slug() -> str:
@@ -14,8 +15,14 @@ def generate_share_slug() -> str:
 class CompositionService:
     """Framework-agnostic business logic for compositions and embedded sections."""
 
-    def __init__(self, repo: Optional[CompositionsRepository] = None) -> None:
+    def __init__(
+        self,
+        repo: Optional[CompositionsRepository] = None,
+        revisions_repo: Optional[SectionRevisionsRepository] = None,
+    ) -> None:
         self.repo = repo or CompositionsRepository()
+        self.revisions_repo = revisions_repo or SectionRevisionsRepository()
+
 
     async def create_composition(
         self,
@@ -93,4 +100,6 @@ class CompositionService:
         deleted = await self.repo.delete_composition(composition_id)
         if not deleted:
             raise NotFoundError("Composición no encontrada")
+        await self.revisions_repo.delete_by_composition(composition_id)
         return True
+

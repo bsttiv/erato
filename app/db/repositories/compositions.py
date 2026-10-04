@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Union
 from bson import ObjectId
-from pymongo import ASCENDING, IndexModel
+from pymongo import ASCENDING, IndexModel, ReturnDocument
 from pymongo.asynchronous.database import AsyncDatabase
 
 from app.db.client import get_db
+
 
 
 class CompositionsRepository:
@@ -137,10 +138,55 @@ class CompositionsRepository:
         )
         return result
 
+    async def update_versioned_section(
+        self,
+        composition_id: Union[str, ObjectId],
+        section: str,
+        content: Any,
+        expected_rev: Optional[int] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Atomically update a section with conditional expected_rev check.
+
+        Returns the document BEFORE update, or None if the filter did not match.
+        """
+        if isinstance(composition_id, str):
+            if not ObjectId.is_valid(composition_id):
+                return None
+            oid = ObjectId(composition_id)
+        else:
+            oid = composition_id
+
+        filter_doc: Dict[str, Any] = {"_id": oid}
+        if expected_rev is not None:
+            if expected_rev == 0:
+                filter_doc["$or"] = [
+                    {f"section_revs.{section}": 0},
+                    {f"section_revs.{section}": {"$exists": False}},
+                ]
+            else:
+                filter_doc[f"section_revs.{section}"] = expected_rev
+
+        now = datetime.now(timezone.utc)
+        result = await self.collection.find_one_and_update(
+            filter_doc,
+            {
+                "$set": {
+                    section: content,
+                    "updated_at": now,
+                },
+                "$inc": {
+                    f"section_revs.{section}": 1,
+                },
+            },
+            return_document=ReturnDocument.BEFORE,
+        )
+        return result
+
     async def update_title(
         self,
         composition_id: Union[str, ObjectId],
         title: str,
+
     ) -> Optional[Dict[str, Any]]:
         """Update composition title."""
         if isinstance(composition_id, str):

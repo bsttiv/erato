@@ -62,6 +62,50 @@ class ConflictError(AppError):
     message: str = "El recurso ya existe"
 
 
+class SectionConflictError(AppError):
+    status_code: int = 409
+    code: str = "section_conflict"
+    message: str = "Conflicto de versión en la sección"
+
+    def __init__(
+        self,
+        section: str,
+        current_rev: int,
+        content: Any,
+        author: Optional[Dict[str, Optional[str]]] = None,
+        updated_at: Optional[Any] = None,
+        message: Optional[str] = None,
+    ) -> None:
+        super().__init__(
+            message=message or f"Conflicto de versión en la sección {section}",
+            code=self.code,
+            status_code=self.status_code,
+        )
+        self.section = section
+        self.current_rev = current_rev
+        self.content = content
+        self.author = author
+        self.updated_at = updated_at
+
+    def to_dict(self) -> Dict[str, Any]:
+        res = super().to_dict()
+        res.update(
+            {
+                "section": self.section,
+                "current_rev": self.current_rev,
+                "content": self.content,
+                "author": self.author,
+                "updated_at": (
+                    self.updated_at.isoformat()
+                    if hasattr(self.updated_at, "isoformat")
+                    else self.updated_at
+                ),
+            }
+        )
+        return res
+
+
+
 class DatabaseConnectionError(AppError):
     status_code: int = 503
     code: str = "database_unavailable"

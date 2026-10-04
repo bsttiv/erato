@@ -46,8 +46,12 @@ async def test_run_creates_expected_indexes(indexes_db, capsys):
     comments = await _indexes(indexes_db, "composition_comments")
     assert "idx_composition_demo_comments_created" in comments
 
+    sec_revs = await _indexes(indexes_db, "section_revisions")
+    assert sec_revs["uq_section_revisions_comp_section_rev"]["unique"] is True
+
     out = capsys.readouterr().out
     assert "users: ok" in out
+    assert "section_revisions: ok" in out
     assert "mongodb" not in out.lower()
 
 
@@ -73,3 +77,41 @@ async def test_failure_returns_1_and_continues(indexes_db, monkeypatch, capsys):
     assert "idx_composition_demo_comments_created" in await _indexes(
         indexes_db, "composition_comments"
     )
+
+
+@pytest.mark.asyncio
+async def test_rollback_drops_registered_indexes(indexes_db):
+    assert await run() == 0
+    sec_revs = await _indexes(indexes_db, "section_revisions")
+    assert "uq_section_revisions_comp_section_rev" in sec_revs
+
+    assert await run(rollback=True) == 0
+    sec_revs_after = await _indexes(indexes_db, "section_revisions")
+    assert "uq_section_revisions_comp_section_rev" not in sec_revs_after
+
+
+@pytest.mark.asyncio
+async def test_rollback_when_index_does_not_exist_exits_0(indexes_db):
+    # Ensure index is not present
+    sec_revs = await _indexes(indexes_db, "section_revisions")
+    assert "uq_section_revisions_comp_section_rev" not in sec_revs
+
+    # Rollback when index does not exist must exit 0 (ignoring IndexNotFound / code 27)
+    assert await run(rollback=True) == 0
+
+
+@pytest.mark.asyncio
+async def test_rollback_non_27_error_exits_1(indexes_db, monkeypatch, capsys):
+    from pymongo.asynchronous.collection import AsyncCollection
+
+    async def boom(self, name_or_list, **kwargs):
+        raise RuntimeError("database auth failure")
+
+    monkeypatch.setattr(AsyncCollection, "drop_index", boom)
+
+    assert await run(rollback=True) == 1
+
+    out = capsys.readouterr().out
+    assert "drop error" in out or "database auth failure" in out
+
+

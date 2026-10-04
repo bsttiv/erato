@@ -51,7 +51,26 @@ class LyricsSection(BaseModel):
     content: str = ""
 
 
+class SectionRevs(BaseModel):
+    lyrics: int = 0
+    chords: int = 0
+    tablature: int = 0
+
+
+class LyricsWriteResponse(LyricsSection):
+    rev: int
+
+
+class ChordsWriteResponse(ChordsSection):
+    rev: int
+
+
+class TablatureWriteResponse(TablatureSection):
+    rev: int
+
+
 class TodoItem(BaseModel):
+
     id: Optional[str] = None
     text: str
     done: bool = False
@@ -122,9 +141,11 @@ class CompositionResponse(BaseModel):
     status: STATUS = "idea"
     sections_enabled: SectionsEnabled = Field(default_factory=SectionsEnabled)
     user_role: Optional[str] = None
+    section_revs: SectionRevs = Field(default_factory=SectionRevs)
     chords: Optional[ChordsSection] = None
     tablature: Optional[TablatureSection] = None
     lyrics: Optional[LyricsSection] = None
+
     todos: List[TodoItem] = []
     demos: List[DemoItem] = []
     members: List[MemberItem] = []
