@@ -1,27 +1,163 @@
 import logging
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from bson import ObjectId
 
-from app.core.errors import NotFoundError, SectionConflictError
+from app.core.errors import NotFoundError, PlanGateError, SectionConflictError
+from app.core.plan_policy import PlanPolicy, UnlimitedPlanPolicy
 from app.db.repositories.compositions import CompositionsRepository
 from app.db.repositories.section_revisions import SectionRevisionsRepository
 from app.db.repositories.users import UsersRepository
 
 logger = logging.getLogger("erato.versioning")
 
+VALID_SECTIONS = {"lyrics", "chords", "tablature"}
+
 
 class VersioningService:
-    """Business logic for atomic section updates, versioning, conflict detection, and snapshots."""
+    """Business logic for atomic section updates, versioning, conflict detection, snapshots, and history."""
 
     def __init__(
         self,
         compositions_repo: Optional[CompositionsRepository] = None,
         revisions_repo: Optional[SectionRevisionsRepository] = None,
         users_repo: Optional[UsersRepository] = None,
+        policy: Optional[PlanPolicy] = None,
     ) -> None:
         self.compositions_repo = compositions_repo or CompositionsRepository()
         self.revisions_repo = revisions_repo or SectionRevisionsRepository()
         self.users_repo = users_repo or UsersRepository()
+        self.policy = policy or UnlimitedPlanPolicy()
+
+    def _validate_section(self, section: str) -> None:
+        """Validate section name against allowed versioned sections before any DB access."""
+        if section not in VALID_SECTIONS:
+            raise NotFoundError(f"Sección no encontrada: {section}")
+
+    async def _check_history_gate(self, user_id: str) -> None:
+        """Verify the acting user is entitled to access history under the active plan policy."""
+        if not await self.policy.can_view_history(user_id):
+            raise PlanGateError("plan_gate_history")
+
+    async def _resolve_authors(self, author_ids: List[Any]) -> Dict[str, dict]:
+        """Batch-resolve user documents for a list of author IDs."""
+        valid_ids = [aid for aid in author_ids if aid]
+        if not valid_ids:
+            return {}
+        return await self.users_repo.get_by_ids(valid_ids)
+
+    async def list_history(
+        self,
+        composition_id: str,
+        section: str,
+        user_id: str,
+        limit: int = 20,
+        before_rev: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """List version snapshots for a section with pagination, newest first."""
+        self._validate_section(section)
+        await self._check_history_gate(user_id)
+
+        raw_items = await self.revisions_repo.list_revisions(
+            composition_id=composition_id,
+            section=section,
+            limit=limit + 1,
+            before_rev=before_rev,
+        )
+
+        if len(raw_items) > limit:
+            page_items = raw_items[:limit]
+            next_before_rev = page_items[-1]["rev"]
+        else:
+            page_items = raw_items
+            next_before_rev = None
+
+        author_ids = list({d["author_id"] for d in page_items if d.get("author_id")})
+        user_map = await self._resolve_authors(author_ids)
+
+        items = []
+        for d in page_items:
+            aid = d.get("author_id")
+            author_info: Optional[Dict[str, Optional[str]]] = None
+            if aid:
+                aid_str = str(aid)
+                u = user_map.get(aid_str)
+                author_info = {
+                    "id": aid_str,
+                    "display_name": u.get("display_name") if u else None,
+                }
+            items.append(
+                {
+                    "rev": d["rev"],
+                    "author": author_info,
+                    "created_at": d["created_at"],
+                }
+            )
+
+        return {"items": items, "next_before_rev": next_before_rev}
+
+    async def get_history_revision(
+        self,
+        composition_id: str,
+        section: str,
+        rev: int,
+        user_id: str,
+    ) -> Dict[str, Any]:
+        """Fetch a specific historical snapshot with author details."""
+        self._validate_section(section)
+        await self._check_history_gate(user_id)
+
+        snap = await self.revisions_repo.get_by_rev(
+            composition_id=composition_id,
+            section=section,
+            rev=rev,
+        )
+        if not snap:
+            raise NotFoundError("Versión no encontrada")
+
+        author_info: Optional[Dict[str, Optional[str]]] = None
+        aid = snap.get("author_id")
+        if aid:
+            aid_str = str(aid)
+            u = await self.users_repo.get_by_id(aid)
+            author_info = {
+                "id": aid_str,
+                "display_name": u.get("display_name") if u else None,
+            }
+
+        return {
+            "rev": snap["rev"],
+            "content": snap["content"],
+            "author": author_info,
+            "created_at": snap["created_at"],
+        }
+
+    async def restore_history_revision(
+        self,
+        composition_id: str,
+        section: str,
+        rev: int,
+        user_id: str,
+        expected_rev: int,
+    ) -> Tuple[Any, int]:
+        """Restore a historical snapshot by saving its content as a new revision."""
+        self._validate_section(section)
+        await self._check_history_gate(user_id)
+
+        snap = await self.revisions_repo.get_by_rev(
+            composition_id=composition_id,
+            section=section,
+            rev=rev,
+        )
+        if not snap:
+            raise NotFoundError("Versión no encontrada")
+
+        return await self.update_versioned_section(
+            composition_id=composition_id,
+            section_name=section,
+            content=snap["content"],
+            author_id=user_id,
+            expected_rev=expected_rev,
+        )
 
     async def update_versioned_section(
         self,

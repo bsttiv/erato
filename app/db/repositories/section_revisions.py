@@ -82,11 +82,15 @@ class SectionRevisionsRepository:
         section: str,
         skip: int = 0,
         limit: int = 50,
+        before_rev: Optional[int] = None,
     ) -> List[dict]:
         """List snapshots for a section sorted by rev descending."""
         cid = self._to_oid(composition_id)
+        query: dict = {"composition_id": cid, "section": section}
+        if before_rev is not None:
+            query["rev"] = {"$lt": before_rev}
         cursor = (
-            self.collection.find({"composition_id": cid, "section": section})
+            self.collection.find(query)
             .sort("rev", -1)
             .skip(skip)
             .limit(limit)
@@ -94,6 +98,7 @@ class SectionRevisionsRepository:
         return await cursor.to_list(length=limit)
 
     async def get_newest_at_or_below(
+
         self,
         composition_id: Union[str, ObjectId],
         section: str,

@@ -6,16 +6,23 @@ from fastapi.responses import JSONResponse
 from pymongo.errors import ConnectionFailure, PyMongoError, ServerSelectionTimeoutError
 
 from app.core.errors import AppError, DatabaseConnectionError, InternalError
-from app.routers import auth, compositions, demos, entitlements, health, maintenance, sections, sharing
+from app.routers import (
+    auth,
+    compositions,
+    demos,
+    entitlements,
+    health,
+    history,
+    maintenance,
+    sections,
+    sharing,
+)
 
 logger = logging.getLogger("erato")
 
 
-
-
-
-
 app = FastAPI(
+
     title="Erato API",
     description="Backend API for Erato band songwriting and composition management",
     version="0.1.0",
@@ -88,6 +95,8 @@ app.include_router(sections.router)
 app.include_router(sharing.router)
 app.include_router(demos.router)
 app.include_router(entitlements.router)
+app.include_router(history.router)
 
 
 # - app.include_router(demos.router)          # Unit 4
+

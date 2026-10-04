@@ -187,10 +187,11 @@ Depends on: X1 (error classes).
 Specs: `composition-versioning: History listing and restore MUST be gated through PlanPolicy`. Design API contracts (history), AD5.
 Depends on: V1.
 
-- [ ] V2.1 RED: create `tests/test_history_router.py`: list (`limit`, `before_rev`, `next_before_rev`), get by rev, restore with required `expected_rev` (creates a new revision, 409 on stale, 422 when missing); `require(EDIT)` first (viewer 403, non-member 404) then gate (`plan_gate_history` 403 with deny stand-in, receives only the user id); unknown section/rev 404; retention cap visible (51st save hides rev 1).
-- [ ] V2.2 GREEN: create `app/routers/history.py`, `app/schemas/history.py`; extend `app/services/versioning_service.py`; include router in `app/main.py`.
-- [ ] V2.3 REFACTOR + `.venv/bin/pytest tests/`.
-- [ ] V2.4 Commit (Spanish), e.g. `feat(historial): lista y restaura versiones de una seccion`.
+- [x] V2.1 RED: create `tests/test_history_router.py`: list (`limit`, `before_rev`, `next_before_rev`), get by rev, restore with required `expected_rev` (creates a new revision, 409 on stale, 422 when missing); `require(EDIT)` first (viewer 403, non-member 404) then gate (`plan_gate_history` 403 with deny stand-in, receives only the user id); unknown section/rev 404; retention cap visible (51st save hides rev 1).
+- [x] V2.2 GREEN: create `app/routers/history.py`, `app/schemas/history.py`; extend `app/services/versioning_service.py`; include router in `app/main.py`.
+- [x] V2.3 REFACTOR + `.venv/bin/pytest tests/`.
+- [x] V2.4 Commit (Spanish), e.g. `feat(historial): lista y restaura versiones de una seccion`.
+
 
 ### Unit V3 (repo: erato) - dirty-section saves and conflict dialog (~330 lines)
 Specs: `composition-versioning: The UI MUST save only dirty sections and resolve conflicts per section`; `app-shell-and-navigation: composition page MUST host ... a conflict dialog`. P2.

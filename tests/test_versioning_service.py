@@ -1,7 +1,8 @@
 from bson import ObjectId
 import pytest
 
-from app.core.errors import NotFoundError, SectionConflictError
+from app.core.errors import NotFoundError, PlanGateError, SectionConflictError
+
 from app.db.client import get_db
 from app.db.repositories.compositions import CompositionsRepository
 from app.db.repositories.section_revisions import SectionRevisionsRepository
@@ -225,3 +226,89 @@ async def test_cascade_delete_snapshots_on_composition_delete():
 
     # Snapshots must be cascade deleted
     assert len(await revisions_repo.list_revisions(cid, "lyrics")) == 0
+
+
+class DummyRecordingPolicy:
+    def __init__(self, allow_history: bool = True) -> None:
+        self.allow_history = allow_history
+        self.calls = []
+
+    async def can_share_with_people(self, user_id: str) -> bool:
+        return True
+
+    async def can_create_band(self, user_id: str) -> bool:
+        return True
+
+    async def can_view_history(self, user_id: str) -> bool:
+        self.calls.append((user_id,))
+        return self.allow_history
+
+    async def demo_limit(self, user_id: str):
+        return None
+
+    async def seat_limit(self, band_id: str):
+        return None
+
+    async def is_band_active(self, band_id: str) -> bool:
+        return True
+
+    async def confirm_band_transfer(self, band_id: str, prev_id: str, new_id: str) -> bool:
+        return True
+
+
+@pytest.mark.asyncio
+async def test_service_history_invalid_section_raises_not_found():
+    service = VersioningService()
+    cid = str(ObjectId())
+    uid = str(ObjectId())
+
+    for invalid_sec in ["todos", "title", "section_revs", "unknown"]:
+        with pytest.raises(NotFoundError):
+            await service.list_history(cid, invalid_sec, uid)
+
+        with pytest.raises(NotFoundError):
+            await service.get_history_revision(cid, invalid_sec, 1, uid)
+
+        with pytest.raises(NotFoundError):
+            await service.restore_history_revision(cid, invalid_sec, 1, uid, expected_rev=0)
+
+
+@pytest.mark.asyncio
+async def test_service_history_gate_denies_raises_plan_gate_error_and_preserves_content():
+    compositions_repo = CompositionsRepository()
+    users_repo = UsersRepository()
+    revisions_repo = SectionRevisionsRepository()
+
+    user = await users_repo.create_user("gate_user@test.com", "hash", "Gate User")
+    comp = await compositions_repo.create_composition(owner_id=user["_id"], title="Gate Comp")
+    cid = str(comp["_id"])
+    uid = str(user["_id"])
+
+    # Create one snapshot
+    await revisions_repo.insert_revision(cid, "lyrics", 1, {"content": "initial snap"}, user["_id"])
+
+    deny_policy = DummyRecordingPolicy(allow_history=False)
+    service = VersioningService(policy=deny_policy)
+
+    with pytest.raises(PlanGateError) as exc_list:
+        await service.list_history(cid, "lyrics", uid)
+    assert exc_list.value.code == "plan_gate_history"
+
+    with pytest.raises(PlanGateError) as exc_get:
+        await service.get_history_revision(cid, "lyrics", 1, uid)
+    assert exc_get.value.code == "plan_gate_history"
+
+    with pytest.raises(PlanGateError) as exc_res:
+        await service.restore_history_revision(cid, "lyrics", 1, uid, expected_rev=0)
+    assert exc_res.value.code == "plan_gate_history"
+
+    # Policy must have received exactly (user_id,)
+    assert len(deny_policy.calls) == 3
+    for call in deny_policy.calls:
+        assert call == (uid,)
+
+    # Restore denial must not modify composition content or revision
+    comp_after = await compositions_repo.get_by_id(cid)
+    assert comp_after.get("lyrics") is None or comp_after.get("lyrics") == ""
+    assert comp_after.get("section_revs") is None or comp_after.get("section_revs") == {}
+
