@@ -316,4 +316,75 @@ describe('Compositions API client contract', () => {
     expect(JSON.parse(init?.body as string)).toEqual(todos)
     expect(result).toEqual(todos)
   })
+
+  it('updateLyricsSection appends ?expected_rev=5 when provided and returns rev', async () => {
+    const lyrics: LyricsSection = { content: 'Verse 1' }
+    const responsePayload = { content: 'Verse 1', rev: 6 }
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify(responsePayload), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    const result = await updateLyricsSection('comp-1', lyrics, 5)
+
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+    const [url] = fetchSpy.mock.calls[0]
+    expect(url.toString()).toContain('/api/compositions/comp-1/lyrics?expected_rev=5')
+    expect(result.rev).toBe(6)
+    expect(result.content).toBe('Verse 1')
+  })
+
+  it('updateChordsSection and updateTablatureSection append ?expected_rev when provided', async () => {
+    const chords: ChordsSection = { instrument: 'guitar', entries: [] }
+    const chordsRes = { ...chords, rev: 3 }
+    const tabs: TablatureSection = { tabs: [] }
+    const tabsRes = { ...tabs, rev: 4 }
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(new Response(JSON.stringify(chordsRes), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify(tabsRes), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+
+    const resChords = await updateChordsSection('comp-1', chords, 2)
+    const resTabs = await updateTablatureSection('comp-1', tabs, 3)
+
+    expect(fetchSpy.mock.calls[0][0].toString()).toContain('/api/compositions/comp-1/chords?expected_rev=2')
+    expect(resChords.rev).toBe(3)
+    expect(fetchSpy.mock.calls[1][0].toString()).toContain('/api/compositions/comp-1/tablature?expected_rev=3')
+    expect(resTabs.rev).toBe(4)
+  })
+
+  it('throws HttpError with status, code and body on 409 section_conflict', async () => {
+    const conflictBody = {
+      error: 'section_conflict',
+      section: 'lyrics',
+      current_rev: 7,
+      content: { content: 'Server lyrics' },
+      author: { id: 'u2', display_name: 'Ana' },
+      updated_at: '2026-10-04T12:00:00Z',
+    }
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      new Response(JSON.stringify(conflictBody), {
+        status: 409,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    )
+
+    let caught: any
+    try {
+      await updateLyricsSection('comp-1', { content: 'My lyrics' }, 5)
+    } catch (err) {
+      caught = err
+    }
+
+    expect(caught).toBeDefined()
+    expect(caught.name).toBe('HttpError')
+    expect(caught.status).toBe(409)
+    expect(caught.code).toBe('section_conflict')
+    expect(caught.body).toEqual(conflictBody)
+  })
 })
+

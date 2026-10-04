@@ -197,11 +197,11 @@ Depends on: V1.
 Specs: `composition-versioning: The UI MUST save only dirty sections and resolve conflicts per section`; `app-shell-and-navigation: composition page MUST host ... a conflict dialog`. P2.
 Depends on: V1.
 
-- [ ] V3.1 RED: `frontend/tests/features/use-section-save.spec.ts`: only dirty sections are sent; `Promise.allSettled`; revisions and baseline update on 200; one queued conflict per 409; "Sobrescribir con la mia" resends with `expected_rev = current_rev`; "Cargar la version guardada" replaces local value/baseline; Escape closes without losing the local edit; todos last-write-wins. Run `cd frontend && npm run test:unit -- tests/features/use-section-save.spec.ts` -> failure.
-- [ ] V3.2 RED: `frontend/tests/api/compositions.spec.ts` extension: `expected_rev` query, `rev` in responses, typed error exposing `error` code (`SectionConflictError`-like) from `frontend/src/api/client.ts`.
-- [ ] V3.3 GREEN: modify `frontend/src/api/compositions.ts` and `frontend/src/api/client.ts` (error code); create `frontend/src/features/compositions/useSectionSave.ts` and `SectionConflictDialog.vue` (built on `AppModal`); replace `saveAll()` in `frontend/src/features/compositions/CompositionDetailView.vue`.
-- [ ] V3.4 REFACTOR + `cd frontend && npm run test:unit && npm run build`.
-- [ ] V3.5 Commit (Spanish), e.g. `feat(composiciones): guarda solo secciones modificadas y resuelve conflictos`.
+- [x] V3.1 RED: `frontend/tests/features/use-section-save.spec.ts`: only dirty sections are sent; `Promise.allSettled`; revisions and baseline update on 200; one queued conflict per 409; "Sobrescribir con la mia" resends with `expected_rev = current_rev`; "Cargar la version guardada" replaces local value/baseline; Escape closes without losing the local edit; todos last-write-wins. Run `cd frontend && npm run test:unit -- tests/features/use-section-save.spec.ts` -> failure.
+- [x] V3.2 RED: `frontend/tests/api/compositions.spec.ts` extension: `expected_rev` query, `rev` in responses, typed error exposing `error` code (`SectionConflictError`-like) from `frontend/src/api/client.ts`.
+- [x] V3.3 GREEN: modify `frontend/src/api/compositions.ts` and `frontend/src/api/client.ts` (error code); create `frontend/src/features/compositions/useSectionSave.ts` and `SectionConflictDialog.vue` (built on `AppModal`); replace `saveAll()` in `frontend/src/features/compositions/CompositionDetailView.vue`.
+- [x] V3.4 REFACTOR + `cd frontend && npm run test:unit && npm run build`.
+- [x] V3.5 Commit (Spanish), e.g. `feat(composiciones): guarda solo secciones modificadas y resuelve conflictos`.
 
 ### Unit V4 (repo: erato) - history panel (~280 lines)
 Specs: `composition-versioning: A history panel MUST let editors browse and restore versions`; `plan-policy-port: Policy-gated behavior MUST degrade without data loss`.

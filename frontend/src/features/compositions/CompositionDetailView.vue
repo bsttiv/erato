@@ -220,6 +220,15 @@
           @close="showShareModal = false"
           @visibility-changed="onVisibilityChanged"
         />
+
+        <SectionConflictDialog
+          :open="!!activeConflict"
+          :conflict="activeConflict"
+          :is-saving="isSaving"
+          @close="dismissConflict"
+          @overwrite="activeConflict && resolveOverwrite(activeConflict)"
+          @load-saved="activeConflict && resolveLoadSaved(activeConflict)"
+        />
       </div>
     </main>
   </div>
@@ -247,16 +256,19 @@ import LyricsSection from './LyricsSection.vue'
 import DemosSection from '@/features/demos/DemosSection.vue'
 import { resolveCompositionRef } from './resolveCompositionRef'
 import SharingModal from '@/features/sharing/SharingModal.vue'
+import SectionConflictDialog from './SectionConflictDialog.vue'
+import { useSectionSave } from './useSectionSave'
+import {
+  normalizeChords,
+  normalizeTablature,
+  normalizeLyrics,
+} from './normalizeSection'
 import { STATUS_OPTIONS, statusLabel } from './status'
 import type { TabEntry } from '@/design-system/core/tab'
 import {
   getComposition,
   listCompositions,
   updateComposition,
-  updateChordsSection,
-  updateTablatureSection,
-  updateLyricsSection,
-  updateTodosSection,
   type CompositionResponse,
   type CompositionListItem,
   type CompositionStatus,
@@ -310,8 +322,6 @@ onBeforeUnmount(() => {
 })
 
 const loading = ref(false)
-const isSaving = ref(false)
-const saveStateText = ref('guardado')
 const showShareModal = ref(false)
 
 const comp = ref<CompositionResponse | null>(props.composition || null)
@@ -324,51 +334,42 @@ const lyricsText = ref('')
 const todoItems = ref<TodoItem[]>([])
 const compDemos = ref<DemoTake[]>([])
 
+const {
+  save: saveSections,
+  resetBaselines,
+  activeConflict,
+  resolveOverwrite,
+  resolveLoadSaved,
+  dismissConflict,
+  isSaving,
+  saveStateText,
+} = useSectionSave({
+  compositionId: () => comp.value?.id,
+  initialRevs: () => comp.value?.section_revs,
+  chords: () => compChords.value,
+  tabs: () => compTabs.value,
+  lyrics: () => lyricsText.value,
+  todos: () => todoItems.value,
+  onLoadSection: (section, content) => {
+    if (section === 'lyrics') {
+      lyricsText.value = normalizeLyrics(content)
+    } else if (section === 'chords') {
+      compChords.value = normalizeChords(content)
+    } else if (section === 'tablature') {
+      compTabs.value = normalizeTablature(content)
+    }
+  },
+})
+
 function normalizeCompositionData(c: CompositionResponse) {
   // Chords
-  if (c.chords && c.chords.entries) {
-    compChords.value = {
-      instrument: c.chords.instrument || 'guitar',
-      entries: [...c.chords.entries],
-    }
-  } else if (c.sections?.chords) {
-    const legacy = c.sections.chords as any
-    if (legacy.entries) {
-      compChords.value = {
-        instrument: legacy.instrument || 'guitar',
-        entries: [...legacy.entries],
-      }
-    } else if (legacy.frets) {
-      compChords.value = {
-        instrument: legacy.instrument || 'guitar',
-        entries: [{ bar: 1, notes: legacy.frets, name: 'Acorde' }],
-      }
-    }
-  } else {
-    compChords.value = { instrument: 'guitar', entries: [] }
-  }
+  compChords.value = normalizeChords(c.chords || c.sections?.chords)
 
   // Tablature
-  if (c.tablature && c.tablature.tabs && c.tablature.tabs.length > 0) {
-    compTabs.value = c.tablature.tabs.map((t) => ({
-      ...t,
-      columns: Array.isArray(t.columns) ? [...t.columns] : [],
-    }))
-  } else if (c.sections?.tab?.columns) {
-    compTabs.value = [
-      {
-        id: 'tab-1',
-        title: 'Tablatura',
-        strings: 6,
-        columns: [...c.sections.tab.columns],
-      },
-    ]
-  } else {
-    compTabs.value = []
-  }
+  compTabs.value = normalizeTablature(c.tablature || c.sections?.tab)
 
   // Lyrics
-  lyricsText.value = c.lyrics?.content || c.sections?.lyrics?.text || ''
+  lyricsText.value = normalizeLyrics(c.lyrics || c.sections?.lyrics)
 
   // Todos
   if (c.todos && c.todos.length > 0) {
@@ -397,6 +398,14 @@ function normalizeCompositionData(c: CompositionResponse) {
     src: d.src,
     comments: d.comments || [],
   }))
+
+  resetBaselines({
+    lyrics: lyricsText.value,
+    chords: compChords.value,
+    tabs: compTabs.value,
+    todos: todoItems.value,
+    revs: c.section_revs,
+  })
 }
 
 watch(
@@ -564,23 +573,7 @@ async function loadData() {
 
 async function saveAll() {
   if (!canEdit.value || !comp.value) return
-  isSaving.value = true
-  saveStateText.value = 'guardando...'
-
-  try {
-    const id = comp.value.id
-    await Promise.all([
-      updateChordsSection(id, compChords.value),
-      updateTablatureSection(id, { tabs: compTabs.value }),
-      updateLyricsSection(id, { content: lyricsText.value }),
-      updateTodosSection(id, todoItems.value),
-    ])
-    saveStateText.value = 'guardado'
-  } catch {
-    saveStateText.value = 'error al guardar'
-  } finally {
-    isSaving.value = false
-  }
+  await saveSections()
 }
 
 onMounted(() => {
