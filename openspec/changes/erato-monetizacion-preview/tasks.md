@@ -158,12 +158,13 @@ Depends on: none.
 Specs: `plan-policy-port: closed set of questions`, `UnlimitedPlanPolicy default`, `overridable dependency getter`, `Plan-gate refusals machine readable`, `entitlements endpoint`, `accept external routers and keep a stable app entry`; `backend-platform: importable as app.main.app and accept host extensions`. Design AD4, AD5, AD6.
 Depends on: none (gate for every other seam-dependent unit).
 
-- [ ] X1.1 RED: create `tests/test_plan_policy_contract.py`: `UnlimitedPlanPolicy` returns `True, True, True, None, None, True, True` for the seven questions incl. `confirm_band_transfer`; a stand-in implementing the Protocol installed through `app.dependency_overrides[app.deps.get_plan_policy]` is what a request receives; user-scoped methods receive only the user id; `app.dependency_overrides[get_host_capabilities]` works; extra router added via `app.include_router` is served; `api.index.app is app.main.app`; overrides cleared in a fixture. Run `.venv/bin/pytest tests/test_plan_policy_contract.py` and observe failure.
-- [ ] X1.2 RED: create `tests/test_entitlements_router.py`: `GET /api/me/entitlements` 401 anonymous; under default returns `can_share_with_people`, `can_create_band`, `can_view_history` true, `demo_limit_per_composition` null, `extensions_available` false, `band_creation_mode` "direct"; deny-all stand-in -> `hand_off` and false flags; no per-composition variance. Observe failure.
-- [ ] X1.3 RED: add to `tests/test_permissions.py` or a new `tests/test_errors.py` a case for `PlanGateError` serializing `{"error": "plan_gate_sharing", ...}` status 403 and `GoneError` 410 (needed by later units; design AD4).
-- [ ] X1.4 GREEN: create `app/core/plan_policy.py` (`PlanPolicy` Protocol, `UnlimitedPlanPolicy`, `HostCapabilities`); `app/core/errors.py` add `PlanGateError(code)`, `GoneError`; `app/deps.py` add `get_plan_policy`, `get_host_capabilities`; create `app/schemas/entitlements.py`, `app/routers/entitlements.py`; `app/main.py` include the router.
-- [ ] X1.5 REFACTOR + full `.venv/bin/pytest tests/`.
-- [ ] X1.6 Commit (Spanish), e.g. `feat(plan): agrega el puerto PlanPolicy, la politica ilimitada y el endpoint de entitlements`.
+- [x] X1.1 RED: create `tests/test_plan_policy_contract.py`: `UnlimitedPlanPolicy` returns `True, True, True, None, None, True, True` for the seven questions incl. `confirm_band_transfer`; a stand-in implementing the Protocol installed through `app.dependency_overrides[app.deps.get_plan_policy]` is what a request receives; user-scoped methods receive only the user id; `app.dependency_overrides[get_host_capabilities]` works; extra router added via `app.include_router` is served; `api.index.app is app.main.app`; overrides cleared in a fixture. Run `.venv/bin/pytest tests/test_plan_policy_contract.py` and observe failure.
+- [x] X1.2 RED: create `tests/test_entitlements_router.py`: `GET /api/me/entitlements` 401 anonymous; under default returns `can_share_with_people`, `can_create_band`, `can_view_history` true, `demo_limit_per_composition` null, `extensions_available` false, `band_creation_mode` "direct"; deny-all stand-in -> `hand_off` and false flags; no per-composition variance. Observe failure.
+- [x] X1.3 RED: add to `tests/test_permissions.py` or a new `tests/test_errors.py` a case for `PlanGateError` serializing `{"error": "plan_gate_sharing", ...}` status 403 and `GoneError` 410 (needed by later units; design AD4).
+- [x] X1.4 GREEN: create `app/core/plan_policy.py` (`PlanPolicy` Protocol, `UnlimitedPlanPolicy`, `HostCapabilities`); `app/core/errors.py` add `PlanGateError(code)`, `GoneError`; `app/deps.py` add `get_plan_policy`, `get_host_capabilities`; create `app/schemas/entitlements.py`, `app/routers/entitlements.py`; `app/main.py` include the router.
+- [x] X1.5 REFACTOR + full `.venv/bin/pytest tests/`.
+- [x] X1.6 Commit (Spanish), e.g. `feat(plan): agrega el puerto PlanPolicy, la politica ilimitada y el endpoint de entitlements`.
+
 
 ---
 

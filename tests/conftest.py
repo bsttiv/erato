@@ -20,5 +20,9 @@ def set_test_env(monkeypatch):
     monkeypatch.setenv("APP_BASE_URL", "http://localhost:5173")
 
     get_settings.cache_clear()
+    from app.main import app
+    app.dependency_overrides.clear()
     yield
+    app.dependency_overrides.clear()
     get_settings.cache_clear()
+

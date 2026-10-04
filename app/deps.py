@@ -4,6 +4,7 @@ from fastapi import Depends, Header, Request
 
 from app.core.errors import ForbiddenError, NotFoundError, UnauthorizedError
 from app.core.permissions import Action, Role, can, resolve_role
+from app.core.plan_policy import HostCapabilities, PlanPolicy, UnlimitedPlanPolicy
 from app.core.security.tokens import verify_access_token
 from app.db.repositories.compositions import CompositionsRepository
 
@@ -98,3 +99,12 @@ def require(action: Action):
         return AuthContext(user=user, role=role, composition=access_record)
 
     return dependency
+
+
+def get_plan_policy() -> PlanPolicy:
+    return UnlimitedPlanPolicy()
+
+
+def get_host_capabilities() -> HostCapabilities:
+    return HostCapabilities(extensions_available=False)
+
