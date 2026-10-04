@@ -168,6 +168,153 @@ describe('useSectionSave composable and SectionConflictDialog', () => {
     expect(activeConflict.value).toBeNull()
   })
 
+  it('sobrescribir vuelve a entrar en conflicto reemplazando los datos del conflicto', async () => {
+    const chords = ref<ChordsSection>({ instrument: 'guitar', entries: [] })
+    const tabs = ref<TabEntry[]>([])
+    const lyrics = ref<string>('Initial lyrics')
+    const todos = ref<TodoItem[]>([])
+
+    const conflict1 = new compApi.HttpError('Conflict 1', 409, 'section_conflict', {
+      error: 'section_conflict',
+      section: 'lyrics',
+      current_rev: 5,
+      content: { content: 'Server text v1' },
+      author: { id: 'u1', display_name: 'Marcos' },
+    })
+
+    const conflict2 = new compApi.HttpError('Conflict 2', 409, 'section_conflict', {
+      error: 'section_conflict',
+      section: 'lyrics',
+      current_rev: 6,
+      content: { content: 'Server text v2' },
+      author: { id: 'u2', display_name: 'Lucía' },
+    })
+
+    const lyricsSpy = vi.spyOn(compApi, 'updateLyricsSection')
+      .mockRejectedValueOnce(conflict1) // initial save
+      .mockRejectedValueOnce(conflict2) // first overwrite attempt
+      .mockResolvedValueOnce({ content: 'My lyrics', rev: 7 }) // second overwrite attempt
+
+    const { save, revisions, isDirty, activeConflict, resolveOverwrite, saveStateText } = useSectionSave({
+      compositionId: () => 'comp-100',
+      initialRevs: () => ({ chords: 1, tablature: 1, lyrics: 4 }),
+      chords: () => chords.value,
+      tabs: () => tabs.value,
+      lyrics: () => lyrics.value,
+      todos: () => todos.value,
+    })
+
+    lyrics.value = 'My lyrics'
+    await save()
+
+    expect(activeConflict.value?.current_rev).toBe(5)
+    expect(activeConflict.value?.author?.display_name).toBe('Marcos')
+
+    // First overwrite attempt gets 409 with rev 6
+    await resolveOverwrite(activeConflict.value!)
+
+    expect(lyricsSpy).toHaveBeenNthCalledWith(2, 'comp-100', { content: 'My lyrics' }, 5)
+    expect(activeConflict.value).not.toBeNull()
+    expect(activeConflict.value?.current_rev).toBe(6)
+    expect(activeConflict.value?.author?.display_name).toBe('Lucía')
+    expect(saveStateText.value).toBe('error al guardar')
+
+    // Second overwrite attempt uses updated rev 6 and resolves
+    await resolveOverwrite(activeConflict.value!)
+
+    expect(lyricsSpy).toHaveBeenNthCalledWith(3, 'comp-100', { content: 'My lyrics' }, 6)
+    expect(revisions.value.lyrics).toBe(7)
+    expect(isDirty('lyrics')).toBe(false)
+    expect(activeConflict.value).toBeNull()
+    expect(saveStateText.value).toBe('guardado')
+  })
+
+  it('leaves conflict in queue and sets error state on non-409 error during overwrite', async () => {
+    const chords = ref<ChordsSection>({ instrument: 'guitar', entries: [] })
+    const tabs = ref<TabEntry[]>([])
+    const lyrics = ref<string>('Initial lyrics')
+    const todos = ref<TodoItem[]>([])
+
+    const conflict = new compApi.HttpError('Conflict', 409, 'section_conflict', {
+      error: 'section_conflict',
+      section: 'lyrics',
+      current_rev: 5,
+      content: { content: 'Remote' },
+    })
+
+    vi.spyOn(compApi, 'updateLyricsSection')
+      .mockRejectedValueOnce(conflict)
+      .mockRejectedValueOnce(new Error('Network error 500'))
+
+    const { save, activeConflict, resolveOverwrite, saveStateText } = useSectionSave({
+      compositionId: () => 'comp-100',
+      initialRevs: () => ({ chords: 1, tablature: 1, lyrics: 4 }),
+      chords: () => chords.value,
+      tabs: () => tabs.value,
+      lyrics: () => lyrics.value,
+      todos: () => todos.value,
+    })
+
+    lyrics.value = 'My edit'
+    await save()
+
+    await resolveOverwrite(activeConflict.value!)
+
+    expect(activeConflict.value?.current_rev).toBe(5)
+    expect(saveStateText.value).toBe('error al guardar')
+  })
+
+  it('resolveOverwrite and resolveLoadSaved return early if isSaving is true', async () => {
+    const chords = ref<ChordsSection>({ instrument: 'guitar', entries: [] })
+    const tabs = ref<TabEntry[]>([])
+    const lyrics = ref<string>('Initial lyrics')
+    const todos = ref<TodoItem[]>([])
+
+    const conflict = new compApi.HttpError('Conflict', 409, 'section_conflict', {
+      error: 'section_conflict',
+      section: 'lyrics',
+      current_rev: 5,
+      content: { content: 'Remote' },
+    })
+
+    let resolveSavePromise: (value: any) => void = () => {}
+    const slowSave = new Promise((resolve) => {
+      resolveSavePromise = resolve
+    })
+
+    const lyricsSpy = vi.spyOn(compApi, 'updateLyricsSection')
+      .mockRejectedValueOnce(conflict)
+      .mockReturnValueOnce(slowSave as any)
+
+    const { save, activeConflict, resolveOverwrite, resolveLoadSaved, isSaving } = useSectionSave({
+      compositionId: () => 'comp-100',
+      initialRevs: () => ({ chords: 1, tablature: 1, lyrics: 4 }),
+      chords: () => chords.value,
+      tabs: () => tabs.value,
+      lyrics: () => lyrics.value,
+      todos: () => todos.value,
+    })
+
+    lyrics.value = 'My edit'
+    await save()
+
+    // Trigger overwrite - it hangs on slowSave
+    const overwritePromise = resolveOverwrite(activeConflict.value!)
+    expect(isSaving.value).toBe(true)
+
+    // Double-click attempt while in-flight: must be ignored
+    await resolveOverwrite(activeConflict.value!)
+    resolveLoadSaved(activeConflict.value!)
+
+    // Only 2 API calls happened (initial save + first overwrite), not 3
+    expect(lyricsSpy).toHaveBeenCalledTimes(2)
+
+    // Complete the in-flight request
+    resolveSavePromise({ content: 'My edit', rev: 6 })
+    await overwritePromise
+    expect(isSaving.value).toBe(false)
+  })
+
   it('resolves conflict with "Cargar la versión guardada" by updating value, baseline and revision', async () => {
     const chords = ref<ChordsSection>({ instrument: 'guitar', entries: [] })
     const tabs = ref<TabEntry[]>([])
@@ -198,7 +345,7 @@ describe('useSectionSave composable and SectionConflictDialog', () => {
       todos: () => todos.value,
       onLoadSection: (section, content) => {
         if (section === 'lyrics') {
-          lyrics.value = content.content
+          lyrics.value = typeof content === 'string' ? content : content.content
         }
       },
     })
@@ -357,6 +504,22 @@ describe('useSectionSave composable and SectionConflictDialog', () => {
       await wrapper.vm.$nextTick()
       expect(wrapper.emitted('close')).toBeTruthy()
       wrapper.unmount()
+    })
+
+    it('disables action buttons while isSaving is true', () => {
+      const wrapper = mount(SectionConflictDialog, {
+        props: {
+          open: true,
+          conflict: sampleConflict,
+          isSaving: true,
+        },
+      })
+
+      const actionButtons = wrapper.findAll('.er-conflict-actions button')
+      expect(actionButtons.length).toBe(2)
+      actionButtons.forEach(btn => {
+        expect(btn.attributes('disabled')).toBeDefined()
+      })
     })
   })
 })

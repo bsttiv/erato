@@ -224,6 +224,7 @@
         <SectionConflictDialog
           :open="!!activeConflict"
           :conflict="activeConflict"
+          :is-saving="isSaving"
           @close="dismissConflict"
           @overwrite="activeConflict && resolveOverwrite(activeConflict)"
           @load-saved="activeConflict && resolveLoadSaved(activeConflict)"
@@ -257,6 +258,11 @@ import { resolveCompositionRef } from './resolveCompositionRef'
 import SharingModal from '@/features/sharing/SharingModal.vue'
 import SectionConflictDialog from './SectionConflictDialog.vue'
 import { useSectionSave } from './useSectionSave'
+import {
+  normalizeChords,
+  normalizeTablature,
+  normalizeLyrics,
+} from './normalizeSection'
 import { STATUS_OPTIONS, statusLabel } from './status'
 import type { TabEntry } from '@/design-system/core/tab'
 import {
@@ -346,60 +352,24 @@ const {
   todos: () => todoItems.value,
   onLoadSection: (section, content) => {
     if (section === 'lyrics') {
-      lyricsText.value = typeof content === 'string' ? content : content?.content ?? ''
+      lyricsText.value = normalizeLyrics(content)
     } else if (section === 'chords') {
-      compChords.value = content || { instrument: 'guitar', entries: [] }
+      compChords.value = normalizeChords(content)
     } else if (section === 'tablature') {
-      compTabs.value = content?.tabs || []
+      compTabs.value = normalizeTablature(content)
     }
   },
 })
 
 function normalizeCompositionData(c: CompositionResponse) {
   // Chords
-  if (c.chords && c.chords.entries) {
-    compChords.value = {
-      instrument: c.chords.instrument || 'guitar',
-      entries: [...c.chords.entries],
-    }
-  } else if (c.sections?.chords) {
-    const legacy = c.sections.chords as any
-    if (legacy.entries) {
-      compChords.value = {
-        instrument: legacy.instrument || 'guitar',
-        entries: [...legacy.entries],
-      }
-    } else if (legacy.frets) {
-      compChords.value = {
-        instrument: legacy.instrument || 'guitar',
-        entries: [{ bar: 1, notes: legacy.frets, name: 'Acorde' }],
-      }
-    }
-  } else {
-    compChords.value = { instrument: 'guitar', entries: [] }
-  }
+  compChords.value = normalizeChords(c.chords || c.sections?.chords)
 
   // Tablature
-  if (c.tablature && c.tablature.tabs && c.tablature.tabs.length > 0) {
-    compTabs.value = c.tablature.tabs.map((t) => ({
-      ...t,
-      columns: Array.isArray(t.columns) ? [...t.columns] : [],
-    }))
-  } else if (c.sections?.tab?.columns) {
-    compTabs.value = [
-      {
-        id: 'tab-1',
-        title: 'Tablatura',
-        strings: 6,
-        columns: [...c.sections.tab.columns],
-      },
-    ]
-  } else {
-    compTabs.value = []
-  }
+  compTabs.value = normalizeTablature(c.tablature || c.sections?.tab)
 
   // Lyrics
-  lyricsText.value = c.lyrics?.content || c.sections?.lyrics?.text || ''
+  lyricsText.value = normalizeLyrics(c.lyrics || c.sections?.lyrics)
 
   // Todos
   if (c.todos && c.todos.length > 0) {

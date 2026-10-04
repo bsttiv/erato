@@ -411,6 +411,143 @@ describe('CompositionDetailView', () => {
       expect(dialog.props('open')).toBe(true)
       expect(dialog.text()).toContain('Lucía')
     })
+
+    it('resolves conflict on view level when clicking "Sobrescribir con la mía"', async () => {
+      const spies = mockSectionApis()
+      spies.lyrics
+        .mockRejectedValueOnce(
+          new compApi.HttpError('conflict', 409, 'section_conflict', {
+            error: 'section_conflict',
+            section: 'lyrics',
+            current_rev: 5,
+            content: { content: 'Remote version' },
+            author: { id: 'u2', display_name: 'Lucía' },
+            updated_at: '2026-10-04T12:00:00Z',
+          })
+        )
+        .mockResolvedValueOnce({
+          content: 'My local lyrics',
+          rev: 6,
+        })
+      const wrapper = await mountOwner()
+
+      await wrapper.find('[data-test="edit-lyrics-text-btn"]').trigger('click')
+      await wrapper.find('[data-test="lyrics-textarea"]').setValue('My local lyrics')
+      await wrapper.find('.er-save-btn').trigger('click')
+      await flushPromises()
+
+      const dialog = wrapper.findComponent(SectionConflictDialog)
+      expect(dialog.props('open')).toBe(true)
+
+      const overwriteBtn = dialog.findAll('button').find(b => b.text().includes('Sobrescribir con la mía'))!
+      await overwriteBtn.trigger('click')
+      await flushPromises()
+
+      expect(spies.lyrics).toHaveBeenNthCalledWith(2, 'comp-100', { content: 'My local lyrics' }, 5)
+      expect(dialog.props('open')).toBe(false)
+      expect(wrapper.find('.er-savestate').text()).toBe('guardado')
+    })
+
+    it('resolves conflict on view level when clicking "Cargar la versión guardada"', async () => {
+      const spies = mockSectionApis()
+      spies.lyrics.mockRejectedValueOnce(
+        new compApi.HttpError('conflict', 409, 'section_conflict', {
+          error: 'section_conflict',
+          section: 'lyrics',
+          current_rev: 8,
+          content: { content: 'Remote server lyrics' },
+          author: { id: 'u2', display_name: 'Lucía' },
+          updated_at: '2026-10-04T12:00:00Z',
+        })
+      )
+      const wrapper = await mountOwner()
+
+      await wrapper.find('[data-test="edit-lyrics-text-btn"]').trigger('click')
+      await wrapper.find('[data-test="lyrics-textarea"]').setValue('My local lyrics')
+      await wrapper.find('.er-save-btn').trigger('click')
+      await flushPromises()
+
+      const dialog = wrapper.findComponent(SectionConflictDialog)
+      expect(dialog.props('open')).toBe(true)
+
+      const loadBtn = dialog.findAll('button').find(b => b.text().includes('Cargar la versión guardada'))!
+      await loadBtn.trigger('click')
+      await flushPromises()
+
+      expect(dialog.props('open')).toBe(false)
+      expect(wrapper.find('.er-savestate').text()).toBe('guardado')
+      expect((wrapper.find('[data-test="lyrics-textarea"]').element as HTMLTextAreaElement).value).toBe('Remote server lyrics')
+
+      // Switch back to viewer mode and assert content renders
+      await wrapper.find('[data-test="edit-lyrics-text-btn"]').trigger('click')
+      expect(wrapper.find('#sec-lyrics').text()).toContain('Remote server lyrics')
+    })
+
+    it('closing conflict dialog with Escape preserves local dirty edit in editor', async () => {
+      const spies = mockSectionApis()
+      spies.lyrics.mockRejectedValueOnce(
+        new compApi.HttpError('conflict', 409, 'section_conflict', {
+          error: 'section_conflict',
+          section: 'lyrics',
+          current_rev: 5,
+          content: { content: 'Remote version' },
+          author: { id: 'u2', display_name: 'Lucía' },
+          updated_at: '2026-10-04T12:00:00Z',
+        })
+      )
+      const wrapper = await mountOwner()
+
+      await wrapper.find('[data-test="edit-lyrics-text-btn"]').trigger('click')
+      await wrapper.find('[data-test="lyrics-textarea"]').setValue('My local unsaved edit')
+      await wrapper.find('.er-save-btn').trigger('click')
+      await flushPromises()
+
+      const dialog = wrapper.findComponent(SectionConflictDialog)
+      expect(dialog.props('open')).toBe(true)
+
+      dialog.vm.$emit('close')
+      await flushPromises()
+
+      expect(dialog.props('open')).toBe(false)
+      expect((wrapper.find('[data-test="lyrics-textarea"]').element as HTMLTextAreaElement).value).toBe('My local unsaved edit')
+    })
+
+    it('handles non-409 error on one section while another section saves cleanly', async () => {
+      const spies = mockSectionApis()
+      spies.chords.mockResolvedValueOnce({
+        instrument: 'guitar',
+        entries: [{ bar: 1, notes: [0, 0, 0, 0, 0, 0], name: 'E' }],
+        rev: 2,
+      })
+      spies.lyrics.mockRejectedValueOnce(new Error('Server 500'))
+
+      const wrapper = await mountOwner()
+
+      // Dirty chords
+      const newChords = {
+        instrument: 'guitar' as const,
+        entries: [{ bar: 1, notes: [0, 0, 0, 0, 0, 0], name: 'E' }],
+      }
+      wrapper.findComponent(ChordGrid).vm.$emit('update:chords', newChords)
+
+      // Dirty lyrics
+      await wrapper.find('[data-test="edit-lyrics-text-btn"]').trigger('click')
+      await wrapper.find('[data-test="lyrics-textarea"]').setValue('Failing lyrics edit')
+
+      await wrapper.find('.er-save-btn').trigger('click')
+      await flushPromises()
+
+      expect(spies.chords).toHaveBeenCalledTimes(1)
+      expect(spies.lyrics).toHaveBeenCalledTimes(1)
+      expect(wrapper.find('.er-savestate').text()).toBe('error al guardar')
+
+      // Save again without touching chords: chords was saved, so only lyrics is retried
+      await wrapper.find('.er-save-btn').trigger('click')
+      await flushPromises()
+
+      expect(spies.chords).toHaveBeenCalledTimes(1)
+      expect(spies.lyrics).toHaveBeenCalledTimes(2)
+    })
   })
 
   describe('public ref resolution', () => {

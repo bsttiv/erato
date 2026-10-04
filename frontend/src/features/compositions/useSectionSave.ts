@@ -11,6 +11,11 @@ import type {
   TodoItem,
   SectionConflictBody,
 } from '@/api/compositions'
+import {
+  normalizeChords,
+  normalizeTablature,
+  normalizeLyrics,
+} from './normalizeSection'
 
 export type VersionedSectionKey = 'lyrics' | 'chords' | 'tablature'
 export type SectionKey = VersionedSectionKey | 'todos'
@@ -160,7 +165,7 @@ export function useSectionSave(options: UseSectionSaveOptions) {
       } else {
         hasError = true
         const reason = res.reason
-        if (reason?.status === 409 || reason?.code === 'section_conflict') {
+        if (section !== 'todos' && (reason?.status === 409 || reason?.code === 'section_conflict')) {
           const body = reason.body || reason
           const conflict: SectionConflict = {
             section: (body.section || section) as VersionedSectionKey,
@@ -188,7 +193,7 @@ export function useSectionSave(options: UseSectionSaveOptions) {
 
   async function resolveOverwrite(conflict: SectionConflict): Promise<void> {
     const id = options.compositionId()
-    if (!id) return
+    if (!id || isSaving.value) return
 
     isSaving.value = true
     saveStateText.value = 'guardando...'
@@ -215,7 +220,23 @@ export function useSectionSave(options: UseSectionSaveOptions) {
       if (conflicts.value.length === 0) {
         saveStateText.value = 'guardado'
       }
-    } catch {
+    } catch (err: any) {
+      const reason = err?.body || err
+      if (err?.status === 409 || err?.code === 'section_conflict' || reason?.error === 'section_conflict') {
+        const updatedConflict: SectionConflict = {
+          section: conflict.section,
+          current_rev: reason.current_rev ?? 0,
+          content: reason.content,
+          author: reason.author ?? null,
+          updated_at: reason.updated_at,
+        }
+        const idx = conflicts.value.findIndex((c) => c.section === conflict.section)
+        if (idx !== -1) {
+          conflicts.value[idx] = updatedConflict
+        } else {
+          conflicts.value.push(updatedConflict)
+        }
+      }
       saveStateText.value = 'error al guardar'
     } finally {
       isSaving.value = false
@@ -223,22 +244,28 @@ export function useSectionSave(options: UseSectionSaveOptions) {
   }
 
   function resolveLoadSaved(conflict: SectionConflict): void {
-    if (options.onLoadSection) {
-      options.onLoadSection(conflict.section, conflict.content)
-    }
+    if (isSaving.value) return
 
     if (conflict.section === 'lyrics') {
-      const serverLyrics = typeof conflict.content === 'string'
-        ? conflict.content
-        : conflict.content?.content ?? ''
+      const serverLyrics = normalizeLyrics(conflict.content)
+      if (options.onLoadSection) {
+        options.onLoadSection(conflict.section, serverLyrics)
+      }
       baselines.value.lyrics = serverLyrics
       revisions.value.lyrics = conflict.current_rev
     } else if (conflict.section === 'chords') {
-      baselines.value.chords = cloneDeep(conflict.content || { instrument: 'guitar', entries: [] })
+      const serverChords = normalizeChords(conflict.content)
+      if (options.onLoadSection) {
+        options.onLoadSection(conflict.section, serverChords)
+      }
+      baselines.value.chords = cloneDeep(serverChords)
       revisions.value.chords = conflict.current_rev
     } else if (conflict.section === 'tablature') {
-      const tabs = conflict.content?.tabs || []
-      baselines.value.tablature = cloneDeep(tabs)
+      const serverTabs = normalizeTablature(conflict.content)
+      if (options.onLoadSection) {
+        options.onLoadSection(conflict.section, serverTabs)
+      }
+      baselines.value.tablature = cloneDeep(serverTabs)
       revisions.value.tablature = conflict.current_rev
     }
 

@@ -21,6 +21,7 @@
         <button
           type="button"
           class="er-btn"
+          :disabled="isSaving"
           @click="emit('loadSaved')"
         >
           Cargar la versión guardada
@@ -28,6 +29,7 @@
         <button
           type="button"
           class="er-btn er-btn--primary"
+          :disabled="isSaving"
           @click="emit('overwrite')"
         >
           Sobrescribir con la mía
@@ -40,16 +42,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import AppModal from '@/shared/AppModal.vue'
-import type { SectionConflictBody } from '@/api/compositions'
+import type { SectionConflict } from './useSectionSave'
 
-export interface SectionConflict extends Omit<SectionConflictBody, 'error'> {
-  error?: 'section_conflict'
-}
-
-const props = defineProps<{
-  open: boolean
-  conflict: SectionConflict | null
-}>()
+const props = withDefaults(
+  defineProps<{
+    open: boolean
+    conflict: SectionConflict | null
+    isSaving?: boolean
+  }>(),
+  {
+    isSaving: false,
+  }
+)
 
 const emit = defineEmits<{
   (e: 'close'): void
