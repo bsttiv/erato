@@ -13,7 +13,7 @@ This runbook documents the configuration, operations, promotion order, and rollb
   - `erato-cloud` repository: long-lived branch `preview`.
   - The `main` branch in both repositories must remain untouched until formal promotion.
 - **Git Submodule Pointer**:
-  - `erato-cloud` includes `erato` as a git submodule (at `core/` or repo root reference).
+  - `erato-cloud` includes `erato` as a git submodule at path `erato`.
   - While operating in preview, `erato-cloud`'s submodule MUST track the HEAD of `erato`'s `preview` branch.
   - Verification check before preview testing:
     ```bash
@@ -76,8 +76,8 @@ All variables must isolate preview data from production. No production credentia
 | `CLOUDINARY_API_KEY` | `erato` | API key | API key | Upload credentials |
 | `CLOUDINARY_API_SECRET` | `erato` | API secret | API secret | Upload credentials |
 | `CLOUDINARY_FOLDER_PREFIX` | `erato` | `erato-preview` | `erato` | Asset separation in media bucket |
-| `APP_BASE_URL` | `erato` | `https://<preview-alias>.vercel.app` | `https://erato.vercel.app` | Fails closed if unset. Never host-derived |
-| `VITE_APP_URL` | `erato` (landing) | `https://<preview-alias>.vercel.app` | `https://erato.vercel.app` | Points CTAs from landing to web app |
+| `APP_BASE_URL` | `erato` | `https://<preview-alias>.vercel.app` | `<production-url>` | Fails closed if unset. Never host-derived |
+| `VITE_APP_URL` | `erato` (landing) | `https://<preview-alias>.vercel.app` | `<production-url>` | Points CTAs from landing to web app |
 | `FREE_PRO_ENABLED` | `erato-cloud` | `true` (Preview only) | **UNSET / false** | Feature gate for preview tier testing |
 | `VERCEL_ENV` | Platform | `preview` | `production` | Injected by Vercel platform |
 
@@ -95,9 +95,7 @@ The preview database (`erato_preview`) starts completely empty and is prepared u
    MONGODB_URI="<cluster-uri>" MONGODB_DB="erato_preview" python scripts/ensure_indexes.py
    ```
 2. **Bootstrap Cloud Indexes**:
-   ```bash
-   MONGODB_URI="<cluster-uri>" MONGODB_DB="erato_preview" python -m cloud.scripts.ensure_indexes
-   ```
+   - Run the cloud index bootstrap (added by unit C1) against `erato_preview`.
 3. **Core Standalone Verification**:
    - If `erato-cloud` is detached or disabled, `erato` must remain fully operational on its own with the default `UnlimitedPlanPolicy`.
 
@@ -109,13 +107,13 @@ When the preview verification phase is complete and signed off:
 
 1. **Step 1: Merge Core to Main**:
    - Merge `erato` branch `preview` into `main` via PR.
-   - Ensure GitHub Actions test suites pass on `main`.
+   - Run the full test suites locally.
 2. **Step 2: Update Cloud Submodule**:
    - In `erato-cloud`, fetch and checkout the new `main` commit of `erato`:
      ```bash
-     cd core && git checkout main && git pull
-     cd .. && git add core
-     git commit -m "chore: bump core submodule to main"
+     cd erato && git checkout main && git pull
+     cd .. && git add erato
+     git commit -m "chore: bump erato submodule to main"
      ```
 3. **Step 3: Merge Cloud to Main**:
    - Merge `erato-cloud` branch `preview` into `main` via PR.

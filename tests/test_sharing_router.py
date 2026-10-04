@@ -195,3 +195,8 @@ async def test_invite_creation_fails_500_config_missing_when_app_base_url_unset(
         assert data["error"] == "config_missing"
         assert "APP_BASE_URL" in data["message"]
 
+        # Fail-closed: assert no orphan invitation was persisted
+        invitations_repo = InvitationsRepository()
+        assert len(await invitations_repo.list_by_composition(cid)) == 0
+
+

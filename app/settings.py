@@ -57,9 +57,3 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     return Settings()
 
-
-def build_app_url(path: str, settings: Optional[Settings] = None) -> str:
-    """Construct an absolute application URL using the active or provided settings."""
-    target_settings = settings or get_settings()
-    return target_settings.build_app_url(path)
-

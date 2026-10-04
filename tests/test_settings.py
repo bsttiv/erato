@@ -67,7 +67,7 @@ def test_app_base_url_unset_fails_closed_with_configuration_error(monkeypatch):
     monkeypatch.delenv("APP_BASE_URL", raising=False)
 
     from app.core.errors import ConfigurationError
-    from app.settings import Settings, build_app_url
+    from app.settings import Settings
 
     settings = Settings(_env_file=None)
     assert settings.app_base_url is None
@@ -79,19 +79,12 @@ def test_app_base_url_unset_fails_closed_with_configuration_error(monkeypatch):
     assert exc_info.value.code == "config_missing"
     assert "APP_BASE_URL" in exc_info.value.message
 
-    # Module-level helper build_app_url must also raise ConfigurationError
-    with pytest.raises(ConfigurationError) as exc_info2:
-        build_app_url("/invite/x", settings=settings)
-    assert exc_info2.value.status_code == 500
-    assert exc_info2.value.code == "config_missing"
-    assert "APP_BASE_URL" in exc_info2.value.message
-
 
 def test_build_app_url_never_derives_from_request_host(monkeypatch):
     """URL generation must fail closed if APP_BASE_URL is unset, never falling back to host headers."""
     monkeypatch.delenv("APP_BASE_URL", raising=False)
     from app.core.errors import ConfigurationError
-    from app.settings import Settings, build_app_url
+    from app.settings import Settings
 
     settings = Settings(
         _env_file=None,
@@ -103,9 +96,10 @@ def test_build_app_url_never_derives_from_request_host(monkeypatch):
     )
     assert settings.app_base_url is None
 
-    # Even if an external caller or request host is simulated, build_app_url refuses to generate
+    # Even if an external caller or request host is simulated, Settings.build_app_url refuses to generate
     with pytest.raises(ConfigurationError) as exc_info:
-        build_app_url("/invite/token-123", settings=settings)
+        settings.build_app_url("/invite/token-123")
     assert exc_info.value.code == "config_missing"
     assert "APP_BASE_URL" in exc_info.value.message
+
 

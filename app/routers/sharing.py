@@ -125,14 +125,16 @@ async def create_invite(
     auth: AuthContext = Depends(require(Action.MANAGE_SHARING)),
     service: SharingService = Depends(get_service),
 ) -> InviteResponse:
-    """Mint an invitation token and return the full invite URL (owner only)."""
+    settings = get_settings()
+    # Validate base URL configuration before minting to prevent orphan DB documents
+    settings.build_app_url("/invite")
+
     inv, plaintext = await service.create_invite(
         composition_id=composition_id,
         created_by=auth.user["id"] if auth.user else str(auth.composition["owner_id"]),
         invited_email=body.invited_email,
         role=body.role,
     )
-    settings = get_settings()
     invite_url = settings.build_app_url(f"/invite/{plaintext}")
 
     return InviteResponse(
