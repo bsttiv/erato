@@ -50,6 +50,14 @@
         >
           Agregar
         </ErButton>
+        <ErButton
+          size="sm"
+          variant="ghost"
+          data-test="open-tablature-history-btn"
+          @click="emit('openHistory')"
+        >
+          Historial
+        </ErButton>
 
         <template v-if="activeTab && !isRenaming">
           <ErButton
@@ -157,6 +165,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   (e: 'update:tabs', tabs: TabEntry[]): void
   (e: 'change', tabs: TabEntry[]): void
+  (e: 'openHistory'): void
 }>()
 
 const localTabs = ref<TabEntry[]>([])

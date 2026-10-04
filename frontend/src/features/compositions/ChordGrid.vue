@@ -24,6 +24,15 @@
         >
           Agregar acorde
         </ErButton>
+        <ErButton
+          v-if="editable"
+          size="sm"
+          variant="ghost"
+          data-test="open-chords-history-btn"
+          @click="emit('openHistory')"
+        >
+          Historial
+        </ErButton>
       </div>
     </div>
 
@@ -118,6 +127,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (e: 'update:chords', value: ChordsSection): void
+  (e: 'openHistory'): void
 }>()
 
 const trackRef = ref<HTMLElement | null>(null)
