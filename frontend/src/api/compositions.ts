@@ -104,6 +104,11 @@ export interface CompositionResponse {
   chords?: ChordsSection | null
   tablature?: TablatureSection | null
   lyrics?: LyricsSection | null
+  section_revs?: {
+    lyrics?: number
+    chords?: number
+    tablature?: number
+  }
   todos: TodoItem[]
   demos?: (DemoItem | DemoTake)[]
   members: MemberItem[]
@@ -150,14 +155,47 @@ export async function listCompositions(): Promise<CompositionListItem[]> {
   return res.json()
 }
 
-/** Error carrying the HTTP status so callers can branch on it (e.g. 404). */
-export class HttpError extends Error {
-  status: number
+export interface SectionAuthor {
+  id: string
+  display_name: string
+  avatar_url?: string | null
+}
 
-  constructor(message: string, status: number) {
+export interface SectionConflictBody {
+  error: 'section_conflict'
+  message?: string
+  detail?: string
+  section: 'lyrics' | 'chords' | 'tablature'
+  current_rev: number
+  content: any
+  author?: SectionAuthor | null
+  updated_at?: string
+}
+
+export interface ChordsWriteResponse extends ChordsSection {
+  rev: number
+}
+
+export interface TablatureWriteResponse extends TablatureSection {
+  rev: number
+}
+
+export interface LyricsWriteResponse extends LyricsSection {
+  rev: number
+}
+
+/** Error carrying the HTTP status, machine-readable code, and parsed body so callers can branch on it. */
+export class HttpError<T = any> extends Error {
+  status: number
+  code?: string
+  body?: T
+
+  constructor(message: string, status: number, code?: string, body?: T) {
     super(message)
     this.name = 'HttpError'
     this.status = status
+    this.code = code
+    this.body = body
   }
 }
 
@@ -216,48 +254,69 @@ export async function updateComposition(
 
 export async function updateChordsSection(
   id: string,
-  payload: ChordsSection
-): Promise<ChordsSection> {
-  const res = await apiClient(`/compositions/${id}/chords`, {
+  payload: ChordsSection,
+  expectedRev?: number
+): Promise<ChordsWriteResponse> {
+  const query = expectedRev !== undefined ? `?expected_rev=${expectedRev}` : ''
+  const res = await apiClient(`/compositions/${id}/chords${query}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al actualizar acordes')
+    throw new HttpError(
+      err.detail || err.message || 'Error al actualizar acordes',
+      res.status,
+      err.error,
+      err
+    )
   }
   return res.json()
 }
 
 export async function updateTablatureSection(
   id: string,
-  payload: TablatureSection
-): Promise<TablatureSection> {
-  const res = await apiClient(`/compositions/${id}/tablature`, {
+  payload: TablatureSection,
+  expectedRev?: number
+): Promise<TablatureWriteResponse> {
+  const query = expectedRev !== undefined ? `?expected_rev=${expectedRev}` : ''
+  const res = await apiClient(`/compositions/${id}/tablature${query}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al actualizar tablatura')
+    throw new HttpError(
+      err.detail || err.message || 'Error al actualizar tablatura',
+      res.status,
+      err.error,
+      err
+    )
   }
   return res.json()
 }
 
 export async function updateLyricsSection(
   id: string,
-  payload: LyricsSection
-): Promise<LyricsSection> {
-  const res = await apiClient(`/compositions/${id}/lyrics`, {
+  payload: LyricsSection,
+  expectedRev?: number
+): Promise<LyricsWriteResponse> {
+  const query = expectedRev !== undefined ? `?expected_rev=${expectedRev}` : ''
+  const res = await apiClient(`/compositions/${id}/lyrics${query}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al actualizar letra')
+    throw new HttpError(
+      err.detail || err.message || 'Error al actualizar letra',
+      res.status,
+      err.error,
+      err
+    )
   }
   return res.json()
 }
@@ -273,7 +332,12 @@ export async function updateTodosSection(
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.detail || 'Error al actualizar tareas')
+    throw new HttpError(
+      err.detail || err.message || 'Error al actualizar tareas',
+      res.status,
+      err.error,
+      err
+    )
   }
   return res.json()
 }

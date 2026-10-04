@@ -4,6 +4,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import CompositionDetailView from '@/features/compositions/CompositionDetailView.vue'
 import ChordGrid from '@/features/compositions/ChordGrid.vue'
 import DemosSection from '@/features/demos/DemosSection.vue'
+import SectionConflictDialog from '@/features/compositions/SectionConflictDialog.vue'
 import * as compApi from '@/api/compositions'
 import type { CompositionResponse, CompositionListItem } from '@/api/compositions'
 
@@ -297,30 +298,60 @@ describe('CompositionDetailView', () => {
 
     function mockSectionApis() {
       return {
-        chords: vi.spyOn(compApi, 'updateChordsSection').mockResolvedValue(sampleComposition.chords!),
+        chords: vi.spyOn(compApi, 'updateChordsSection').mockResolvedValue({
+          ...sampleComposition.chords!,
+          rev: 1,
+        }),
         tablature: vi
           .spyOn(compApi, 'updateTablatureSection')
-          .mockResolvedValue(sampleComposition.tablature!),
-        lyrics: vi.spyOn(compApi, 'updateLyricsSection').mockResolvedValue(sampleComposition.lyrics!),
-        todos: vi.spyOn(compApi, 'updateTodosSection').mockResolvedValue(sampleComposition.todos!),
+          .mockResolvedValue({ ...sampleComposition.tablature!, rev: 1 }),
+        lyrics: vi
+          .spyOn(compApi, 'updateLyricsSection')
+          .mockResolvedValue({ ...sampleComposition.lyrics!, rev: 1 }),
+        todos: vi
+          .spyOn(compApi, 'updateTodosSection')
+          .mockResolvedValue(sampleComposition.todos!),
       }
     }
 
-    it('calls each typed section endpoint with the right id and payload', async () => {
+    it('does not send clean sections, only dirty sections', async () => {
       const spies = mockSectionApis()
       const wrapper = await mountOwner()
 
       await wrapper.find('.er-save-btn').trigger('click')
       await flushPromises()
 
-      expect(spies.chords).toHaveBeenCalledWith('comp-100', sampleComposition.chords)
-      expect(spies.tablature).toHaveBeenCalledWith('comp-100', {
-        tabs: sampleComposition.tablature!.tabs,
-      })
-      expect(spies.lyrics).toHaveBeenCalledWith('comp-100', {
-        content: sampleComposition.lyrics!.content,
-      })
-      expect(spies.todos).toHaveBeenCalledWith('comp-100', sampleComposition.todos)
+      expect(spies.chords).not.toHaveBeenCalled()
+      expect(spies.tablature).not.toHaveBeenCalled()
+      expect(spies.lyrics).not.toHaveBeenCalled()
+      expect(spies.todos).not.toHaveBeenCalled()
+      expect(wrapper.find('.er-savestate').text()).toBe('guardado')
+    })
+
+    it('calls section endpoints for modified sections with expected_rev', async () => {
+      const spies = mockSectionApis()
+      const wrapper = await mountOwner()
+
+      await wrapper.find('[data-test="edit-lyrics-text-btn"]').trigger('click')
+      await wrapper.find('[data-test="lyrics-textarea"]').setValue('# Coro\n[G]Letra nueva')
+
+      const newChords = {
+        instrument: 'guitar' as const,
+        entries: [{ bar: 1, notes: [0, 0, 0, 0, 0, 0], name: 'E' }],
+      }
+      wrapper.findComponent(ChordGrid).vm.$emit('update:chords', newChords)
+
+      await wrapper.find('.er-save-btn').trigger('click')
+      await flushPromises()
+
+      expect(spies.lyrics).toHaveBeenCalledWith(
+        'comp-100',
+        { content: '# Coro\n[G]Letra nueva' },
+        0
+      )
+      expect(spies.chords).toHaveBeenCalledWith('comp-100', newChords, 0)
+      expect(spies.tablature).not.toHaveBeenCalled()
+      expect(spies.todos).not.toHaveBeenCalled()
       expect(wrapper.find('.er-savestate').text()).toBe('guardado')
     })
 
@@ -333,7 +364,11 @@ describe('CompositionDetailView', () => {
       await wrapper.find('.er-save-btn').trigger('click')
       await flushPromises()
 
-      expect(spies.lyrics).toHaveBeenCalledWith('comp-100', { content: '# Coro\n[G]Letra nueva' })
+      expect(spies.lyrics).toHaveBeenCalledWith(
+        'comp-100',
+        { content: '# Coro\n[G]Letra nueva' },
+        0
+      )
 
       await wrapper.find('[data-test="edit-lyrics-text-btn"]').trigger('click')
       expect(wrapper.find('#sec-lyrics').text()).toContain('Letra nueva')
@@ -344,10 +379,37 @@ describe('CompositionDetailView', () => {
       spies.lyrics.mockRejectedValue(new Error('boom'))
       const wrapper = await mountOwner()
 
+      await wrapper.find('[data-test="edit-lyrics-text-btn"]').trigger('click')
+      await wrapper.find('[data-test="lyrics-textarea"]').setValue('# Coro\n[G]Letra fallida')
       await wrapper.find('.er-save-btn').trigger('click')
       await flushPromises()
 
       expect(wrapper.find('.er-savestate').text()).toBe('error al guardar')
+    })
+
+    it('opens SectionConflictDialog when section save returns 409 conflict', async () => {
+      const spies = mockSectionApis()
+      spies.lyrics.mockRejectedValue(
+        new compApi.HttpError('conflict', 409, 'section_conflict', {
+          error: 'section_conflict',
+          section: 'lyrics',
+          current_rev: 5,
+          content: { content: 'Remote version' },
+          author: { id: 'u2', display_name: 'Lucía' },
+          updated_at: '2026-10-04T12:00:00Z',
+        })
+      )
+      const wrapper = await mountOwner()
+
+      await wrapper.find('[data-test="edit-lyrics-text-btn"]').trigger('click')
+      await wrapper.find('[data-test="lyrics-textarea"]').setValue('My local lyrics')
+      await wrapper.find('.er-save-btn').trigger('click')
+      await flushPromises()
+
+      const dialog = wrapper.findComponent(SectionConflictDialog)
+      expect(dialog.exists()).toBe(true)
+      expect(dialog.props('open')).toBe(true)
+      expect(dialog.text()).toContain('Lucía')
     })
   })
 

@@ -220,6 +220,14 @@
           @close="showShareModal = false"
           @visibility-changed="onVisibilityChanged"
         />
+
+        <SectionConflictDialog
+          :open="!!activeConflict"
+          :conflict="activeConflict"
+          @close="dismissConflict"
+          @overwrite="activeConflict && resolveOverwrite(activeConflict)"
+          @load-saved="activeConflict && resolveLoadSaved(activeConflict)"
+        />
       </div>
     </main>
   </div>
@@ -247,16 +255,14 @@ import LyricsSection from './LyricsSection.vue'
 import DemosSection from '@/features/demos/DemosSection.vue'
 import { resolveCompositionRef } from './resolveCompositionRef'
 import SharingModal from '@/features/sharing/SharingModal.vue'
+import SectionConflictDialog from './SectionConflictDialog.vue'
+import { useSectionSave } from './useSectionSave'
 import { STATUS_OPTIONS, statusLabel } from './status'
 import type { TabEntry } from '@/design-system/core/tab'
 import {
   getComposition,
   listCompositions,
   updateComposition,
-  updateChordsSection,
-  updateTablatureSection,
-  updateLyricsSection,
-  updateTodosSection,
   type CompositionResponse,
   type CompositionListItem,
   type CompositionStatus,
@@ -310,8 +316,6 @@ onBeforeUnmount(() => {
 })
 
 const loading = ref(false)
-const isSaving = ref(false)
-const saveStateText = ref('guardado')
 const showShareModal = ref(false)
 
 const comp = ref<CompositionResponse | null>(props.composition || null)
@@ -323,6 +327,33 @@ const compTabs = ref<TabEntry[]>([])
 const lyricsText = ref('')
 const todoItems = ref<TodoItem[]>([])
 const compDemos = ref<DemoTake[]>([])
+
+const {
+  save: saveSections,
+  resetBaselines,
+  activeConflict,
+  resolveOverwrite,
+  resolveLoadSaved,
+  dismissConflict,
+  isSaving,
+  saveStateText,
+} = useSectionSave({
+  compositionId: () => comp.value?.id,
+  initialRevs: () => comp.value?.section_revs,
+  chords: () => compChords.value,
+  tabs: () => compTabs.value,
+  lyrics: () => lyricsText.value,
+  todos: () => todoItems.value,
+  onLoadSection: (section, content) => {
+    if (section === 'lyrics') {
+      lyricsText.value = typeof content === 'string' ? content : content?.content ?? ''
+    } else if (section === 'chords') {
+      compChords.value = content || { instrument: 'guitar', entries: [] }
+    } else if (section === 'tablature') {
+      compTabs.value = content?.tabs || []
+    }
+  },
+})
 
 function normalizeCompositionData(c: CompositionResponse) {
   // Chords
@@ -397,6 +428,14 @@ function normalizeCompositionData(c: CompositionResponse) {
     src: d.src,
     comments: d.comments || [],
   }))
+
+  resetBaselines({
+    lyrics: lyricsText.value,
+    chords: compChords.value,
+    tabs: compTabs.value,
+    todos: todoItems.value,
+    revs: c.section_revs,
+  })
 }
 
 watch(
@@ -564,23 +603,7 @@ async function loadData() {
 
 async function saveAll() {
   if (!canEdit.value || !comp.value) return
-  isSaving.value = true
-  saveStateText.value = 'guardando...'
-
-  try {
-    const id = comp.value.id
-    await Promise.all([
-      updateChordsSection(id, compChords.value),
-      updateTablatureSection(id, { tabs: compTabs.value }),
-      updateLyricsSection(id, { content: lyricsText.value }),
-      updateTodosSection(id, todoItems.value),
-    ])
-    saveStateText.value = 'guardado'
-  } catch {
-    saveStateText.value = 'error al guardar'
-  } finally {
-    isSaving.value = false
-  }
+  await saveSections()
 }
 
 onMounted(() => {
