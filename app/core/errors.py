@@ -80,6 +80,28 @@ class ConfigurationError(AppError):
     message: str = "Configuración requerida no disponible"
 
 
+class PlanGateError(ForbiddenError):
+    """Raised when an operation is blocked by the active plan policy."""
+
+    def __init__(
+        self,
+        code: str,
+        message: Optional[str] = None,
+        details: Optional[Any] = None,
+    ) -> None:
+        super().__init__(
+            message=message or "Operación no permitida por la política de plan",
+            code=code,
+            details=details,
+        )
+
+
+class GoneError(AppError):
+    status_code: int = 410
+    code: str = "gone"
+    message: str = "El recurso solicitado ya no está disponible"
+
+
 
 
 def resolve_permission_denial(can_view: bool = False, message: Optional[str] = None) -> AppError:
