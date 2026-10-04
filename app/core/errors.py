@@ -74,6 +74,14 @@ class InternalError(AppError):
     message: str = "Error interno del servidor"
 
 
+class ConfigurationError(AppError):
+    status_code: int = 500
+    code: str = "config_missing"
+    message: str = "Configuración requerida no disponible"
+
+
+
+
 def resolve_permission_denial(can_view: bool = False, message: Optional[str] = None) -> AppError:
     """Implement 404-vs-403 rule from design.md.
 

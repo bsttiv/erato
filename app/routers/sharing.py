@@ -133,7 +133,7 @@ async def create_invite(
         role=body.role,
     )
     settings = get_settings()
-    invite_url = f"{settings.app_base_url}/invite/{plaintext}"
+    invite_url = settings.build_app_url(f"/invite/{plaintext}")
 
     return InviteResponse(
         id=str(inv["_id"]),

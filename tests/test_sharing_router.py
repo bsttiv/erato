@@ -164,3 +164,34 @@ async def test_sharing_and_visibility_spec_scenarios():
             headers={"Authorization": f"Bearer {owner_token}"},
         )
         assert res_rev.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_invite_creation_fails_500_config_missing_when_app_base_url_unset(monkeypatch):
+    from app.main import app
+    from app.settings import get_settings
+
+    monkeypatch.setattr(get_settings(), "app_base_url", None)
+
+    users_repo = UsersRepository()
+    owner = await users_repo.create_user("owner_unconfigured@test.com", "hash", "Owner")
+    owner_token = mint_access_token(str(owner["_id"]))
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://attacker-controlled-host.com") as client:
+        res_create = await client.post(
+            "/api/compositions",
+            json={"title": "Test Comp", "visibility": "private"},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+        cid = res_create.json()["id"]
+
+        res_invite = await client.post(
+            f"/api/compositions/{cid}/invites",
+            json={"role": "editor", "invited_email": "invitee@test.com"},
+            headers={"Authorization": f"Bearer {owner_token}", "Host": "attacker-controlled-host.com"},
+        )
+        assert res_invite.status_code == 500
+        data = res_invite.json()
+        assert data["error"] == "config_missing"
+        assert "APP_BASE_URL" in data["message"]
+
