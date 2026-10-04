@@ -162,6 +162,7 @@
               :chords="compChords"
               :editable="canEdit"
               @update:lyrics="onLyricsUpdate"
+              @open-history="activeHistorySection = 'lyrics'"
             />
           </div>
 
@@ -186,6 +187,7 @@
           :chords="compChords"
           :editable="canEdit"
           @update:chords="onChordsUpdate"
+          @open-history="activeHistorySection = 'chords'"
         />
 
         <TablatureSection
@@ -194,6 +196,7 @@
           :tabs="compTabs"
           :editable="canEdit"
           @update:tabs="onTabsUpdate"
+          @open-history="activeHistorySection = 'tablature'"
         />
 
         <section
@@ -229,6 +232,18 @@
           @overwrite="activeConflict && resolveOverwrite(activeConflict)"
           @load-saved="activeConflict && resolveLoadSaved(activeConflict)"
         />
+
+        <SectionHistoryPanel
+          v-if="comp && activeHistorySection"
+          :open="!!activeHistorySection"
+          :composition-id="comp.id"
+          :section="activeHistorySection"
+          :current-rev="activeHistoryCurrentRev"
+          :can-edit="canEdit"
+          @close="activeHistorySection = null"
+          @restored="onHistoryRestored"
+          @conflict="onHistoryConflict"
+        />
       </div>
     </main>
   </div>
@@ -257,7 +272,8 @@ import DemosSection from '@/features/demos/DemosSection.vue'
 import { resolveCompositionRef } from './resolveCompositionRef'
 import SharingModal from '@/features/sharing/SharingModal.vue'
 import SectionConflictDialog from './SectionConflictDialog.vue'
-import { useSectionSave } from './useSectionSave'
+import SectionHistoryPanel from './SectionHistoryPanel.vue'
+import { useSectionSave, type VersionedSectionKey, type SectionConflict } from './useSectionSave'
 import {
   normalizeChords,
   normalizeTablature,
@@ -335,6 +351,8 @@ const todoItems = ref<TodoItem[]>([])
 const compDemos = ref<DemoTake[]>([])
 
 const {
+  revisions,
+  conflicts,
   save: saveSections,
   resetBaselines,
   activeConflict,
@@ -360,6 +378,37 @@ const {
     }
   },
 })
+
+const activeHistorySection = ref<VersionedSectionKey | null>(null)
+
+const activeHistoryCurrentRev = computed(() => {
+  if (!activeHistorySection.value) return 0
+  return revisions.value[activeHistorySection.value] ?? 0
+})
+
+function onHistoryRestored(payload: { section: VersionedSectionKey; rev: number; content: any }) {
+  const { section, rev, content } = payload
+  if (section === 'lyrics') {
+    const norm = normalizeLyrics(content.content !== undefined ? content.content : content)
+    lyricsText.value = norm
+    resetBaselines({ lyrics: norm, revs: { lyrics: rev } })
+  } else if (section === 'chords') {
+    const norm = normalizeChords(content.content !== undefined ? content.content : content)
+    compChords.value = norm
+    resetBaselines({ chords: norm, revs: { chords: rev } })
+  } else if (section === 'tablature') {
+    const norm = normalizeTablature(content.content !== undefined ? content.content : content)
+    compTabs.value = norm
+    resetBaselines({ tabs: norm, revs: { tablature: rev } })
+  }
+}
+
+function onHistoryConflict(conflict: SectionConflict) {
+  const alreadyQueued = conflicts.value.some((c) => c.section === conflict.section)
+  if (!alreadyQueued) {
+    conflicts.value.push(conflict)
+  }
+}
 
 function normalizeCompositionData(c: CompositionResponse) {
   // Chords

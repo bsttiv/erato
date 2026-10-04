@@ -19,6 +19,14 @@
         >
           {{ mode === 'chords' ? 'Ver letra' : 'Editar acordes' }}
         </ErButton>
+        <ErButton
+          size="sm"
+          variant="ghost"
+          data-test="open-lyrics-history-btn"
+          @click="emit('openHistory')"
+        >
+          Historial
+        </ErButton>
       </div>
     </div>
 
@@ -70,6 +78,7 @@ const emit = defineEmits<{
   (e: 'update:lyrics', val: string): void
   (e: 'update:modelValue', val: string): void
   (e: 'change', val: string): void
+  (e: 'openHistory'): void
 }>()
 
 type Mode = 'view' | 'text' | 'chords'

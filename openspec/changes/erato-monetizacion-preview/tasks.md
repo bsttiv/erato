@@ -207,10 +207,10 @@ Depends on: V1.
 Specs: `composition-versioning: A history panel MUST let editors browse and restore versions`; `plan-policy-port: Policy-gated behavior MUST degrade without data loss`.
 Depends on: V2, V3 (and `frontend/src/api/entitlements.ts` from FX is NOT required: panel reads the 403 `plan_gate_history`; entitlements hook is wired in FX/F3).
 
-- [ ] V4.1 RED: `frontend/tests/features/section-history-panel.spec.ts`: lists revisions with author/date, previews content, restores via `expected_rev`, shows a notice (no data loss) when the API answers `plan_gate_history`, hidden for viewers.
-- [ ] V4.2 GREEN: create `frontend/src/api/history.ts`, `frontend/src/features/compositions/SectionHistoryPanel.vue`; host it in `CompositionDetailView.vue`.
-- [ ] V4.3 REFACTOR + `cd frontend && npm run test:unit && npm run build`.
-- [ ] V4.4 Commit (Spanish), e.g. `feat(historial): agrega el panel de versiones en la composicion`.
+- [x] V4.1 RED: `frontend/tests/features/section-history-panel.spec.ts`: lists revisions with author/date, previews content, restores via `expected_rev`, shows a notice (no data loss) when the API answers `plan_gate_history`, hidden for viewers.
+- [x] V4.2 GREEN: create `frontend/src/api/history.ts`, `frontend/src/features/compositions/SectionHistoryPanel.vue`; host it in `CompositionDetailView.vue`.
+- [x] V4.3 REFACTOR + `cd frontend && npm run test:unit && npm run build`.
+- [x] V4.4 Commit (Spanish), e.g. `feat(historial): agrega el panel de versiones en la composicion`.
 
 ---
 
