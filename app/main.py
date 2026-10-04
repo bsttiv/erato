@@ -21,12 +21,8 @@ from app.routers import (
 logger = logging.getLogger("erato")
 
 
-
-
-
-
-
 app = FastAPI(
+
     title="Erato API",
     description="Backend API for Erato band songwriting and composition management",
     version="0.1.0",
@@ -102,5 +98,5 @@ app.include_router(entitlements.router)
 app.include_router(history.router)
 
 
-
 # - app.include_router(demos.router)          # Unit 4
+

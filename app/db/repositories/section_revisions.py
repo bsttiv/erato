@@ -97,8 +97,8 @@ class SectionRevisionsRepository:
         )
         return await cursor.to_list(length=limit)
 
-
     async def get_newest_at_or_below(
+
         self,
         composition_id: Union[str, ObjectId],
         section: str,
