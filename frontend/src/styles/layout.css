@@ -859,7 +859,7 @@ body {
 .er-history-error {
   padding: var(--space-4) 0;
   color: var(--ink-dim);
-  font-size: var(--font-size-sm);
+  font-size: 0.875rem;
 }
 
 .er-history-notice {
@@ -881,7 +881,7 @@ body {
 .er-history-notice-msg {
   margin: 0;
   color: var(--ink-dim);
-  font-size: var(--font-size-sm);
+  font-size: 0.875rem;
 }
 
 .er-history-body {
@@ -935,12 +935,12 @@ body {
 
 .er-history-item-author {
   color: var(--ink-dim);
-  font-size: var(--font-size-sm);
+  font-size: 0.8125rem;
 }
 
 .er-history-item-date {
   color: var(--ink-muted);
-  font-size: var(--font-size-xs);
+  font-size: 0.75rem;
 }
 
 .er-history-item-actions {
@@ -960,7 +960,7 @@ body {
 .er-history-more-error {
   margin: var(--space-2) 0 0 0;
   color: var(--wine);
-  font-size: var(--font-size-sm);
+  font-size: 0.8125rem;
   text-align: center;
 }
 
@@ -977,7 +977,7 @@ body {
 .er-history-confirm-text {
   margin: 0;
   color: var(--ink);
-  font-size: var(--font-size-sm);
+  font-size: 0.875rem;
 }
 
 .er-history-confirm-actions {
@@ -1004,12 +1004,12 @@ body {
 
 .er-history-preview-loading {
   color: var(--ink-dim);
-  font-size: var(--font-size-sm);
+  font-size: 0.8125rem;
 }
 
 .er-history-preview-error {
   color: var(--wine);
-  font-size: var(--font-size-sm);
+  font-size: 0.8125rem;
   padding: var(--space-2);
 }
 
@@ -1019,7 +1019,7 @@ body {
   white-space: pre-wrap;
   word-break: break-word;
   font-family: var(--font-mono);
-  font-size: var(--font-size-sm);
+  font-size: 0.875rem;
   color: var(--ink);
   max-height: 200px;
   overflow-y: auto;
