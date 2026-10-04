@@ -50,3 +50,56 @@ def test_valid_settings_loaded(monkeypatch):
     assert settings.cloudinary_api_secret == "abcdefsecret"
     assert settings.cloudinary_folder_prefix == "erato/dev"
     assert settings.app_base_url == "http://localhost:5173"
+    assert settings.build_app_url("/invite/abc") == "http://localhost:5173/invite/abc"
+
+
+def test_app_base_url_unset_fails_closed_with_configuration_error(monkeypatch):
+    test_env = {
+        "MONGODB_URI": "mongodb://localhost:27017",
+        "MONGODB_DB": "erato_test",
+        "JWT_SECRET": "supersecretkey12345678901234567890",
+        "CLOUDINARY_CLOUD_NAME": "erato-cloud",
+        "CLOUDINARY_API_KEY": "123456789",
+        "CLOUDINARY_API_SECRET": "abcdefsecret",
+    }
+    for k, v in test_env.items():
+        monkeypatch.setenv(k, v)
+    monkeypatch.delenv("APP_BASE_URL", raising=False)
+
+    from app.core.errors import ConfigurationError
+    from app.settings import Settings
+
+    settings = Settings(_env_file=None)
+    assert settings.app_base_url is None
+
+    # Calling build_app_url on settings without app_base_url must fail closed
+    with pytest.raises(ConfigurationError) as exc_info:
+        settings.build_app_url("/invite/x")
+    assert exc_info.value.status_code == 500
+    assert exc_info.value.code == "config_missing"
+    assert "APP_BASE_URL" in exc_info.value.message
+
+
+def test_build_app_url_never_derives_from_request_host(monkeypatch):
+    """URL generation must fail closed if APP_BASE_URL is unset, never falling back to host headers."""
+    monkeypatch.delenv("APP_BASE_URL", raising=False)
+    from app.core.errors import ConfigurationError
+    from app.settings import Settings
+
+    settings = Settings(
+        _env_file=None,
+        mongodb_uri="mongodb://localhost:27017",
+        jwt_secret="supersecretkey12345678901234567890",
+        cloudinary_cloud_name="erato-cloud",
+        cloudinary_api_key="123",
+        cloudinary_api_secret="abc",
+    )
+    assert settings.app_base_url is None
+
+    # Even if an external caller or request host is simulated, Settings.build_app_url refuses to generate
+    with pytest.raises(ConfigurationError) as exc_info:
+        settings.build_app_url("/invite/token-123")
+    assert exc_info.value.code == "config_missing"
+    assert "APP_BASE_URL" in exc_info.value.message
+
+

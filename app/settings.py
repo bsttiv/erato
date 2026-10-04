@@ -2,6 +2,8 @@ from functools import lru_cache
 from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.core.errors import ConfigurationError
+
 
 
 class Settings(BaseSettings):
@@ -32,14 +34,26 @@ class Settings(BaseSettings):
     cloudinary_api_secret: str
     cloudinary_folder_prefix: str = "erato"
 
-    # Application Base URL
-    app_base_url: str = "http://localhost:5173"
+    # Application Base URL (fail-closed, must be explicitly set)
+    app_base_url: Optional[str] = None
 
     # Maintenance Cron
     cron_secret: Optional[str] = None
+
+    def build_app_url(self, path: str) -> str:
+        """Construct an absolute application URL, failing closed if APP_BASE_URL is not set."""
+        if not self.app_base_url:
+            raise ConfigurationError(
+                message="La variable de entorno APP_BASE_URL no está configurada",
+                code="config_missing",
+            )
+        base = self.app_base_url.rstrip("/")
+        clean_path = path.lstrip("/")
+        return f"{base}/{clean_path}" if clean_path else base
 
 
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+
