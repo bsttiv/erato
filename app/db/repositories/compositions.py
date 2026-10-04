@@ -4,8 +4,8 @@ from bson import ObjectId
 from pymongo import ASCENDING, IndexModel, ReturnDocument
 from pymongo.asynchronous.database import AsyncDatabase
 
-
 from app.db.client import get_db
+
 
 
 class CompositionsRepository:
@@ -183,10 +183,10 @@ class CompositionsRepository:
         return result
 
     async def update_title(
-
         self,
         composition_id: Union[str, ObjectId],
         title: str,
+
     ) -> Optional[Dict[str, Any]]:
         """Update composition title."""
         if isinstance(composition_id, str):

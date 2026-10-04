@@ -12,9 +12,9 @@ from app.schemas.compositions import (
     SectionRevs,
     SectionsEnabled,
     UpdateCompositionRequest,
-
 )
 from app.db.repositories.users import UsersRepository
+
 from app.services.composition_service import CompositionService
 
 router = APIRouter(prefix="/api/compositions", tags=["compositions"])
@@ -94,9 +94,9 @@ def _to_response(
         user_role=user_role_str,
         section_revs=SectionRevs(**(doc.get("section_revs") or {})),
         chords=doc.get("chords"),
-
         tablature=doc.get("tablature"),
         lyrics=doc.get("lyrics"),
+
         todos=doc.get("todos") or [],
         demos=formatted_demos,
         members=members_list,

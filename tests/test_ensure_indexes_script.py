@@ -89,3 +89,29 @@ async def test_rollback_drops_registered_indexes(indexes_db):
     sec_revs_after = await _indexes(indexes_db, "section_revisions")
     assert "uq_section_revisions_comp_section_rev" not in sec_revs_after
 
+
+@pytest.mark.asyncio
+async def test_rollback_when_index_does_not_exist_exits_0(indexes_db):
+    # Ensure index is not present
+    sec_revs = await _indexes(indexes_db, "section_revisions")
+    assert "uq_section_revisions_comp_section_rev" not in sec_revs
+
+    # Rollback when index does not exist must exit 0 (ignoring IndexNotFound / code 27)
+    assert await run(rollback=True) == 0
+
+
+@pytest.mark.asyncio
+async def test_rollback_non_27_error_exits_1(indexes_db, monkeypatch, capsys):
+    from pymongo.asynchronous.collection import AsyncCollection
+
+    async def boom(self, name_or_list, **kwargs):
+        raise RuntimeError("database auth failure")
+
+    monkeypatch.setattr(AsyncCollection, "drop_index", boom)
+
+    assert await run(rollback=True) == 1
+
+    out = capsys.readouterr().out
+    assert "drop error" in out or "database auth failure" in out
+
+

@@ -233,3 +233,44 @@ async def test_sections_versioning_and_conflict():
         assert comp_data["section_revs"]["chords"] == 0
         assert comp_data["section_revs"]["tablature"] == 0
 
+
+@pytest.mark.asyncio
+async def test_section_snapshot_attributed_to_editor_not_owner():
+    from app.main import app
+    from app.db.repositories.section_revisions import SectionRevisionsRepository
+
+    users_repo = UsersRepository()
+    owner = await users_repo.create_user("comp_owner@test.com", "hash", "Owner User")
+    editor = await users_repo.create_user("comp_editor@test.com", "hash", "Editor User")
+
+    owner_token = mint_access_token(str(owner["_id"]))
+    editor_token = mint_access_token(str(editor["_id"]))
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        # Create composition as owner
+        res_create = await client.post(
+            "/api/compositions",
+            json={"title": "Attribution Test", "visibility": "private"},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+        cid = res_create.json()["id"]
+
+        comp_repo = CompositionsRepository()
+        await comp_repo.add_member(cid, user_id=editor["_id"], role="editor")
+
+        # Editor updates lyrics
+        res_edit = await client.put(
+            f"/api/compositions/{cid}/lyrics",
+            json={"content": "Editor lyrics line"},
+            headers={"Authorization": f"Bearer {editor_token}"},
+        )
+        assert res_edit.status_code == 200
+
+        # Snapshot in section_revisions must have author_id == editor["_id"], NOT owner["_id"]
+        sec_repo = SectionRevisionsRepository()
+        snaps = await sec_repo.list_revisions(cid, "lyrics")
+        assert len(snaps) == 1
+        assert snaps[0]["author_id"] == editor["_id"]
+        assert snaps[0]["author_id"] != owner["_id"]
+
+

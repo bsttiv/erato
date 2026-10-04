@@ -6,6 +6,8 @@ Not run at app startup on purpose: Vercel serverless cold starts would repeat it
 import asyncio
 import sys
 
+from pymongo.errors import OperationFailure
+
 from app.db import client as db_client
 from app.db.repositories.comments import CommentsRepository
 from app.db.repositories.compositions import CompositionsRepository
@@ -40,9 +42,17 @@ async def run(rollback: bool = False) -> int:
                 try:
                     await db[coll_name].drop_index(index_name)
                     print(f"{coll_name} index {index_name} dropped: ok")
+                except OperationFailure as exc:
+                    if exc.code == 27:
+                        # Index does not exist; idempotent rollback
+                        print(f"{coll_name} index {index_name} drop: not found (ok)")
+                    else:
+                        failures += 1
+                        print(f"{coll_name} index {index_name} drop error - {exc}")
                 except Exception as exc:
-                    # Ignore if index does not exist during rollback
-                    print(f"{coll_name} index {index_name} drop: {exc}")
+                    failures += 1
+                    print(f"{coll_name} index {index_name} drop error - {exc}")
+
         else:
             for name, repository_cls in REPOSITORIES:
                 try:

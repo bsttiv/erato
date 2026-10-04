@@ -43,7 +43,7 @@ async def update_chords(
     auth: AuthContext = Depends(require(Action.EDIT)),
     versioning_service: VersioningService = Depends(get_versioning_service),
 ) -> Any:
-    author_id = auth.user["id"] if auth.user else str(auth.composition.get("owner_id"))
+    author_id = auth.user["id"]
     content, new_rev = await versioning_service.update_versioned_section(
         composition_id=composition_id,
         section_name="chords",
@@ -71,7 +71,7 @@ async def update_tablature(
     auth: AuthContext = Depends(require(Action.EDIT)),
     versioning_service: VersioningService = Depends(get_versioning_service),
 ) -> Any:
-    author_id = auth.user["id"] if auth.user else str(auth.composition.get("owner_id"))
+    author_id = auth.user["id"]
     content, new_rev = await versioning_service.update_versioned_section(
         composition_id=composition_id,
         section_name="tablature",
@@ -99,7 +99,7 @@ async def update_lyrics(
     auth: AuthContext = Depends(require(Action.EDIT)),
     versioning_service: VersioningService = Depends(get_versioning_service),
 ) -> Any:
-    author_id = auth.user["id"] if auth.user else str(auth.composition.get("owner_id"))
+    author_id = auth.user["id"]
     content, new_rev = await versioning_service.update_versioned_section(
         composition_id=composition_id,
         section_name="lyrics",
@@ -110,9 +110,9 @@ async def update_lyrics(
     return LyricsWriteResponse(**content, rev=new_rev)
 
 
-
 # Todos
 @router.get("/todos", response_model=List[TodoItem], status_code=status.HTTP_200_OK)
+
 async def get_todos(
     composition_id: str,
     auth: AuthContext = Depends(require(Action.VIEW)),

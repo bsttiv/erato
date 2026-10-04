@@ -69,8 +69,8 @@ class TablatureWriteResponse(TablatureSection):
     rev: int
 
 
-
 class TodoItem(BaseModel):
+
     id: Optional[str] = None
     text: str
     done: bool = False
@@ -143,9 +143,9 @@ class CompositionResponse(BaseModel):
     user_role: Optional[str] = None
     section_revs: SectionRevs = Field(default_factory=SectionRevs)
     chords: Optional[ChordsSection] = None
-
     tablature: Optional[TablatureSection] = None
     lyrics: Optional[LyricsSection] = None
+
     todos: List[TodoItem] = []
     demos: List[DemoItem] = []
     members: List[MemberItem] = []
