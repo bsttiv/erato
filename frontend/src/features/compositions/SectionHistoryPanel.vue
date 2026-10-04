@@ -30,6 +30,36 @@
         </div>
 
         <div v-else class="er-history-content">
+          <!-- Confirmation when section is dirty -->
+          <div
+            v-if="pendingRestoreRev !== null"
+            class="er-history-confirm"
+            data-test="history-restore-confirm"
+          >
+            <p class="er-history-confirm-text">
+              Tienes cambios sin guardar en esta sección; restaurar los descartará.
+            </p>
+            <div class="er-history-confirm-actions">
+              <button
+                type="button"
+                class="er-btn er-btn--sm er-btn--primary"
+                data-test="confirm-restore-btn"
+                :disabled="isSaving || restoringRev !== null"
+                @click="executeRestore(pendingRestoreRev)"
+              >
+                Restaurar
+              </button>
+              <button
+                type="button"
+                class="er-btn er-btn--sm"
+                data-test="cancel-restore-btn"
+                @click="pendingRestoreRev = null"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+
           <ul class="er-history-list" aria-label="Lista de versiones">
             <li
               v-for="item in items"
@@ -59,8 +89,8 @@
                   type="button"
                   class="er-btn er-btn--sm er-btn--primary"
                   data-test="restore-history-btn"
-                  :disabled="restoringRev !== null"
-                  @click="onRestore(item.rev)"
+                  :disabled="isSaving || restoringRev !== null"
+                  @click="onRestoreClick(item.rev)"
                 >
                   {{ restoringRev === item.rev ? 'Restaurando...' : 'Restaurar' }}
                 </button>
@@ -78,6 +108,9 @@
             >
               {{ loadingMore ? 'Cargando...' : 'Cargar más versiones' }}
             </button>
+            <p v-if="loadMoreError" class="er-history-more-error" data-test="load-more-error">
+              {{ loadMoreError }}
+            </p>
           </div>
 
           <!-- Preview panel -->
@@ -87,6 +120,9 @@
             </div>
             <div v-if="loadingPreview" class="er-history-preview-loading">
               Cargando vista previa...
+            </div>
+            <div v-else-if="previewError" class="er-history-preview-error">
+              {{ previewError }}
             </div>
             <pre v-else class="er-history-preview-text">{{ previewText }}</pre>
           </div>
@@ -115,9 +151,13 @@ const props = withDefaults(
     section: VersionedSectionKey
     currentRev: number
     canEdit?: boolean
+    isDirty?: boolean
+    isSaving?: boolean
   }>(),
   {
     canEdit: true,
+    isDirty: false,
+    isSaving: false,
   }
 )
 
@@ -142,13 +182,16 @@ const items = ref<HistoryItemSummary[]>([])
 const nextBeforeRev = ref<number | null | undefined>(undefined)
 const loading = ref(false)
 const loadingMore = ref(false)
+const loadMoreError = ref<string | null>(null)
 const error = ref<string | null>(null)
 const planGateNotice = ref(false)
 
 const selectedRev = ref<number | null>(null)
 const previewRaw = ref<any>(null)
+const previewError = ref<string | null>(null)
 const loadingPreview = ref(false)
 const restoringRev = ref<number | null>(null)
+const pendingRestoreRev = ref<number | null>(null)
 
 const previewText = computed(() => {
   if (!previewRaw.value) return ''
@@ -169,9 +212,12 @@ async function loadHistory() {
   if (!props.compositionId || !props.open) return
   loading.value = true
   error.value = null
+  loadMoreError.value = null
   planGateNotice.value = false
   selectedRev.value = null
   previewRaw.value = null
+  previewError.value = null
+  pendingRestoreRev.value = null
 
   try {
     const res = await listSectionHistory(props.compositionId, props.section, 20)
@@ -193,12 +239,13 @@ async function onLoadMore() {
     return
   }
   loadingMore.value = true
+  loadMoreError.value = null
   try {
     const res = await listSectionHistory(props.compositionId, props.section, 20, nextBeforeRev.value)
     items.value = [...items.value, ...(res.items || [])]
     nextBeforeRev.value = res.next_before_rev
   } catch (err: any) {
-    error.value = err?.message || 'Error al cargar más versiones'
+    loadMoreError.value = err?.message || 'Error al cargar más versiones'
   } finally {
     loadingMore.value = false
   }
@@ -208,24 +255,36 @@ async function onSelectPreview(rev: number) {
   if (selectedRev.value === rev) {
     selectedRev.value = null
     previewRaw.value = null
+    previewError.value = null
     return
   }
 
   selectedRev.value = rev
   loadingPreview.value = true
+  previewError.value = null
+  previewRaw.value = null
   try {
     const res = await getHistoryRevision(props.compositionId, props.section, rev)
     previewRaw.value = res
-  } catch (err: any) {
-    previewRaw.value = 'No se pudo cargar la vista previa.'
+  } catch {
+    previewError.value = 'No se pudo cargar la vista previa.'
   } finally {
     loadingPreview.value = false
   }
 }
 
-async function onRestore(rev: number) {
+function onRestoreClick(rev: number) {
+  if (props.isDirty) {
+    pendingRestoreRev.value = rev
+  } else {
+    executeRestore(rev)
+  }
+}
+
+async function executeRestore(rev: number) {
   if (restoringRev.value !== null) return
   restoringRev.value = rev
+  pendingRestoreRev.value = null
 
   try {
     const res = await restoreSectionHistory(props.compositionId, props.section, rev, props.currentRev)
@@ -234,7 +293,8 @@ async function onRestore(rev: number) {
       rev: res.rev,
       content: res,
     })
-    emit('close')
+    // Reload history so the newly created revision is displayed at the top of the panel
+    await loadHistory()
   } catch (err: any) {
     const reason = err?.body || err
     if (err?.status === 409 || err?.code === 'section_conflict' || reason?.error === 'section_conflict') {

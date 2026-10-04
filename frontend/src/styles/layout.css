@@ -952,8 +952,38 @@ body {
 
 .er-history-more {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   padding-top: var(--space-2);
+}
+
+.er-history-more-error {
+  margin: var(--space-2) 0 0 0;
+  color: var(--wine);
+  font-size: var(--font-size-sm);
+  text-align: center;
+}
+
+.er-history-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-sm);
+  background-color: var(--amber-soft);
+}
+
+.er-history-confirm-text {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--font-size-sm);
+}
+
+.er-history-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
 }
 
 .er-history-preview {
@@ -975,6 +1005,12 @@ body {
 .er-history-preview-loading {
   color: var(--ink-dim);
   font-size: var(--font-size-sm);
+}
+
+.er-history-preview-error {
+  color: var(--wine);
+  font-size: var(--font-size-sm);
+  padding: var(--space-2);
 }
 
 .er-history-preview-text {

@@ -240,6 +240,8 @@
           :section="activeHistorySection"
           :current-rev="activeHistoryCurrentRev"
           :can-edit="canEdit"
+          :is-dirty="activeHistorySection ? isDirty(activeHistorySection) : false"
+          :is-saving="isSaving"
           @close="activeHistorySection = null"
           @restored="onHistoryRestored"
           @conflict="onHistoryConflict"
@@ -353,6 +355,7 @@ const compDemos = ref<DemoTake[]>([])
 const {
   revisions,
   conflicts,
+  isDirty,
   save: saveSections,
   resetBaselines,
   activeConflict,
@@ -389,15 +392,15 @@ const activeHistoryCurrentRev = computed(() => {
 function onHistoryRestored(payload: { section: VersionedSectionKey; rev: number; content: any }) {
   const { section, rev, content } = payload
   if (section === 'lyrics') {
-    const norm = normalizeLyrics(content.content !== undefined ? content.content : content)
+    const norm = normalizeLyrics(content)
     lyricsText.value = norm
     resetBaselines({ lyrics: norm, revs: { lyrics: rev } })
   } else if (section === 'chords') {
-    const norm = normalizeChords(content.content !== undefined ? content.content : content)
+    const norm = normalizeChords(content)
     compChords.value = norm
     resetBaselines({ chords: norm, revs: { chords: rev } })
   } else if (section === 'tablature') {
-    const norm = normalizeTablature(content.content !== undefined ? content.content : content)
+    const norm = normalizeTablature(content)
     compTabs.value = norm
     resetBaselines({ tabs: norm, revs: { tablature: rev } })
   }
