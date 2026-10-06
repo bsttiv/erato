@@ -35,12 +35,12 @@ const takes: DemoTake[] = [
 <template>
   <section class="er-slide" aria-label="Características: audio">
     <div class="er-wrap">
-      <div style="display: flex; flex-direction: column; gap: var(--space-6);">
+      <div class="er-slide-col">
         <div class="er-label">
           // características · audio
         </div>
         <h2 class="er-h2">
-          Cada toma, en su <em style="color: var(--amber); font-weight: 500;">lugar</em>.
+          Cada toma, en su <em class="er-highlight">lugar</em>.
         </h2>
         <ul class="er-feat">
           <li><b>01</b><span>Agrega audios de demos de tu composición</span></li>
@@ -53,7 +53,7 @@ const takes: DemoTake[] = [
         <ErDemoPlayer
           :takes="takes"
           author="Tú"
-          style="display: block;"
+          class="er-visual--escuchar"
         />
       </div>
     </div>

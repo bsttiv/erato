@@ -51,6 +51,38 @@ describe('Slides 1 to 4 (L2)', () => {
     wrapper.unmount()
   })
 
+  it('header has <nav aria-label="Secciones"> with 7 navlinks, active has aria-current="true", and clicking navigates', async () => {
+    const wrapper = mount(App, { attachTo: document.body })
+
+    const header = wrapper.find('header')
+    expect(header.exists()).toBe(true)
+
+    const nav = header.find('nav[aria-label="Secciones"]')
+    expect(nav.exists()).toBe(true)
+
+    const links = nav.findAll('button.er-navlink')
+    expect(links.length).toBe(7)
+
+    const expectedLabels = ['Inicio', 'Escribir', 'Leer', 'Escuchar', 'Colaborar', 'Cómo funciona', 'Precios']
+    expectedLabels.forEach((label, idx) => {
+      expect(links[idx].text()).toBe(label)
+    })
+
+    // At slide 0, link 0 has aria-current="true", others do not have the attribute
+    expect(links[0].attributes('aria-current')).toBe('true')
+    for (let i = 1; i < 7; i++) {
+      expect(links[i].attributes('aria-current')).toBeUndefined()
+    }
+
+    // Click link 2 (Leer)
+    await links[2].trigger('click')
+    expect(links[2].attributes('aria-current')).toBe('true')
+    expect(links[0].attributes('aria-current')).toBeUndefined()
+    expect(wrapper.find('section[aria-label="Características: lectura"]').exists()).toBe(true)
+
+    wrapper.unmount()
+  })
+
   it('each slide is a section with reference aria-label and exactly one heading (h1 in Inicio, h2 in others)', async () => {
     const wrapper = mount(App, { attachTo: document.body })
 

@@ -25,12 +25,12 @@ a [Am]borrar lo que no hemos [E7]cantado
 <template>
   <section class="er-slide" aria-label="Características: lectura">
     <div class="er-wrap">
-      <div style="display: flex; flex-direction: column; gap: var(--space-6);">
+      <div class="er-slide-col">
         <div class="er-label">
           // características · lectura
         </div>
         <h2 class="er-h2">
-          Toca con las dos <em style="color: var(--amber); font-weight: 500;">manos</em>.
+          Toca con las dos <em class="er-highlight">manos</em>.
         </h2>
         <ul class="er-feat">
           <li><b>01</b><span>Lee tus letras sin tocar la pantalla con desplazamiento continuo, a la velocidad que elijas</span></li>
@@ -40,18 +40,17 @@ a [Am]borrar lo que no hemos [E7]cantado
         </ul>
       </div>
       <div
-        class="er-visual"
+        class="er-visual er-visual--leer"
         data-scroll-exclusion
-        style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-4); align-items: start;"
       >
         <ErLyricsViewer
           title="Noche de otoño"
           :lyrics="lyrics"
           :height="440"
           :default-speed="30"
-          style="display: block; min-width: 0;"
+          class="er-lyrics-host"
         />
-        <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+        <div class="er-chord-preview-col">
           <div class="er-label">
             // siguiente acorde
           </div>
@@ -60,7 +59,7 @@ a [Am]borrar lo que no hemos [E7]cantado
             :default-base-fret="3"
             :editable="false"
             :hide-switch="true"
-            style="display: block;"
+            class="er-block"
           />
         </div>
       </div>

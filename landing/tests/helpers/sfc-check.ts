@@ -63,3 +63,37 @@ export function checkCopyViolations(sfcSource: string, filePath: string) {
 
   return violations
 }
+
+export function findStaticStyleAttributes(sfcSource: string, filePath: string): { file: string; style: string }[] {
+  const { descriptor } = parse(sfcSource)
+  if (!descriptor.template || !descriptor.template.ast) {
+    return []
+  }
+
+  const violations: { file: string; style: string }[] = []
+
+  function walk(node: any) {
+    if (!node) return
+
+    if (Array.isArray(node.props)) {
+      for (const prop of node.props) {
+        if (prop.type === 6 && prop.name === 'style') {
+          violations.push({
+            file: filePath,
+            style: prop.value ? prop.value.content : '',
+          })
+        }
+      }
+    }
+
+    if (Array.isArray(node.children)) {
+      for (const child of node.children) {
+        walk(child)
+      }
+    }
+  }
+
+  walk(descriptor.template.ast)
+  return violations
+}
+

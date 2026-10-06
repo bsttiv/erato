@@ -9,7 +9,7 @@ import SlideEscuchar from './slides/SlideEscuchar.vue'
 
 const { activeIndex, prefersReducedMotion, goTo } = useSlideNav()
 
-const dotLabels = [
+const sectionLabels = [
   'Inicio',
   'Escribir',
   'Leer',
@@ -46,6 +46,21 @@ const currentSlideComponent = computed(() => {
       >
         <ErBrand />
       </button>
+
+      <nav class="er-topnav" aria-label="Secciones">
+        <button
+          v-for="(label, i) in sectionLabels"
+          :key="i"
+          type="button"
+          class="er-navlink"
+          :aria-current="activeIndex === i ? 'true' : undefined"
+          @click="goTo(i)"
+        >
+          {{ label }}
+        </button>
+      </nav>
+
+      <div class="er-landing-header-actions" />
     </header>
 
     <main class="er-landing-main">
@@ -59,7 +74,7 @@ const currentSlideComponent = computed(() => {
 
       <div class="er-dots">
         <button
-          v-for="(label, i) in dotLabels"
+          v-for="(label, i) in sectionLabels"
           :key="i"
           type="button"
           class="er-dot"
