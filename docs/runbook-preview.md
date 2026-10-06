@@ -145,3 +145,30 @@ In the event of a critical failure or regression during preview testing:
      ```
 4. **Rollback Feature Flags**:
    - If `FREE_PRO_ENABLED` causes issues or was misconfigured, remove or set the variable to `false` in the Vercel dashboard and redeploy.
+
+---
+
+## 8. Landing Page Operations & Configuration
+
+### Running the Landing Locally
+To run and develop the standalone landing page locally:
+```bash
+cd landing
+npm install
+npm run dev
+```
+To execute the test suite and verify the build:
+```bash
+cd landing
+npm run test:unit
+npm run build
+```
+
+### Search Engine Protection (`noindex`)
+The landing Vite configuration (`landing/vite.config.ts`) includes a `transformIndexHtml` plugin (`noindexPlugin`) that controls robots indexing:
+```html
+<meta name="robots" content="noindex">
+```
+- **Preview & Local Environments**: When `process.env.VERCEL_ENV !== 'production'`, the plugin injects `<meta name="robots" content="noindex">` into `<head>`. This prevents preview deployments and local development artifacts from being indexed.
+- **Production Environment**: When `process.env.VERCEL_ENV === 'production'`, the meta tag is omitted so the marketing site can be indexed properly.
+- **Root Configuration Integrity**: This ensures preview indexing isolation entirely at build time in `landing/vite.config.ts` without altering the root `vercel.json` or affecting backend serverless routes.
