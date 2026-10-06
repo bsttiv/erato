@@ -2,8 +2,8 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
-import { parse } from '@vue/compiler-sfc'
 import { noindexPlugin } from '../vite.config'
+import { checkCopyViolations, findStaticStyleAttributes } from './helpers/sfc-check'
 
 const LANDING_ROOT = path.resolve(__dirname, '..')
 const SRC_DIR = path.resolve(LANDING_ROOT, 'src')
@@ -21,70 +21,6 @@ function getAllFiles(dir: string): string[] {
     }
   }
   return files
-}
-
-export function extractSfcTextsAndAttributes(sfcSource: string): string[] {
-  const { descriptor } = parse(sfcSource)
-  if (!descriptor.template || !descriptor.template.ast) {
-    return []
-  }
-
-  const items: string[] = []
-
-  function walk(node: any) {
-    if (!node) return
-
-    // NodeTypes.TEXT === 2
-    if (node.type === 2 && typeof node.content === 'string') {
-      const trimmed = node.content.trim()
-      if (trimmed.length > 0) {
-        items.push(trimmed)
-      }
-    }
-
-    // NodeTypes.ATTRIBUTE === 6 (static attributes, not directives or bindings)
-    if (Array.isArray(node.props)) {
-      for (const prop of node.props) {
-        if (prop.type === 6 && prop.value && typeof prop.value.content === 'string') {
-          items.push(prop.value.content)
-        }
-      }
-    }
-
-    if (Array.isArray(node.children)) {
-      for (const child of node.children) {
-        walk(child)
-      }
-    }
-  }
-
-  walk(descriptor.template.ast)
-  return items
-}
-
-export function checkCopyViolations(sfcSource: string, filePath: string) {
-  const emojiRegex = /\p{Extended_Pictographic}/u
-  const violations: { file: string; reason: string; line: string }[] = []
-  const texts = extractSfcTextsAndAttributes(sfcSource)
-
-  for (const text of texts) {
-    if (text.includes('!')) {
-      violations.push({
-        file: filePath,
-        reason: 'exclamation mark in copy',
-        line: text,
-      })
-    }
-    if (emojiRegex.test(text)) {
-      violations.push({
-        file: filePath,
-        reason: 'emoji in copy',
-        line: text,
-      })
-    }
-  }
-
-  return violations
 }
 
 describe('landing static checks', () => {
@@ -163,5 +99,117 @@ describe('landing static checks', () => {
     process.env.VERCEL_ENV = 'production'
     const prodHtml = transform(rawHtml)
     expect(prodHtml).not.toContain('<meta name="robots" content="noindex">')
+  })
+
+  it('contains no static style attributes in landing/src templates', () => {
+    const vueFiles = getAllFiles(SRC_DIR).filter((f) => f.endsWith('.vue'))
+    const violations: { file: string; style: string }[] = []
+
+    for (const file of vueFiles) {
+      const content = fs.readFileSync(file, 'utf-8')
+      violations.push(...findStaticStyleAttributes(content, path.relative(LANDING_ROOT, file)))
+    }
+
+    expect(violations).toEqual([])
+  })
+
+  it('uses var(--token) or neutral values for theme/font/radius properties in landing/src styles', () => {
+    const files = getAllFiles(SRC_DIR).filter((f) => f.endsWith('.css') || f.endsWith('.vue'))
+    const propertiesToCheck = [
+      'color',
+      'background',
+      'background-color',
+      'border-color',
+      'fill',
+      'stroke',
+      'border-radius',
+      'font-family',
+    ]
+
+    const neutralValues = new Set(['transparent', 'currentColor', 'inherit', 'none', '0', '50%'])
+    const violations: { file: string; prop: string; value: string }[] = []
+
+    for (const file of files) {
+      const content = fs.readFileSync(file, 'utf-8')
+      const cssChunks: string[] = []
+      if (file.endsWith('.css')) {
+        cssChunks.push(content)
+      } else {
+        const styleMatches = content.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)
+        for (const match of styleMatches) {
+          cssChunks.push(match[1])
+        }
+      }
+
+      for (const chunk of cssChunks) {
+        const cleanChunk = chunk.replace(/\/\*[\s\S]*?\*\//g, '')
+        const declRegex = /([a-z-]+)\s*:\s*([^;{}]+)/gi
+        let m: RegExpExecArray | null
+        while ((m = declRegex.exec(cleanChunk)) !== null) {
+          const prop = m[1].trim().toLowerCase()
+          const val = m[2].trim()
+
+          if (propertiesToCheck.includes(prop)) {
+            const hasVar = val.includes('var(--')
+            const isNeutral = neutralValues.has(val)
+            if (!hasVar && !isNeutral) {
+              violations.push({
+                file: path.relative(LANDING_ROOT, file),
+                prop,
+                value: val,
+              })
+            }
+          }
+        }
+      }
+    }
+
+    expect(violations).toEqual([])
+  })
+
+  it('ensures tokens on --bg-100 meet WCAG contrast >= 4.5 in both themes and landing.css sets slides background to var(--bg-100)', () => {
+    const tokensCss = fs.readFileSync(path.resolve(LANDING_ROOT, '../erato-design-system/tokens.css'), 'utf-8')
+    const landingCss = fs.readFileSync(path.resolve(SRC_DIR, 'styles/landing.css'), 'utf-8')
+
+    function parseThemeTokens(block: string) {
+      const map: Record<string, string> = {}
+      const regex = /--([a-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{6})/gi
+      let match
+      while ((match = regex.exec(block)) !== null) {
+        map[match[1]] = match[2]
+      }
+      return map
+    }
+
+    const nocheBlock = tokensCss.match(/\[data-theme="noche"\]\s*\{([^}]+)\}/i)?.[1] ||
+      tokensCss.match(/:root[^{]*\{([^}]+)\}/i)?.[1] || ''
+    const matineBlock = tokensCss.match(/\[data-theme="matine"\]\s*\{([^}]+)\}/i)?.[1] || ''
+
+    const nocheTokens = parseThemeTokens(nocheBlock)
+    const matineTokens = parseThemeTokens(matineBlock)
+
+    function luminance(hex: string) {
+      const rgb = hex.replace('#', '').match(/.{2}/g)!.map(x => parseInt(x, 16) / 255)
+      const a = rgb.map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4))
+      return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722
+    }
+    function contrastRatio(h1: string, h2: string) {
+      const l1 = luminance(h1), l2 = luminance(h2)
+      return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)
+    }
+
+    const checkColors = ['ink', 'ink-muted', 'ink-faint', 'amber', 'moss']
+
+    for (const color of checkColors) {
+      const nocheRatio = contrastRatio(nocheTokens[color], nocheTokens['bg-100'])
+      expect(nocheRatio).toBeGreaterThanOrEqual(4.5)
+
+      const matineRatio = contrastRatio(matineTokens[color], matineTokens['bg-100'])
+      expect(matineRatio).toBeGreaterThanOrEqual(4.5)
+    }
+
+    const setsBg100 = /\.er-landing-main\s*\{[^}]*background:\s*var\(--bg-100\)/.test(landingCss) ||
+      /\.er-slide\s*\{[^}]*background:\s*var\(--bg-100\)/.test(landingCss)
+    expect(setsBg100).toBe(true)
   })
 })

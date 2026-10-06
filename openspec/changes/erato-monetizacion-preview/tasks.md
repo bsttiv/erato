@@ -127,10 +127,10 @@ Depends on: none (can start in parallel with PV1).
 Specs: `landing-page: seven slides`, `support both themes and meet accessibility minimums`. Reference: `erato-design-system/erato-landing/index.html` (read-only).
 Depends on: L1.
 
-- [ ] L2.1 RED: `landing/tests/slides-1-4.spec.ts`: renders Inicio, Escribir, Leer, Escuchar slides in order with headings, one `<h2>` each, controls are real buttons/links, no `!`/emoji, Spanish tuteo copy. Run `cd landing && npm run test:unit` and observe failure.
-- [ ] L2.2 GREEN: create `landing/src/slides/SlideInicio.vue`, `SlideEscribir.vue`, `SlideLeer.vue`, `SlideEscuchar.vue` and register them in `landing/src/App.vue`; reuse `@ds-vue` components; CSS from tokens only.
-- [ ] L2.3 REFACTOR + `npm run test:unit && npm run build`; manual check in Noche and Matine themes (contrast 4.5:1 for text).
-- [ ] L2.4 Commit (Spanish), e.g. `feat(landing): agrega las diapositivas Inicio, Escribir, Leer y Escuchar`.
+- [x] L2.1 RED: `landing/tests/slides-1-4.spec.ts`: renders Inicio, Escribir, Leer, Escuchar slides in order with headings, one `<h2>` each, controls are real buttons/links, no `!`/emoji, Spanish tuteo copy. Run `cd landing && npm run test:unit` and observe failure.
+- [x] L2.2 GREEN: create `landing/src/slides/SlideInicio.vue`, `SlideEscribir.vue`, `SlideLeer.vue`, `SlideEscuchar.vue` and register them in `landing/src/App.vue`; reuse `@ds-vue` components; CSS from tokens only.
+- [x] L2.3 REFACTOR + `npm run test:unit && npm run build`; manual check in Noche and Matine themes (contrast 4.5:1 for text).
+- [x] L2.4 Commit (Spanish), e.g. `feat(landing): agrega las diapositivas Inicio, Escribir, Leer y Escuchar`.
 
 ### Unit L3 (repo: erato) - slides 5-7, footer, CTAs, responsive (~380 lines)
 Specs: `landing-page: Calls to action`, `Footer privacy and terms links MUST be placeholders`, `layout MUST collapse responsively at 980 px`, `Reduced motion`. P17, P18, P19.
