@@ -7,7 +7,6 @@ describe('useSlideNav', () => {
   beforeEach(() => {
     vi.useRealTimers()
     document.body.innerHTML = ''
-    // Default matchMedia mock (reduced motion false)
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
       matches: false,
       media: query,
@@ -37,7 +36,6 @@ describe('useSlideNav', () => {
     expect(nav.activeIndex.value).toBe(0)
     expect(nav.totalSlides).toBe(7)
     expect(nav.counter.value).toBe('1 de 7')
-    expect(nav.counterText.value).toBe('1 de 7')
 
     // Clamping lower bound
     nav.prev()
@@ -49,7 +47,6 @@ describe('useSlideNav', () => {
     }
     expect(nav.activeIndex.value).toBe(6)
     expect(nav.counter.value).toBe('7 de 7')
-    expect(nav.counterText.value).toBe('7 de 7')
 
     // Clamping upper bound
     nav.next()
@@ -73,7 +70,7 @@ describe('useSlideNav', () => {
     expect(nav.activeIndex.value).toBe(3)
 
     // After reaching >= 900 ms from the first event, wheel down advances again
-    vi.advanceTimersByTime(500) // Total 900 ms
+    vi.advanceTimersByTime(500)
     window.dispatchEvent(new WheelEvent('wheel', { deltaY: 120 }))
     expect(nav.activeIndex.value).toBe(4)
 
@@ -95,7 +92,6 @@ describe('useSlideNav', () => {
     exclusionContainer.appendChild(scrollChild)
     document.body.appendChild(exclusionContainer)
 
-    // Wheel event originating inside exclusion element
     const event = new WheelEvent('wheel', {
       deltaY: 120,
       bubbles: true,
@@ -136,6 +132,85 @@ describe('useSlideNav', () => {
 
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home' }))
     expect(nav.activeIndex.value).toBe(0)
+  })
+
+  it('does not change slide or call preventDefault on browser modifier shortcuts or defaultPrevented', () => {
+    const nav = useSlideNav({ initialIndex: 2 })
+    cleanupNav = nav.cleanup
+
+    // Alt+ArrowLeft (browser back)
+    const altEvent = new KeyboardEvent('keydown', {
+      key: 'ArrowLeft',
+      altKey: true,
+      cancelable: true,
+    })
+    const altSpy = vi.spyOn(altEvent, 'preventDefault')
+    window.dispatchEvent(altEvent)
+    expect(nav.activeIndex.value).toBe(2)
+    expect(altSpy).not.toHaveBeenCalled()
+
+    // Ctrl+End
+    const ctrlEvent = new KeyboardEvent('keydown', {
+      key: 'End',
+      ctrlKey: true,
+      cancelable: true,
+    })
+    const ctrlSpy = vi.spyOn(ctrlEvent, 'preventDefault')
+    window.dispatchEvent(ctrlEvent)
+    expect(nav.activeIndex.value).toBe(2)
+    expect(ctrlSpy).not.toHaveBeenCalled()
+
+    // MetaKey
+    const metaEvent = new KeyboardEvent('keydown', {
+      key: 'ArrowDown',
+      metaKey: true,
+      cancelable: true,
+    })
+    const metaSpy = vi.spyOn(metaEvent, 'preventDefault')
+    window.dispatchEvent(metaEvent)
+    expect(nav.activeIndex.value).toBe(2)
+    expect(metaSpy).not.toHaveBeenCalled()
+
+    // defaultPrevented
+    const preventedEvent = new KeyboardEvent('keydown', {
+      key: 'ArrowDown',
+      cancelable: true,
+    })
+    preventedEvent.preventDefault()
+    window.dispatchEvent(preventedEvent)
+    expect(nav.activeIndex.value).toBe(2)
+  })
+
+  it('ignores Space on interactive elements but allows ArrowDown on buttons', () => {
+    const nav = useSlideNav({ initialIndex: 1 })
+    cleanupNav = nav.cleanup
+
+    const button = document.createElement('button')
+    const link = document.createElement('a')
+    link.setAttribute('href', '#target')
+    document.body.append(button, link)
+
+    // Space on focused button does not change slide
+    button.focus()
+    const spaceBtnEvent = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })
+    const spaceBtnSpy = vi.spyOn(spaceBtnEvent, 'preventDefault')
+    button.dispatchEvent(spaceBtnEvent)
+    expect(nav.activeIndex.value).toBe(1)
+    expect(spaceBtnSpy).not.toHaveBeenCalled()
+
+    // Space on focused link does not change slide
+    link.focus()
+    const spaceLinkEvent = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true })
+    const spaceLinkSpy = vi.spyOn(spaceLinkEvent, 'preventDefault')
+    link.dispatchEvent(spaceLinkEvent)
+    expect(nav.activeIndex.value).toBe(1)
+    expect(spaceLinkSpy).not.toHaveBeenCalled()
+
+    // ArrowDown on focused button DOES advance slide
+    button.focus()
+    const arrowBtnEvent = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true })
+    button.dispatchEvent(arrowBtnEvent)
+    expect(nav.activeIndex.value).toBe(2)
   })
 
   it('does not change slide when focus is in an input, textarea, select or contenteditable', () => {

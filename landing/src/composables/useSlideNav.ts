@@ -10,9 +10,7 @@ export interface UseSlideNavReturn {
   activeIndex: Ref<number>
   totalSlides: number
   counter: Ref<string>
-  counterText: Ref<string>
   prefersReducedMotion: Ref<boolean>
-  reducedMotion: Ref<boolean>
   next: () => void
   prev: () => void
   goTo: (index: number) => void
@@ -53,6 +51,33 @@ function isEditableElement(element: unknown): boolean {
   return false
 }
 
+function isInteractiveElement(element: unknown): boolean {
+  if (typeof Element === 'undefined' || !(element instanceof Element)) {
+    return false
+  }
+
+  const tagName = element.tagName ? element.tagName.toLowerCase() : ''
+  if (tagName === 'button' || tagName === 'summary') {
+    return true
+  }
+  if (tagName === 'a' && element.hasAttribute('href')) {
+    return true
+  }
+  const role = element.getAttribute('role')
+  if (role === 'button' || role === 'link') {
+    return true
+  }
+
+  if (typeof element.closest === 'function') {
+    const ancestor = element.closest('button, a[href], summary, [role="button"], [role="link"]')
+    if (ancestor !== null) {
+      return true
+    }
+  }
+
+  return false
+}
+
 export function useSlideNav(options: UseSlideNavOptions = {}): UseSlideNavReturn {
   const totalSlides = options.totalSlides ?? DEFAULT_TOTAL_SLIDES
   const activeIndex = ref(options.initialIndex ?? 0)
@@ -82,7 +107,7 @@ export function useSlideNav(options: UseSlideNavOptions = {}): UseSlideNavReturn
   }
 
   const handleWheel = (event: WheelEvent) => {
-    const target = event.target as Element | null
+    const target = event.target instanceof Element ? event.target : null
     if (target !== null && typeof target.closest === 'function') {
       if (target.closest(scrollExclusionSelector) !== null) {
         return
@@ -107,7 +132,11 @@ export function useSlideNav(options: UseSlideNavOptions = {}): UseSlideNavReturn
   }
 
   const handleKeyDown = (event: KeyboardEvent) => {
-    const target = event.target as Element | null
+    if (event.altKey || event.ctrlKey || event.metaKey || event.defaultPrevented) {
+      return
+    }
+
+    const target = event.target instanceof Element ? event.target : null
     const activeDocElement = typeof document !== 'undefined' ? document.activeElement : null
 
     if (isEditableElement(target) || isEditableElement(activeDocElement)) {
@@ -115,6 +144,11 @@ export function useSlideNav(options: UseSlideNavOptions = {}): UseSlideNavReturn
     }
 
     const key = event.key
+
+    if (key === ' ' && (isInteractiveElement(target) || isInteractiveElement(activeDocElement))) {
+      return
+    }
+
     if (key === 'ArrowDown' || key === 'ArrowRight' || key === 'PageDown' || key === ' ') {
       event.preventDefault?.()
       next()
@@ -198,9 +232,7 @@ export function useSlideNav(options: UseSlideNavOptions = {}): UseSlideNavReturn
     activeIndex,
     totalSlides,
     counter,
-    counterText: counter,
     prefersReducedMotion,
-    reducedMotion: prefersReducedMotion,
     next,
     prev,
     goTo,

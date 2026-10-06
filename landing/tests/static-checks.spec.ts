@@ -2,6 +2,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
+import { parse } from '@vue/compiler-sfc'
 import { noindexPlugin } from '../vite.config'
 
 const LANDING_ROOT = path.resolve(__dirname, '..')
@@ -22,6 +23,70 @@ function getAllFiles(dir: string): string[] {
   return files
 }
 
+export function extractSfcTextsAndAttributes(sfcSource: string): string[] {
+  const { descriptor } = parse(sfcSource)
+  if (!descriptor.template || !descriptor.template.ast) {
+    return []
+  }
+
+  const items: string[] = []
+
+  function walk(node: any) {
+    if (!node) return
+
+    // NodeTypes.TEXT === 2
+    if (node.type === 2 && typeof node.content === 'string') {
+      const trimmed = node.content.trim()
+      if (trimmed.length > 0) {
+        items.push(trimmed)
+      }
+    }
+
+    // NodeTypes.ATTRIBUTE === 6 (static attributes, not directives or bindings)
+    if (Array.isArray(node.props)) {
+      for (const prop of node.props) {
+        if (prop.type === 6 && prop.value && typeof prop.value.content === 'string') {
+          items.push(prop.value.content)
+        }
+      }
+    }
+
+    if (Array.isArray(node.children)) {
+      for (const child of node.children) {
+        walk(child)
+      }
+    }
+  }
+
+  walk(descriptor.template.ast)
+  return items
+}
+
+export function checkCopyViolations(sfcSource: string, filePath: string) {
+  const emojiRegex = /\p{Extended_Pictographic}/u
+  const violations: { file: string; reason: string; line: string }[] = []
+  const texts = extractSfcTextsAndAttributes(sfcSource)
+
+  for (const text of texts) {
+    if (text.includes('!')) {
+      violations.push({
+        file: filePath,
+        reason: 'exclamation mark in copy',
+        line: text,
+      })
+    }
+    if (emojiRegex.test(text)) {
+      violations.push({
+        file: filePath,
+        reason: 'emoji in copy',
+        line: text,
+      })
+    }
+  }
+
+  return violations
+}
+
 describe('landing static checks', () => {
   const originalVercelEnv = process.env.VERCEL_ENV
 
@@ -31,6 +96,19 @@ describe('landing static checks', () => {
     } else {
       process.env.VERCEL_ENV = originalVercelEnv
     }
+  })
+
+  it('extractor unit test: reports only "Ojo!" from AST and ignores directive expressions like v-if="!abierto"', () => {
+    const sampleSfc = `<template><div v-if="!abierto"><template #a><p>Hola</p></template><span>Ojo!</span></div></template>`
+    const violations = checkCopyViolations(sampleSfc, 'sample.vue')
+
+    expect(violations).toEqual([
+      {
+        file: 'sample.vue',
+        reason: 'exclamation mark in copy',
+        line: 'Ojo!',
+      },
+    ])
   })
 
   it('contains no hex colors in landing/src (design system tokens only)', () => {
@@ -54,35 +132,11 @@ describe('landing static checks', () => {
 
   it('contains no exclamation marks or emoji in copy/templates', () => {
     const files = getAllFiles(SRC_DIR).filter((f) => f.endsWith('.vue'))
-    const emojiRegex = /\p{Extended_Pictographic}/u
-
     const violations: { file: string; reason: string; line: string }[] = []
 
     for (const file of files) {
       const content = fs.readFileSync(file, 'utf-8')
-      // Extract template section
-      const templateMatch = content.match(/<template>([\s\S]*?)<\/template>/)
-      if (templateMatch) {
-        const templateContent = templateMatch[1].replace(/<!--[\s\S]*?-->/g, '')
-        const lines = templateContent.split('\n')
-        for (const line of lines) {
-          // Check for exclamation marks in text
-          if (line.includes('!')) {
-            violations.push({
-              file: path.relative(LANDING_ROOT, file),
-              reason: 'exclamation mark in copy',
-              line: line.trim(),
-            })
-          }
-          if (emojiRegex.test(line)) {
-            violations.push({
-              file: path.relative(LANDING_ROOT, file),
-              reason: 'emoji in copy',
-              line: line.trim(),
-            })
-          }
-        }
-      }
+      violations.push(...checkCopyViolations(content, path.relative(LANDING_ROOT, file)))
     }
 
     expect(violations).toEqual([])
