@@ -4,6 +4,7 @@ import { computed } from 'vue'
 const props = defineProps<{
   activeIndex: number
   totalSlides: number
+  counter: string
 }>()
 
 const emit = defineEmits<{
@@ -11,19 +12,13 @@ const emit = defineEmits<{
   (e: 'next'): void
 }>()
 
-const counter = computed(() => {
-  const current = String(props.activeIndex + 1).padStart(2, '0')
-  const total = String(props.totalSlides).padStart(2, '0')
-  return `${current} / ${total}`
-})
-
 const isFirst = computed(() => props.activeIndex <= 0)
 const isLast = computed(() => props.activeIndex >= props.totalSlides - 1)
 </script>
 
 <template>
   <footer class="er-foot">
-    <span>(c) 2026 Bastián Valencia</span>
+    <span>© 2026 Bastián Valencia</span>
     <a
       href="https://github.com/bsttiv/erato"
       target="_blank"

@@ -12,7 +12,7 @@ import SlideColaborar from './slides/SlideColaborar.vue'
 import SlideComoFunciona from './slides/SlideComoFunciona.vue'
 import SlidePrecios from './slides/SlidePrecios.vue'
 
-const { activeIndex, prefersReducedMotion, goTo, next, prev } = useSlideNav()
+const { activeIndex, prefersReducedMotion, goTo, next, prev, counter } = useSlideNav()
 
 const loginUrl = getLoginUrl()
 const registerUrl = getRegisterUrl()
@@ -26,6 +26,8 @@ const sectionLabels = [
   'Cómo funciona',
   'Precios',
 ]
+
+const headerNavLabels = sectionLabels.slice(1)
 
 const currentSlideComponent = computed(() => {
   switch (activeIndex.value) {
@@ -63,12 +65,12 @@ const currentSlideComponent = computed(() => {
 
       <nav class="er-topnav" aria-label="Secciones">
         <button
-          v-for="(label, i) in sectionLabels"
+          v-for="(label, i) in headerNavLabels"
           :key="i"
           type="button"
           class="er-navlink"
-          :aria-current="activeIndex === i ? 'true' : undefined"
-          @click="goTo(i)"
+          :aria-current="activeIndex === i + 1 ? 'true' : undefined"
+          @click="goTo(i + 1)"
         >
           {{ label }}
         </button>
@@ -119,6 +121,7 @@ const currentSlideComponent = computed(() => {
     <LandingFooter
       :active-index="activeIndex"
       :total-slides="sectionLabels.length"
+      :counter="counter"
       @prev="prev"
       @next="next"
     />

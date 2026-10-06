@@ -2,7 +2,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import fs from 'node:fs'
 import path from 'node:path'
-import { noindexPlugin } from '../vite.config'
+import { noindexPlugin, resolveAppUrl } from '../vite.config'
 import { checkCopyViolations, findStaticStyleAttributes } from './helpers/sfc-check'
 
 const LANDING_ROOT = path.resolve(__dirname, '..')
@@ -34,6 +34,25 @@ describe('landing static checks', () => {
     }
   })
 
+  describe('resolveAppUrl fail-closed resolution', () => {
+    it('throws in production when VITE_APP_URL is missing or empty', () => {
+      expect(() => resolveAppUrl('production', undefined)).toThrow(/VITE_APP_URL/)
+      expect(() => resolveAppUrl('production', '')).toThrow(/VITE_APP_URL/)
+      expect(() => resolveAppUrl('production', '   ')).toThrow(/VITE_APP_URL/)
+    })
+
+    it('returns the trimmed URL without trailing slashes in production when provided', () => {
+      expect(resolveAppUrl('production', 'https://app.erato.com/')).toBe('https://app.erato.com')
+      expect(resolveAppUrl('production', 'https://app.erato.com///')).toBe('https://app.erato.com')
+    })
+
+    it('falls back to http://localhost:5173 outside production when unset', () => {
+      expect(resolveAppUrl('development', undefined)).toBe('http://localhost:5173')
+      expect(resolveAppUrl('preview', '')).toBe('http://localhost:5173')
+      expect(resolveAppUrl(undefined, undefined)).toBe('http://localhost:5173')
+    })
+  })
+
   it('extractor unit test: reports only "Ojo!" from AST and ignores directive expressions like v-if="!abierto"', () => {
     const sampleSfc = `<template><div v-if="!abierto"><template #a><p>Hola</p></template><span>Ojo!</span></div></template>`
     const violations = checkCopyViolations(sampleSfc, 'sample.vue')
@@ -45,6 +64,42 @@ describe('landing static checks', () => {
         line: 'Ojo!',
       },
     ])
+  })
+
+  it('extractor emoji check: permits copyright/trademark symbols (©, ®, ™) and flags real emojis like 🎸', () => {
+    const validSfc = `<template><p>© 2026 Erato ® ™</p></template>`
+    expect(checkCopyViolations(validSfc, 'valid.vue')).toEqual([])
+
+    const emojiSfc = `<template><p>Música 🎸</p></template>`
+    expect(checkCopyViolations(emojiSfc, 'emoji.vue')).toEqual([
+      {
+        file: 'emoji.vue',
+        reason: 'emoji in copy',
+        line: 'Música 🎸',
+      },
+    ])
+  })
+
+  it('landing.css includes prefers-reduced-motion media query and 980px collapse rules', () => {
+    const landingCss = fs.readFileSync(path.resolve(SRC_DIR, 'styles/landing.css'), 'utf-8')
+
+    // @media (prefers-reduced-motion: reduce)
+    expect(landingCss).toMatch(/@media\s*\(\s*prefers-reduced-motion:\s*reduce\s*\)/)
+    const reducedMotionIdx = landingCss.indexOf('@media (prefers-reduced-motion: reduce)')
+    const reducedMotionBlock = reducedMotionIdx !== -1 ? landingCss.slice(reducedMotionIdx, reducedMotionIdx + 400) : ''
+    expect(reducedMotionBlock).toContain('.er-slide')
+    expect(reducedMotionBlock).toContain('.er-dot')
+    expect(reducedMotionBlock).toContain('.er-arrow')
+
+    // @media (max-width: 980px)
+    expect(landingCss).toMatch(/@media\s*\(\s*max-width:\s*980px\s*\)/)
+    const collapseBlock = landingCss.match(/@media\s*\(\s*max-width:\s*980px\s*\)\s*\{([\s\S]*?)\n\}/)?.[0] || ''
+    expect(collapseBlock).toMatch(/\.er-wrap[^}]*grid-template-columns:\s*1fr/)
+    expect(collapseBlock).toMatch(/\.er-steps-grid[^}]*grid-template-columns:\s*1fr/)
+    expect(collapseBlock).toMatch(/\.er-plans-grid[^}]*grid-template-columns:\s*1fr/)
+    expect(collapseBlock).toMatch(/\.er-visual[^}]*display:\s*none/)
+    expect(collapseBlock).toMatch(/\.er-topnav[^}]*display:\s*none/)
+    expect(collapseBlock).toMatch(/\.er-dots[^}]*display:\s*none/)
   })
 
   it('contains no hex colors in landing/src (design system tokens only)', () => {

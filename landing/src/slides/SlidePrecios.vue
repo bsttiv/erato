@@ -120,8 +120,12 @@ const plans = [
                   'er-plan-mark--off': r.ok === false,
                   'er-plan-mark--soon': r.soon,
                 }"
+                aria-hidden="true"
               >
                 {{ r.ok ? '✓' : r.soon ? '…' : '×' }}
+              </span>
+              <span class="er-sr-only">
+                {{ r.ok ? 'Incluido' : r.soon ? 'Próximamente' : 'No incluido' }}
               </span>
               <span
                 class="er-plan-row-text"

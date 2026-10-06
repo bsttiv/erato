@@ -151,18 +151,27 @@ In the event of a critical failure or regression during preview testing:
 ## 8. Landing Page Operations & Configuration
 
 ### Running the Landing Locally
-To run and develop the standalone landing page locally:
+To run and develop the standalone landing page locally on port `5174`:
 ```bash
 cd landing
 npm install
 npm run dev
 ```
+The landing dev server runs on `http://localhost:5174` (configured via `server.port = 5174` in `landing/vite.config.ts`) avoiding port collisions with the main app (`http://localhost:5173`).
+
 To execute the test suite and verify the build:
 ```bash
 cd landing
 npm run test:unit
 npm run build
 ```
+
+### Application URL Resolution (`VITE_APP_URL`) & Fail-Closed Behavior
+The landing page points all registration and login CTAs to the main web app:
+- **Production (`VERCEL_ENV === 'production'`)**: `VITE_APP_URL` is **mandatory** and fail-closed. If `VITE_APP_URL` is unset or empty during a production build, Vite aborts immediately with an explicit error:
+  `VITE_APP_URL is required in production (VERCEL_ENV === "production") and must not be empty.`
+- **Development & Preview**: When `VITE_APP_URL` is omitted, `resolveAppUrl` automatically defaults to the local development app `http://localhost:5173`.
+- **Sanitization**: Any trailing slashes (`/`) are stripped to prevent double-slash artifacts in CTA links (`/login`, `/register`).
 
 ### Search Engine Protection (`noindex`)
 The landing Vite configuration (`landing/vite.config.ts`) includes a `transformIndexHtml` plugin (`noindexPlugin`) that controls robots indexing:
@@ -172,3 +181,4 @@ The landing Vite configuration (`landing/vite.config.ts`) includes a `transformI
 - **Preview & Local Environments**: When `process.env.VERCEL_ENV !== 'production'`, the plugin injects `<meta name="robots" content="noindex">` into `<head>`. This prevents preview deployments and local development artifacts from being indexed.
 - **Production Environment**: When `process.env.VERCEL_ENV === 'production'`, the meta tag is omitted so the marketing site can be indexed properly.
 - **Root Configuration Integrity**: This ensures preview indexing isolation entirely at build time in `landing/vite.config.ts` without altering the root `vercel.json` or affecting backend serverless routes.
+

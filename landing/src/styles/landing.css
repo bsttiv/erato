@@ -874,6 +874,34 @@
   outline-offset: 2px;
 }
 
+/* Screen reader only utility */
+.er-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .er-slide {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .er-dot,
+  .er-dot span,
+  .er-dot i,
+  .er-arrow {
+    transition: none !important;
+  }
+}
+
 /* Responsive 980px collapse */
 @media (max-width: 980px) {
   .er-landing-root {
@@ -928,9 +956,8 @@
     display: none;
   }
 
-  .er-visual--escribir,
-  .er-visual--leer {
-    grid-template-columns: 1fr;
+  .er-visual {
+    display: none !important;
   }
 
   .er-panel-lyrics {

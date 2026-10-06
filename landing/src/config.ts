@@ -1,14 +1,13 @@
 export function getAppUrl(): string {
-  const envUrl = import.meta.env?.VITE_APP_URL || (typeof process !== 'undefined' ? process.env?.VITE_APP_URL : '') || ''
-  return envUrl.replace(/\/+$/, '')
+  const envUrl = (import.meta.env?.VITE_APP_URL as string | undefined) ?? ''
+  const trimmed = envUrl.trim().replace(/\/+$/, '')
+  return trimmed || 'http://localhost:5173'
 }
 
 export function getLoginUrl(): string {
-  const base = getAppUrl()
-  return base ? `${base}/login` : '/login'
+  return `${getAppUrl()}/login`
 }
 
 export function getRegisterUrl(): string {
-  const base = getAppUrl()
-  return base ? `${base}/register` : '/register'
+  return `${getAppUrl()}/register`
 }

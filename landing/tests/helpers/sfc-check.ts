@@ -52,7 +52,9 @@ export function checkCopyViolations(sfcSource: string, filePath: string) {
         line: text,
       })
     }
-    if (emojiRegex.test(text)) {
+    // Exclude legal / typographic symbols ©, ®, ™ before testing for emojis
+    const strippedText = text.replace(/[©®™]/g, '')
+    if (emojiRegex.test(strippedText)) {
       violations.push({
         file: filePath,
         reason: 'emoji in copy',
