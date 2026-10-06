@@ -470,3 +470,480 @@
 .er-visual--escuchar {
   display: block;
 }
+
+/* Unit L3: SlideColaborar, SlideComoFunciona, SlidePrecios, Footer, and responsive */
+
+.er-wrap-full {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 3.5rem 6rem 2.5rem 4rem;
+  min-height: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-8);
+}
+
+/* Colaborar (Slide 4) */
+.er-collab-visual {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.er-collab-band-panel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 1.25rem 1.5rem;
+}
+
+.er-collab-band-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex-grow: 1;
+}
+
+.er-collab-band-name {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 1.75rem;
+  line-height: 2rem;
+}
+
+.er-collab-band-count {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.er-collab-avatars {
+  display: flex;
+}
+
+.er-collab-avatar {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--bg-200);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  margin-left: -0.625rem;
+}
+
+.er-collab-avatars .er-collab-avatar:first-child {
+  margin-left: 0;
+}
+
+.er-collab-avatar--wine {
+  background: var(--wine-soft);
+  color: var(--wine);
+}
+
+.er-collab-avatar--amber {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.er-collab-avatar--ember {
+  background: var(--ember-soft);
+  color: var(--ember);
+}
+
+.er-collab-avatar--moss {
+  background: var(--moss-soft);
+  color: var(--moss);
+}
+
+.er-collab-history-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 1.25rem 1.5rem;
+}
+
+.er-collab-history-label {
+  margin-bottom: 0.5rem;
+}
+
+.er-collab-history-row {
+  display: grid;
+  grid-template-columns: 0.75rem 1fr auto;
+  gap: 0.875rem;
+  align-items: center;
+  padding: 0.625rem 0;
+  border-top: 1px solid var(--line);
+}
+
+.er-collab-dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+}
+
+.er-collab-dot--amber { background: var(--amber); }
+.er-collab-dot--ember { background: var(--ember); }
+.er-collab-dot--wine { background: var(--wine); }
+.er-collab-dot--moss { background: var(--moss); }
+
+.er-collab-history-text {
+  font-size: 0.9375rem;
+}
+
+.er-collab-history-author {
+  font-weight: 600;
+}
+
+.er-collab-history-action {
+  color: var(--ink-muted);
+  margin-left: 0.25rem;
+}
+
+.er-collab-history-when {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+
+.er-collab-share-panel {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+}
+
+.er-collab-share-url {
+  flex-grow: 1;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+}
+
+.er-collab-share-note {
+  font-size: 0.8125rem;
+  color: var(--ink-faint);
+}
+
+/* Cómo funciona (Slide 5) */
+.er-steps-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 47.5rem;
+}
+
+.er-steps-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.er-step-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 16.25rem;
+  padding: 1.5rem;
+}
+
+.er-step-num {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 4.5rem;
+  line-height: 0.9;
+  color: var(--amber);
+}
+
+.er-step-spacer {
+  flex-grow: 1;
+}
+
+.er-step-title {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 2rem;
+  font-weight: 500;
+}
+
+.er-step-desc {
+  font-size: 0.9375rem;
+  line-height: 1.5rem;
+  color: var(--ink-muted);
+}
+
+.er-steps-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+/* Precios (Slide 6) */
+.er-plans-wrap {
+  padding: 2.5rem 6rem 2rem 4rem;
+  gap: 2rem;
+}
+
+.er-plans-header {
+  display: flex;
+  align-items: flex-end;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.er-plans-h2 {
+  font-size: 3.5rem;
+}
+
+.er-plans-subtitle {
+  margin: 0;
+  max-width: 22.5rem;
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+  color: var(--ink-muted);
+}
+
+.er-plans-gh-link {
+  color: var(--ink-muted);
+  text-decoration: underline;
+}
+
+.er-plans-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+.er-plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: 1.75rem;
+  border-radius: var(--radius-lg);
+  box-sizing: border-box;
+}
+
+.er-plan-card--featured {
+  border-color: var(--amber);
+  box-shadow: var(--shadow-glow);
+}
+
+.er-plan-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.er-plan-name {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  line-height: 2rem;
+  font-weight: 500;
+}
+
+.er-plan-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.er-plan-price {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  line-height: 1;
+  font-weight: 500;
+}
+
+.er-plan-period {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.er-plan-blurb {
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+  color: var(--ink-muted);
+  min-height: 2.75rem;
+}
+
+.er-plan-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  flex-grow: 1;
+}
+
+.er-plan-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  font-size: 0.875rem;
+  line-height: 1.375rem;
+}
+
+.er-plan-mark {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.er-plan-mark--ok { color: var(--moss); }
+.er-plan-mark--off { color: var(--ink-faint); }
+.er-plan-mark--soon { color: var(--amber); }
+
+.er-plan-row-text--faint { color: var(--ink-faint); }
+.er-plan-row-text--muted { color: var(--ink-muted); }
+
+.er-plan-btn {
+  text-decoration: none;
+  justify-content: center;
+}
+
+/* Footer */
+.er-foot {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.75rem 3rem;
+  border-top: 1px solid var(--line);
+  background: var(--bg-000);
+  font-size: 0.8125rem;
+  color: var(--ink-faint);
+  position: relative;
+  z-index: 3;
+}
+
+.er-foot-link {
+  color: var(--ink-muted);
+  text-decoration: none;
+}
+
+.er-foot-link:hover {
+  color: var(--ink);
+}
+
+.er-foot-spacer {
+  flex-grow: 1;
+}
+
+.er-foot-counter {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.er-arrow {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  cursor: pointer;
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.er-arrow:hover:not(:disabled) {
+  background: var(--bg-200);
+  border-color: var(--line-strong);
+}
+
+.er-arrow--disabled,
+.er-arrow:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.er-foot-link:focus-visible,
+.er-arrow:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Responsive 980px collapse */
+@media (max-width: 980px) {
+  .er-landing-root {
+    height: auto;
+    min-height: 100vh;
+    overflow-y: auto;
+  }
+
+  .er-landing-main {
+    min-height: auto;
+  }
+
+  .er-slide {
+    position: relative;
+    inset: auto;
+    overflow-y: visible;
+  }
+
+  .er-wrap,
+  .er-wrap--hero {
+    grid-template-columns: 1fr;
+    padding: 2rem 1.5rem;
+  }
+
+  .er-wrap-full,
+  .er-plans-wrap {
+    padding: 2rem 1.5rem;
+  }
+
+  .er-steps-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .er-plans-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .er-h1 {
+    font-size: 3.5rem;
+  }
+
+  .er-h2,
+  .er-plans-h2 {
+    font-size: 2.5rem;
+  }
+
+  .er-topnav {
+    display: none;
+  }
+
+  .er-dots {
+    display: none;
+  }
+
+  .er-visual--escribir,
+  .er-visual--leer {
+    grid-template-columns: 1fr;
+  }
+
+  .er-panel-lyrics {
+    grid-column: 1 / 2;
+  }
+
+  .er-landing-header {
+    padding: 1rem 1.5rem;
+  }
+
+  .er-foot {
+    flex-wrap: wrap;
+    padding: 1rem 1.5rem;
+  }
+}
+

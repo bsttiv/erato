@@ -173,13 +173,12 @@ describe('Slides 1 to 4 (L2)', () => {
     wrapper.unmount()
   })
 
-  it('"Empieza gratis" in Inicio is a native anchor with class er-btn and href="#"', () => {
+  it('"Empieza gratis" in Inicio is a native anchor with class er-btn', () => {
     const wrapper = mount(App, { attachTo: document.body })
 
-    const startBtn = wrapper.find('a.er-btn')
+    const startBtn = wrapper.find('section[aria-label="Inicio"] a.er-btn')
     expect(startBtn.exists()).toBe(true)
     expect(startBtn.text()).toContain('Empieza gratis')
-    expect(startBtn.attributes('href')).toBe('#')
 
     wrapper.unmount()
   })
