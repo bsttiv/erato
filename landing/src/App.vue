@@ -2,12 +2,20 @@
 import { computed } from 'vue'
 import { ErBrand } from '@ds-vue'
 import { useSlideNav } from './composables/useSlideNav'
+import { getLoginUrl, getRegisterUrl } from './config'
+import LandingFooter from './components/LandingFooter.vue'
 import SlideInicio from './slides/SlideInicio.vue'
 import SlideEscribir from './slides/SlideEscribir.vue'
 import SlideLeer from './slides/SlideLeer.vue'
 import SlideEscuchar from './slides/SlideEscuchar.vue'
+import SlideColaborar from './slides/SlideColaborar.vue'
+import SlideComoFunciona from './slides/SlideComoFunciona.vue'
+import SlidePrecios from './slides/SlidePrecios.vue'
 
-const { activeIndex, prefersReducedMotion, goTo } = useSlideNav()
+const { activeIndex, prefersReducedMotion, goTo, next, prev, counter } = useSlideNav()
+
+const loginUrl = getLoginUrl()
+const registerUrl = getRegisterUrl()
 
 const sectionLabels = [
   'Inicio',
@@ -19,6 +27,8 @@ const sectionLabels = [
   'Precios',
 ]
 
+const headerNavLabels = sectionLabels.slice(1)
+
 const currentSlideComponent = computed(() => {
   switch (activeIndex.value) {
     case 0:
@@ -29,6 +39,12 @@ const currentSlideComponent = computed(() => {
       return SlideLeer
     case 3:
       return SlideEscuchar
+    case 4:
+      return SlideColaborar
+    case 5:
+      return SlideComoFunciona
+    case 6:
+      return SlidePrecios
     default:
       return null
   }
@@ -49,18 +65,31 @@ const currentSlideComponent = computed(() => {
 
       <nav class="er-topnav" aria-label="Secciones">
         <button
-          v-for="(label, i) in sectionLabels"
+          v-for="(label, i) in headerNavLabels"
           :key="i"
           type="button"
           class="er-navlink"
-          :aria-current="activeIndex === i ? 'true' : undefined"
-          @click="goTo(i)"
+          :aria-current="activeIndex === i + 1 ? 'true' : undefined"
+          @click="goTo(i + 1)"
         >
           {{ label }}
         </button>
       </nav>
 
-      <div class="er-landing-header-actions" />
+      <div class="er-landing-header-actions">
+        <a
+          :href="loginUrl"
+          class="er-btn er-btn--ghost er-btn--sm"
+        >
+          Iniciar sesión
+        </a>
+        <a
+          :href="registerUrl"
+          class="er-btn er-btn--primary er-btn--sm"
+        >
+          Empieza gratis
+        </a>
+      </div>
     </header>
 
     <main class="er-landing-main">
@@ -70,6 +99,7 @@ const currentSlideComponent = computed(() => {
         :key="activeIndex"
         :class="{ 'er-slide--reduced-motion': prefersReducedMotion }"
         @go-features="goTo(1)"
+        @go-pricing="goTo(6)"
       />
 
       <div class="er-dots">
@@ -87,5 +117,13 @@ const currentSlideComponent = computed(() => {
         </button>
       </div>
     </main>
+
+    <LandingFooter
+      :active-index="activeIndex"
+      :total-slides="sectionLabels.length"
+      :counter="counter"
+      @prev="prev"
+      @next="next"
+    />
   </div>
 </template>

@@ -136,10 +136,10 @@ Depends on: L1.
 Specs: `landing-page: Calls to action`, `Footer privacy and terms links MUST be placeholders`, `layout MUST collapse responsively at 980 px`, `Reduced motion`. P17, P18, P19.
 Depends on: L2.
 
-- [ ] L3.1 RED: `landing/tests/ctas-footer.spec.ts`: "Iniciar sesion" href = `${VITE_APP_URL}/login`; "Empieza gratis" and every plan CTA = `${VITE_APP_URL}/register`; CTAs are native `<a class="er-btn">`; footer links `#privacidad` and `#terminos` exist and no legal text is present; focus ring present; slides 5-7 render. Run and observe failure.
-- [ ] L3.2 GREEN: create `landing/src/slides/SlidePrecios.vue` (plans), `SlideBandas.vue`, `SlideCierre.vue` (names to follow the reference landing sections), footer component `landing/src/components/LandingFooter.vue`, `landing/src/config.ts` reading `VITE_APP_URL`; 980 px responsive collapse in styles; reduced-motion CSS.
-- [ ] L3.3 REFACTOR + `cd landing && npm run test:unit && npm run build`; document `VITE_APP_URL` in `.env.example`.
-- [ ] L3.4 Commit (Spanish), e.g. `feat(landing): completa diapositivas, CTAs al registro y pie con enlaces provisionales`.
+- [x] L3.1 RED: `landing/tests/ctas-footer.spec.ts`: "Iniciar sesion" href = `${VITE_APP_URL}/login`; "Empieza gratis" and every plan CTA = `${VITE_APP_URL}/register`; CTAs are native `<a class="er-btn">`; footer links `#privacidad` and `#terminos` exist and no legal text is present; focus ring present; slides 5-7 render. Run and observe failure.
+- [x] L3.2 GREEN: create `landing/src/slides/SlidePrecios.vue` (plans), `SlideBandas.vue`, `SlideCierre.vue` (names to follow the reference landing sections), footer component `landing/src/components/LandingFooter.vue`, `landing/src/config.ts` reading `VITE_APP_URL`; 980 px responsive collapse in styles; reduced-motion CSS.
+- [x] L3.3 REFACTOR + `cd landing && npm run test:unit && npm run build`; document `VITE_APP_URL` in `.env.example`.
+- [x] L3.4 Commit (Spanish), e.g. `feat(landing): completa diapositivas, CTAs al registro y pie con enlaces provisionales`.
 
 ### Unit G1 (repo: erato) - "Guardado en Erato" footer (~120 lines)
 Specs: `sharing-and-visibility: Anonymous viewers of a public composition MUST see the "Guardado en Erato" footer`.

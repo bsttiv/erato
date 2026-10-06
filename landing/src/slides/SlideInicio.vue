@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ErTag } from '@ds-vue'
+import { getRegisterUrl } from '../config'
+
+const registerUrl = getRegisterUrl()
 
 defineEmits<{
   (e: 'go-features'): void
@@ -26,7 +29,7 @@ defineEmits<{
         </p>
         <div class="er-hero-ctas">
           <a
-            href="#"
+            :href="registerUrl"
             class="er-btn er-btn--primary er-btn-hero-primary"
           >
             Empieza gratis
