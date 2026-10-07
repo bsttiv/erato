@@ -1,6 +1,13 @@
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, Optional, Union
 from bson import ObjectId
+
+
+@dataclass(frozen=True)
+class BandContext:
+    band_id: str
+    is_member: bool
 
 
 class Role(str, Enum):
@@ -39,15 +46,9 @@ def can(role: Optional[Role], action: Action) -> bool:
 def resolve_role(
     user_id: Optional[Union[str, ObjectId]],
     access_record: Dict[str, Any],
+    band: Optional[BandContext] = None,
 ) -> Optional[Role]:
-    """Resolve the effective role of a caller on a composition access record.
-    
-    Roles:
-    - owner: caller matches composition owner_id
-    - editor: caller is in composition members with role 'editor' (or 'owner')
-    - viewer: caller is anonymous or authenticated non-member, ONLY when visibility == 'public'
-    - None: caller is not invited/owner on a private composition
-    """
+    """Resolve owner, eligible composition role, band role, then public visibility."""
     uid_str = str(user_id) if user_id is not None else None
 
     # 1. Owner check
@@ -56,7 +57,8 @@ def resolve_role(
         return Role.OWNER
 
     # 2. Member check (e.g. editor)
-    if uid_str is not None:
+    is_band_member = band is not None and band.is_member and uid_str is not None
+    if uid_str is not None and (not access_record.get("band_id") or is_band_member):
         for member in access_record.get("members", []):
             if str(member.get("user_id")) == uid_str:
                 role_val = member.get("role")
@@ -67,9 +69,13 @@ def resolve_role(
                 if role_val == "viewer":
                     return Role.VIEWER
 
-    # 3. Public visibility check -> viewer
+    # 3. Band membership grants the default role.
+    if access_record.get("band_id") and is_band_member:
+        return Role.EDITOR if access_record.get("band_editable", False) else Role.VIEWER
+
+    # 4. Public visibility check -> viewer
     if access_record.get("visibility") == "public":
         return Role.VIEWER
 
-    # 4. Otherwise private and not a member -> no access
+    # 5. Otherwise private and not a member -> no access
     return None

@@ -129,6 +129,9 @@ class RedeemInviteRequest(BaseModel):
 
 # Response Schemas
 class CompositionResponse(BaseModel):
+    band_id: Optional[str] = None
+    band_editable: bool = False
+    band_active: Optional[bool] = None
     id: str
     owner_id: str
     title: str
@@ -154,6 +157,8 @@ class CompositionResponse(BaseModel):
 
 
 class CompositionListItem(BaseModel):
+    band_id: Optional[str] = None
+    via_band: bool = False
     id: str
     owner_id: str
     title: str

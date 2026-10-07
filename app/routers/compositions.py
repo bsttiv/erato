@@ -1,8 +1,9 @@
 from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, status
 
-from app.core.permissions import Action, resolve_role
-from app.deps import AuthContext, current_user_optional, current_user_required, require
+from app.core.permissions import Action
+from app.core.plan_policy import PlanPolicy
+from app.deps import AuthContext, current_user_required, get_plan_policy, require
 from app.schemas.compositions import (
     CompositionCounts,
     CompositionListItem,
@@ -80,6 +81,9 @@ def _to_response(
         )
 
     return CompositionResponse(
+        band_id=str(doc["band_id"]) if doc.get("band_id") else None,
+        band_editable=doc.get("band_editable", False),
+        band_active=doc.get("band_active"),
         id=str(doc["_id"]),
         owner_id=str(doc["owner_id"]),
         title=doc["title"],
@@ -105,7 +109,11 @@ def _to_response(
     )
 
 
-async def _to_response_async(doc: dict, role: Optional[Any] = None) -> CompositionResponse:
+async def _to_response_async(
+    doc: dict, role: Optional[Any] = None, policy: Optional[PlanPolicy] = None,
+) -> CompositionResponse:
+    if doc.get("band_id") and policy is not None:
+        doc = {**doc, "band_active": await policy.is_band_active(str(doc["band_id"]))}
     user_ids = [m["user_id"] for m in doc.get("members", []) if "user_id" in m]
     user_map = {}
     if user_ids:
@@ -188,6 +196,8 @@ async def list_compositions(
 
         items.append(
             CompositionListItem(
+                band_id=str(d["band_id"]) if d.get("band_id") else None,
+                via_band=d.get("via_band", False),
                 id=str(d["_id"]),
                 owner_id=str(d["owner_id"]),
                 title=d["title"],
@@ -215,14 +225,13 @@ async def list_compositions(
 )
 async def get_by_slug(
     slug: str,
-    user: Optional[dict] = Depends(current_user_optional),
-    service: CompositionService = Depends(get_service),
+    auth: AuthContext = Depends(require(Action.VIEW)),
+    policy: PlanPolicy = Depends(get_plan_policy),
 ) -> CompositionResponse:
-    """Anonymous or authenticated read of a public composition by its unguessable share slug."""
-    doc = await service.get_by_slug(slug)
-    user_id = user["id"] if user else None
-    role = resolve_role(user_id, doc) if user_id else None
-    return await _to_response_async(doc, role=role)
+    """Read a public composition by slug using the same authorization path as ID reads."""
+    return await _to_response_async(
+        auth.composition, role=auth.role if auth.user else None, policy=policy,
+    )
 
 
 @router.get(
@@ -233,9 +242,10 @@ async def get_by_slug(
 async def get_composition(
     composition_id: str,
     auth: AuthContext = Depends(require(Action.VIEW)),
+    policy: PlanPolicy = Depends(get_plan_policy),
 ) -> CompositionResponse:
     """Read a composition by ID, enforced by require(Action.VIEW)."""
-    return await _to_response_async(auth.composition, role=auth.role)
+    return await _to_response_async(auth.composition, role=auth.role, policy=policy)
 
 
 @router.patch(
@@ -247,6 +257,7 @@ async def update_composition(
     composition_id: str,
     body: UpdateCompositionRequest,
     auth: AuthContext = Depends(require(Action.EDIT)),
+    policy: PlanPolicy = Depends(get_plan_policy),
     service: CompositionService = Depends(get_service),
 ) -> CompositionResponse:
     """Update composition top-level fields, enforced by require(Action.EDIT)."""
@@ -256,7 +267,7 @@ async def update_composition(
             update_data["sections_enabled"] = body.sections_enabled.model_dump()
 
     updated = await service.update_composition(composition_id, **update_data)
-    return await _to_response_async(updated, role=auth.role)
+    return await _to_response_async(updated, role=auth.role, policy=policy)
 
 
 @router.delete(

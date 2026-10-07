@@ -93,3 +93,30 @@ def test_resolve_role_no_access_private():
     assert resolve_role(other_user_id, doc_private) is None
     # Anonymous on private
     assert resolve_role(None, doc_private) is None
+
+
+@pytest.mark.parametrize("owner,member_role,is_member,editable,public,expected", [
+    (True, "viewer", True, True, True, Role.OWNER),
+    (False, "viewer", True, True, True, Role.VIEWER),
+    (False, "editor", True, False, False, Role.EDITOR),
+    (False, None, True, True, False, Role.EDITOR),
+    (False, None, True, False, False, Role.VIEWER),
+    (False, "editor", False, True, False, None),
+    (False, "editor", False, True, True, Role.VIEWER),
+    (False, None, False, True, False, None),
+])
+def test_band_role_order(owner, member_role, is_member, editable, public, expected):
+    from app.core.permissions import BandContext
+    uid, bid = ObjectId(), ObjectId()
+    doc = {"owner_id": uid if owner else ObjectId(), "band_id": bid,
+           "band_editable": editable, "visibility": "public" if public else "private",
+           "members": [{"user_id": uid, "role": member_role}] if member_role else []}
+    assert resolve_role(str(uid), doc, BandContext(str(bid), is_member)) == expected
+
+
+def test_bandless_member_role_is_unchanged():
+    from app.core.permissions import BandContext
+    uid = ObjectId()
+    doc = {"owner_id": ObjectId(), "band_id": None, "visibility": "private",
+           "members": [{"user_id": uid, "role": "editor"}]}
+    assert resolve_role(uid, doc, BandContext(str(ObjectId()), False)) == Role.EDITOR
