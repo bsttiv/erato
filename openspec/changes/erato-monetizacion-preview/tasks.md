@@ -219,13 +219,16 @@ Depends on: V2, V3 (and `frontend/src/api/entitlements.ts` from FX is NOT requir
 ### Unit B1 (repo: erato) - bands repository, indexes, invitation `target` (~280 lines)
 Specs: `bands-and-membership: Invitations MUST target a band and carry no role`, `The migration MUST be idempotent ...` (index parts). Design AD8 (repo parts), AD14 (indexes), D3/D4.
 Depends on: X1.
+B1 adds `redeem_band_invitation` and leaves the legacy composition redeem untouched until B7 (author decision 2026-10-07).
 
-- [ ] B1.1 RED: create `tests/test_bands_repository.py`: insert shape `{name, owner_id, members:[{user_id, role:"owner"}], pending_transfer:null, created_at, updated_at}`; get; list by member; rename; `remove_member`; unique-by-structure behaviors; indexes `idx_bands_owner_id`, `idx_bands_members_user_id`. Run `.venv/bin/pytest tests/test_bands_repository.py` -> failure.
-- [ ] B1.2 RED: extend `tests/test_invitations_repository.py`: `create_band_invitation` with `target {type:"band", id}` and no role; `list_by_band`; `delete_by_band`; multi-use redeem (no `used_at` set for band targets, token reusable until expiry); legacy invitation without `target` -> `GoneError` `invitation_legacy` (410); expired -> `invitation_expired` (410, not 401).
-- [ ] B1.3 RED: extend `tests/test_ensure_indexes_script.py`: `BandsRepository` in `REPOSITORIES`, `idx_compositions_band_id`, `idx_invitations_target` replaces `idx_invitations_composition_id`, `--rollback` drops only names added by this change (`ROLLBACK_INDEXES`).
-- [ ] B1.4 GREEN: create `app/db/repositories/bands.py`; modify `app/db/repositories/invitations.py`, `app/db/repositories/compositions.py` (`idx_compositions_band_id`), `scripts/ensure_indexes.py`.
-- [ ] B1.5 Dry-run first: run `python -m scripts.ensure_indexes` against a scratch DB (`MONGODB_DB=erato_scratch`) and then `python -m scripts.ensure_indexes --rollback`; record output. Never against production.
-- [ ] B1.6 REFACTOR + full `.venv/bin/pytest tests/`; commit (Spanish), e.g. `feat(bandas): agrega el repositorio de bandas, indices e invitaciones por banda`.
+- [x] B1.1 RED: create `tests/test_bands_repository.py`: insert shape `{name, owner_id, members:[{user_id, role:"owner"}], pending_transfer:null, created_at, updated_at}`; get; list by member; rename; `remove_member`; unique-by-structure behaviors; indexes `idx_bands_owner_id`, `idx_bands_members_user_id`. Run `.venv/bin/pytest tests/test_bands_repository.py` -> failure.
+- [x] B1.2 RED: extend `tests/test_invitations_repository.py`: `create_band_invitation` with `target {type:"band", id}` and no role; `list_by_band`; `delete_by_band`; multi-use redeem (no `used_at` set for band targets, token reusable until expiry); legacy invitation without `target` -> `GoneError` `invitation_legacy` (410); expired -> `invitation_expired` (410, not 401).
+- [x] B1.3 RED: extend `tests/test_ensure_indexes_script.py`: `BandsRepository` in `REPOSITORIES`, `idx_compositions_band_id`, `idx_invitations_target` replaces `idx_invitations_composition_id`, `--rollback` drops only names added by this change (`ROLLBACK_INDEXES`).
+- [x] B1.4 GREEN: create `app/db/repositories/bands.py`; modify `app/db/repositories/invitations.py`, `app/db/repositories/compositions.py` (`idx_compositions_band_id`), `scripts/ensure_indexes.py`.
+- [x] B1.5 Dry-run first: run `python -m scripts.ensure_indexes` against a scratch DB (`MONGODB_DB=erato_scratch`) and then `python -m scripts.ensure_indexes --rollback`; record output. Never against production.
+- [x] B1.6 REFACTOR + full `.venv/bin/pytest tests/`; commit deferred to Claude per author instruction (Spanish), e.g. `feat(bandas): agrega el repositorio de bandas, indices e invitaciones por banda`.
+
+Verification (2026-10-07): RED bands: 1 collection error (missing module); invitations: 2 failed, 3 passed (missing band methods); indexes: 1 failed, 6 passed (missing bands registration). GREEN focused: 14 passed; full suite: 140 passed. Scratch bootstrap and rollback: exit 0 each; rollback retains the V1 registration and adds only the four B1 index names.
 
 ### Unit B1M (repo: erato) - migration and restore scripts, dry-run first (~300 lines)
 Specs: `bands-and-membership: The migration MUST be idempotent, safe by default and reversible`. Design AD14. Rollback plan in proposal.
@@ -297,6 +300,7 @@ Depends on: B5b.
 
 - [ ] B7.1 RED (tests rewritten first): rewrite `tests/test_sharing_router.py` and `tests/test_sharing_roles.py` for the new model: composition `/invites` endpoints are gone (404/405); `PATCH /api/compositions/{id}/band {band_id, band_editable}` owner only, owner must be a member, sharing gate then band active, `band_editable=false` -> viewers (P9); detach (`band_id: null`) empties `members`, sets `band_editable` false and is never gated; `PUT /api/compositions/{id}/members/{uid}` only for users in the composition's band (else 409 `not_a_band_member`); `DELETE .../members/{uid}`; legacy `members` roles ignored after the user leaves the band (AD7); public visibility still allows anonymous view; private composition hidden from non-invited.
 - [ ] B7.2 GREEN: modify `app/services/sharing_service.py` (band attach/detach, member roles, remove composition invitation creation), `app/routers/sharing.py` (remove `/invites`, add `/band`, `/members/{user_id}`), `app/db/repositories/compositions.py` (`set_band`, `detach_all_band_compositions`).
+- [ ] B7.2b GREEN: remove the legacy `create_invitation`/`redeem_invitation` composition methods from `app/db/repositories/invitations.py` and their tests (kept transitionally by B1 so `preview` never breaks; author decision 2026-10-07).
 - [ ] B7.3 REFACTOR + full `.venv/bin/pytest tests/`; commit (Spanish), e.g. `feat(compartir): comparte composiciones con una banda y limita los roles a sus miembros`.
 
 ### Unit FX (repo: erato) - payment-only frontend extension point (~220 lines)

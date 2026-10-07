@@ -115,3 +115,29 @@ async def test_rollback_non_27_error_exits_1(indexes_db, monkeypatch, capsys):
     assert "drop error" in out or "database auth failure" in out
 
 
+
+
+@pytest.mark.asyncio
+async def test_band_indexes_and_rollback_preserve_existing_indexes(indexes_db):
+    from scripts.ensure_indexes import REPOSITORIES, ROLLBACK_INDEXES
+
+    assert any(name == "bands" and cls.__name__ == "BandsRepository" for name, cls in REPOSITORIES)
+    added = {("bands", "idx_bands_owner_id"), ("bands", "idx_bands_members_user_id"),
+             ("compositions", "idx_compositions_band_id"), ("invitations", "idx_invitations_target")}
+    assert set(ROLLBACK_INDEXES) == added | {("section_revisions", "uq_section_revisions_comp_section_rev")}
+    await indexes_db.invitations.create_index("composition_id", name="idx_invitations_composition_id")
+    assert await run() == 0
+    before = {name: await _indexes(indexes_db, name) for name, _ in REPOSITORIES}
+    assert before["compositions"]["idx_compositions_band_id"]["key"] == [("band_id", 1)]
+    assert before["invitations"]["idx_invitations_target"]["key"] == [("target.type", 1), ("target.id", 1)]
+    from app.db.repositories.invitations import InvitationsRepository
+    from unittest.mock import AsyncMock
+    collection = AsyncMock()
+    repo = InvitationsRepository()
+    repo._db = type("DB", (), {"invitations": collection})()
+    await repo.ensure_indexes()
+    declared = {index.document["name"] for index in collection.create_indexes.call_args.args[0]}
+    assert "idx_invitations_composition_id" not in declared
+    assert await run(rollback=True) == 0
+    for name, info in before.items():
+        assert set(await _indexes(indexes_db, name)) == set(info) - {idx for coll, idx in ROLLBACK_INDEXES if coll == name}

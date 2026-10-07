@@ -9,6 +9,7 @@ import sys
 from pymongo.errors import OperationFailure
 
 from app.db import client as db_client
+from app.db.repositories.bands import BandsRepository
 from app.db.repositories.comments import CommentsRepository
 from app.db.repositories.compositions import CompositionsRepository
 from app.db.repositories.invitations import InvitationsRepository
@@ -19,6 +20,7 @@ from app.settings import get_settings
 
 REPOSITORIES = (
     ("users", UsersRepository),
+    ("bands", BandsRepository),
     ("compositions", CompositionsRepository),
     ("refresh_tokens", RefreshTokensRepository),
     ("invitations", InvitationsRepository),
@@ -27,6 +29,10 @@ REPOSITORIES = (
 )
 
 ROLLBACK_INDEXES = (
+    ("bands", "idx_bands_owner_id"),
+    ("bands", "idx_bands_members_user_id"),
+    ("compositions", "idx_compositions_band_id"),
+    ("invitations", "idx_invitations_target"),
     ("section_revisions", "uq_section_revisions_comp_section_rev"),
 )
 

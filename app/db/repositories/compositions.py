@@ -31,6 +31,7 @@ class CompositionsRepository:
         """Create indexes defined in design.md for the compositions collection."""
         await self.collection.create_indexes([
             IndexModel([("owner_id", ASCENDING)], name="idx_compositions_owner_id"),
+            IndexModel([("band_id", ASCENDING)], name="idx_compositions_band_id"),
             IndexModel([("members.user_id", ASCENDING)], name="idx_compositions_members_user_id"),
             IndexModel([("share_slug", ASCENDING)], unique=True, sparse=True, name="uq_sparse_compositions_share_slug"),
         ])
