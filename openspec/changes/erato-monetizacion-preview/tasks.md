@@ -264,10 +264,11 @@ B2 validation (2026-10-07): RED `tests/test_permissions.py` + `tests/test_deps_r
 Specs: `plan-policy-port: Plan-gate refusals`, `sharing-and-visibility: Sharing with people MUST be gated by the policy`; `media-storage: Upload credentials MUST be refused when the demo count quota is reached`. Design AD6 table, AD15.
 Depends on: B2, V2 (history gate already in place; asserted here too).
 
-- [ ] B3.1 RED: extend `tests/test_plan_policy_contract.py`: deny-all stand-in is hit by every call site in the AD6 table that exists after this unit: band-attach `PATCH .../band` with non-null `band_id` (`can_share_with_people` then `is_band_active`), `PUT .../members/{uid}`, history, demo signature/confirm; detach is never gated; user-scoped questions get only the user id; limit 1 and inactive-band stand-ins.
-- [ ] B3.2 RED: extend `tests/test_demos_router.py`: `demo_limit(user)` reached at credential issue -> 403 `plan_gate_demo_limit`; `confirm_demo` guard with filter `demos.{limit-1} $exists False` closes the parallel-upload race (two confirms, one wins); no limit under `UnlimitedPlanPolicy`.
-- [ ] B3.3 GREEN: modify `app/services/demo_service.py` (`policy` constructor arg, AD15), `app/db/repositories/compositions.py` (`add_demo_if_below`), `app/routers/demos.py`, `app/services/sharing_service.py` (policy param, gate order), `app/routers/sharing.py`.
-- [ ] B3.4 REFACTOR + full `.venv/bin/pytest tests/`; commit (Spanish), e.g. `feat(plan): aplica las compuertas de plan en compartir, historial y demos`.
+- [x] B3.1 RED: extend `tests/test_plan_policy_contract.py`: deny-all stand-in is hit by every call site in the AD6 table that exists after this unit: band-attach `PATCH .../band` with non-null `band_id` (`can_share_with_people` then `is_band_active`), `PUT .../members/{uid}`, history, demo signature/confirm; detach is never gated; user-scoped questions get only the user id; limit 1 and inactive-band stand-ins. Band-attach and member-role gate assertions move to B7, where those endpoints are created (orchestrator resolution per tasks wording, 2026-10-07).
+- [x] B3.2 RED: extend `tests/test_demos_router.py`: `demo_limit(user)` reached at credential issue -> 403 `plan_gate_demo_limit`; `confirm_demo` guard with filter `demos.{limit-1} $exists False` closes the parallel-upload race (two confirms, one wins); no limit under `UnlimitedPlanPolicy`.
+- [x] B3.3 GREEN: modify `app/services/demo_service.py` (`policy` constructor arg, AD15), `app/db/repositories/compositions.py` (`add_demo_if_below`), `app/routers/demos.py`, `app/services/sharing_service.py` (policy param, gate order), `app/routers/sharing.py`.
+- [x] B3.4 REFACTOR + full `.venv/bin/pytest tests/`.
+  - [x] Commit (Claude): `feat(plan): aplica la cuota de demos e inyecta la política en compartir`.
 
 ### Unit B5a (repo: erato) - band creation and read (~300 lines)
 Specs: `bands-and-membership: A user MAY create a band when the policy allows it`, `The core MUST expose band creation and removal as a service operation for a host`, `Band data MUST be visible only to members`. Design AD11 (core part), AD18.

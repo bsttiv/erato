@@ -167,3 +167,47 @@ async def test_app_accepts_host_external_routers(restore_routes):
         assert res.status_code == 200
         assert res.json() == {"cloud": "pong"}
 
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("call_site", ["list", "get", "restore", "signature", "confirm"])
+async def test_existing_gate_call_sites_honor_user_scoped_policy(call_site, monkeypatch):
+    from uuid import uuid4
+    import cloudinary.utils
+    from app.db.repositories.compositions import CompositionsRepository
+    from app.settings import get_settings
+
+    user = await UsersRepository().create_user(f"gate-{call_site}-{uuid4().hex}@test.com", "hash", "Gate User")
+    uid = str(user["_id"])
+    repo = CompositionsRepository()
+    comp = await repo.create_composition(owner_id=uid, title="Gate contract")
+    cid = str(comp["_id"])
+    await repo.add_demo(cid, "existing", "existing", "Existing", 1, uid)
+
+    class LimitOnePolicy(RecordingStandInPolicy):
+        async def demo_limit(self, user_id):
+            self.recorded_calls.append(("demo_limit", (user_id,)))
+            return 1
+
+    monkeypatch.setattr("cloudinary.uploader.remove_tag", lambda *args, **kwargs: None)
+    policy = LimitOnePolicy()
+    app.dependency_overrides[get_plan_policy] = lambda: policy
+    public_id = f"{get_settings().cloudinary_folder_prefix}/compositions/{cid}/new"
+    body = {"public_id": public_id, "version": "1", "title": "New", "duration_s": 1,
+            "signature": cloudinary.utils.api_sign_request(
+                {"public_id": public_id, "version": "1"}, get_settings().cloudinary_api_secret)}
+    requests = {
+        "list": ("GET", "/history/lyrics", None),
+        "get": ("GET", "/history/lyrics/1", None),
+        "restore": ("POST", "/history/lyrics/1/restore?expected_rev=0", None),
+        "signature": ("POST", "/demos/upload-signature", None),
+        "confirm": ("POST", "/demos", body),
+    }
+    method, suffix, payload = requests[call_site]
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.request(method, f"/api/compositions/{cid}{suffix}", json=payload,
+                                        headers={"Authorization": f"Bearer {mint_access_token(uid)}"})
+    assert response.status_code == 403
+    question = "demo_limit" if call_site in ("signature", "confirm") else "can_view_history"
+    assert response.json()["error"] == ("plan_gate_demo_limit" if question == "demo_limit" else "plan_gate_history")
+    assert policy.recorded_calls == [(question, (uid,))]

@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 from app.core.errors import NotFoundError
+from app.core.plan_policy import PlanPolicy, UnlimitedPlanPolicy
 from app.core.security.tokens import hash_opaque_token, mint_opaque_token
 from app.db.repositories.compositions import CompositionsRepository
 from app.db.repositories.invitations import InvitationsRepository
@@ -16,9 +17,11 @@ class SharingService:
         self,
         compositions_repo: Optional[CompositionsRepository] = None,
         invitations_repo: Optional[InvitationsRepository] = None,
+        policy: Optional[PlanPolicy] = None,
     ) -> None:
         self.compositions_repo = compositions_repo or CompositionsRepository()
         self.invitations_repo = invitations_repo or InvitationsRepository()
+        self.policy = policy or UnlimitedPlanPolicy()
 
     async def update_visibility(
         self,

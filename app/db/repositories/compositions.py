@@ -358,7 +358,22 @@ class CompositionsRepository:
         duration_s: float,
         uploaded_by: Union[str, ObjectId],
     ) -> Optional[Dict[str, Any]]:
-        """Add an embedded demo sub-document to composition."""
+        """Add a demo without a quota."""
+        return await self.add_demo_if_below(
+            composition_id, demo_id, cloudinary_public_id, title, duration_s, uploaded_by, None,
+        )
+
+    async def add_demo_if_below(
+        self,
+        composition_id: Union[str, ObjectId],
+        demo_id: str,
+        cloudinary_public_id: str,
+        title: str,
+        duration_s: float,
+        uploaded_by: Union[str, ObjectId],
+        limit: Optional[int],
+    ) -> Optional[Dict[str, Any]]:
+        """Atomically append a demo only while the quota has room; None is unbounded."""
         if isinstance(composition_id, str):
             if not ObjectId.is_valid(composition_id):
                 return None
@@ -378,9 +393,13 @@ class CompositionsRepository:
             "uploaded_at": now,
         }
 
+        filter_doc: Dict[str, Any] = {"_id": oid}
+        if limit is not None:
+            filter_doc[f"demos.{limit - 1}"] = {"$exists": False}
+
         # Push to demos and update timestamp
         result = await self.collection.find_one_and_update(
-            {"_id": oid},
+            filter_doc,
             {
                 "$push": {"demos": demo_subdoc},
                 "$set": {"updated_at": now},
