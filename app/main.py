@@ -8,6 +8,7 @@ from pymongo.errors import ConnectionFailure, PyMongoError, ServerSelectionTimeo
 from app.core.errors import AppError, DatabaseConnectionError, InternalError
 from app.routers import (
     auth,
+    bands,
     compositions,
     demos,
     entitlements,
@@ -90,6 +91,7 @@ async def catch_all_exception_handler(request: Request, exc: Exception) -> JSONR
 app.include_router(health.router)
 app.include_router(maintenance.router)
 app.include_router(auth.router)
+app.include_router(bands.router)
 app.include_router(compositions.router)
 app.include_router(sections.router)
 app.include_router(sharing.router)

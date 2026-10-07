@@ -274,10 +274,19 @@ Depends on: B2, V2 (history gate already in place; asserted here too).
 Specs: `bands-and-membership: A user MAY create a band when the policy allows it`, `The core MUST expose band creation and removal as a service operation for a host`, `Band data MUST be visible only to members`. Design AD11 (core part), AD18.
 Depends on: B3.
 
-- [ ] B5a.1 RED: create `tests/test_bands_service.py`: `create_for_user` shape (`members [{owner}]`, `pending_transfer` null), name 1-80 after strip else 422 `validation_error`, no policy gate; `create` calls `policy.can_create_band(user)` and answers 403 `plan_gate_band_creation` on deny; unlimited allows any number of bands per user; `delete_band` order: detach compositions (`band_id` null, `band_editable` false, `members: []`), delete band invitations, delete band doc; second call and unknown/malformed id are no-ops.
-- [ ] B5a.2 RED: create `tests/test_bands_router.py`: `POST /api/bands` 201 / 403 / 422 (`extra="forbid"`); `GET /api/bands` lists only the user's bands; `GET /api/bands/{id}` member 200 with `BandResponse` (`seats_used`, `seat_limit`, `active`, `pending_transfer` null, expired reported null), non-member 404; `PATCH` rename owner only (403 otherwise).
-- [ ] B5a.3 GREEN: create `app/services/bands_service.py`, `app/schemas/bands.py` (`BandCreate`), `app/routers/bands.py` (create, list, get, rename); include in `app/main.py`.
-- [ ] B5a.4 REFACTOR + `.venv/bin/pytest tests/`; commit (Spanish), e.g. `feat(bandas): crea y consulta bandas con operaciones invocables por el host`.
+- [x] B5a.1 RED: create `tests/test_bands_service.py`: `create_for_user` shape (`members [{owner}]`, `pending_transfer` null), name 1-80 after strip else 422 `validation_error`, no policy gate; `create` calls `policy.can_create_band(user)` and answers 403 `plan_gate_band_creation` on deny; unlimited allows any number of bands per user; `delete_band` order: detach compositions (`band_id` null, `band_editable` false, `members: []`), delete band invitations, delete band doc; second call and unknown/malformed id are no-ops.
+- [x] B5a.2 RED: create `tests/test_bands_router.py`: `POST /api/bands` 201 / 403 / 422 (`extra="forbid"`); `GET /api/bands` lists only the user's bands; `GET /api/bands/{id}` member 200 with `BandResponse` (`seats_used`, `seat_limit`, `active`, `pending_transfer` null, expired reported null), non-member 404; `PATCH` rename owner only (403 otherwise). BandSummary = {id, name, owner_id, user_role, seats_used, seat_limit, active} (orchestrator resolution, 2026-10-07).
+- [x] B5a.3 GREEN: create `app/services/bands_service.py`, `app/schemas/bands.py` (`BandCreate`), `app/routers/bands.py` (create, list, get, rename); include in `app/main.py`.
+- [x] B5a.4 REFACTOR + `.venv/bin/pytest tests/` completed; commit by Claude: `feat(bandas): crea y consulta bandas con operaciones invocables por el host`.
+
+- [ ] B5a commit (Claude): `feat(bandas): crea y consulta bandas con operaciones invocables por el host`.
+
+Observed B5a TDD output (2026-10-07):
+- RED service: `.venv/bin/pytest tests/test_bands_service.py -q` -> `ModuleNotFoundError: No module named 'app.services.bands_service'`; `1 error in 0.15s`.
+- RED router: `.venv/bin/pytest tests/test_bands_router.py -q` -> absent routes returned 404 instead of 401/200/403; `3 failed in 0.61s`.
+- First implementation run: `2 failed, 4 passed in 1.21s`; corrected test spies (collection instances were not shared; batch lookup side effect referenced the patched method).
+- GREEN: `.venv/bin/pytest tests/test_bands_service.py tests/test_bands_router.py` -> `6 passed in 0.79s`.
+- Full suite: `.venv/bin/pytest tests/` -> `192 passed in 14.16s`.
 
 ### Unit B5b (repo: erato) - invitations, atomic seat join, member removal, atomic role set (~320 lines)
 Specs: `bands-and-membership: Invitations MUST target a band and carry no role`, `Joining MUST honor the policy seat limit atomically`; `sharing-and-visibility: invite roles`. Design AD4, AD8, OD-6 data flow.
