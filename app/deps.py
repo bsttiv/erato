@@ -1,12 +1,14 @@
 from dataclasses import dataclass
+from bson import ObjectId
 from typing import Any, Dict, Optional
 from fastapi import Depends, Header, Request
 
 from app.core.errors import ForbiddenError, NotFoundError, UnauthorizedError
-from app.core.permissions import Action, Role, can, resolve_role
+from app.core.permissions import Action, BandContext, Role, can, resolve_role
 from app.core.plan_policy import HostCapabilities, PlanPolicy, UnlimitedPlanPolicy
 from app.core.security.tokens import verify_access_token
 from app.db.repositories.compositions import CompositionsRepository
+from app.db.repositories.bands import BandsRepository
 
 
 @dataclass
@@ -78,19 +80,54 @@ async def composition_access(
     return record
 
 
+def get_plan_policy() -> PlanPolicy:
+    return UnlimitedPlanPolicy()
+
+
+def get_host_capabilities() -> HostCapabilities:
+    return HostCapabilities(extensions_available=False)
+
+
+async def band_context(
+    request: Request,
+    user: Optional[Dict[str, Any]] = Depends(current_user_optional),
+    access_record: Dict[str, Any] = Depends(composition_access),
+) -> Optional[BandContext]:
+    """Load only the membership fields needed for band-derived authorization."""
+    band_id = access_record.get("band_id")
+    if not band_id or user is None:
+        return None
+    band = await BandsRepository().collection.find_one(
+        {"_id": ObjectId(band_id)}, {"owner_id": 1, "members.user_id": 1},
+    )
+    is_member = band is not None and any(
+        str(member["user_id"]) == str(user["id"]) for member in band.get("members", [])
+    )
+    return BandContext(str(band_id), is_member)
+
+
 def require(action: Action):
     """Dependency factory enforcing the 404-vs-403 permission model for the specified action."""
     async def dependency(
         request: Request,
         user: Optional[Dict[str, Any]] = Depends(current_user_optional),
         access_record: Dict[str, Any] = Depends(composition_access),
+        band: Optional[BandContext] = Depends(band_context),
+        policy: PlanPolicy = Depends(get_plan_policy),
     ) -> AuthContext:
         user_id = user["id"] if user else None
-        role = resolve_role(user_id, access_record)
+        # Direct callers may omit dependencies; FastAPI supplies the resolved context.
+        resolved_band = band if isinstance(band, BandContext) else None
+        role = resolve_role(user_id, access_record, resolved_band)
 
         # 404-vs-403 rule: If caller cannot even view, return 404 (prevents existence probing)
         if not can(role, Action.VIEW):
             raise NotFoundError("Composición no encontrada")
+
+        band_id = access_record.get("band_id")
+        if action != Action.VIEW and role != Role.OWNER and band_id:
+            if not await policy.is_band_active(str(band_id)):
+                raise ForbiddenError("La banda no está activa", code="band_inactive")
 
         # If caller can view but lacks permission for requested action, return 403
         if not can(role, action):
@@ -99,12 +136,3 @@ def require(action: Action):
         return AuthContext(user=user, role=role, composition=access_record)
 
     return dependency
-
-
-def get_plan_policy() -> PlanPolicy:
-    return UnlimitedPlanPolicy()
-
-
-def get_host_capabilities() -> HostCapabilities:
-    return HostCapabilities(extensions_available=False)
-

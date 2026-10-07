@@ -101,13 +101,15 @@ class CompositionsRepository:
         """Look up composition by unguessable share slug."""
         return await self.collection.find_one({"share_slug": share_slug, "visibility": "public"})
 
-    async def list_by_user(self, user_id: Union[str, ObjectId]) -> List[Dict[str, Any]]:
-        """List compositions where user is the owner or a member."""
+    async def list_by_user(self, user_id: Union[str, ObjectId], band_ids: Optional[List[ObjectId]] = None) -> List[Dict[str, Any]]:
+        """List owned compositions, eligible invited ones, and band shares."""
         oid = ObjectId(user_id) if isinstance(user_id, str) else user_id
+        ids = [ObjectId(band_id) for band_id in (band_ids or [])]
         cursor = self.collection.find({
             "$or": [
                 {"owner_id": oid},
-                {"members.user_id": oid},
+                {"members.user_id": oid, "band_id": None},
+                {"band_id": {"$in": ids}},
             ]
         }).sort("updated_at", -1)
         return await cursor.to_list(length=None)

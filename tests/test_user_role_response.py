@@ -184,3 +184,15 @@ async def test_list_compositions_counts_and_chord_names():
         assert item["counts"]["demos"] == 1
         assert item["counts"]["todos_done"] == 2
         assert item["counts"]["todos_total"] == 3
+
+
+async def test_bandless_response_defaults():
+    from app.main import app
+    token = mint_access_token(str(ObjectId()))
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/api/compositions", json={"title": "Solo"},
+                                     headers={"Authorization": f"Bearer {token}"})
+        assert response.status_code == 201
+        assert response.json()["band_id"] is None
+        assert response.json()["band_editable"] is False
+        assert response.json()["band_active"] is None

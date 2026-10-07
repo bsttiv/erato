@@ -154,3 +154,48 @@ async def test_require_owner_and_editor_succeed():
             )
             assert res_editor.status_code == 200
             assert res_editor.json()["role"] == "editor"
+
+
+@pytest.mark.parametrize("has_band,has_user", [(True, True), (False, True), (True, False)])
+async def test_band_context_projected_once(has_band, has_user):
+    from app.deps import band_context
+    uid, bid = ObjectId(), ObjectId()
+    collection = MagicMock()
+    collection.find_one = AsyncMock(return_value={"owner_id": ObjectId(), "members": [{"user_id": uid}]})
+    with patch("app.deps.BandsRepository") as repo:
+        repo.return_value.collection = collection
+        context = await band_context(Request({"type": "http"}),
+                                     {"id": str(uid)} if has_user else None,
+                                     {"band_id": bid if has_band else None})
+    if has_band and has_user:
+        assert context.band_id == str(bid) and context.is_member
+        collection.find_one.assert_awaited_once_with(
+            {"_id": bid}, {"owner_id": 1, "members.user_id": 1})
+    else:
+        assert context is None
+        collection.find_one.assert_not_awaited()
+
+
+@pytest.mark.parametrize("action", list(Action))
+@pytest.mark.parametrize("identity", ["owner", "editor", "stranger"])
+async def test_inactive_band_require(action, identity):
+    from app.core.permissions import BandContext
+    uid, bid = ObjectId(), ObjectId()
+    doc = {"owner_id": uid if identity == "owner" else ObjectId(), "band_id": bid,
+           "band_editable": True, "visibility": "private", "members": []}
+    policy = MagicMock()
+    policy.is_band_active = AsyncMock(return_value=False)
+    kwargs = dict(request=Request({"type": "http"}), user={"id": str(uid)},
+                  access_record=doc, band=BandContext(str(bid), identity != "stranger"), policy=policy)
+    if identity == "stranger":
+        with pytest.raises(NotFoundError):
+            await require(action)(**kwargs)
+    elif identity == "editor" and action != Action.VIEW:
+        with pytest.raises(ForbiddenError) as exc:
+            await require(action)(**kwargs)
+        assert exc.value.code == "band_inactive"
+        policy.is_band_active.assert_awaited_once_with(str(bid))
+    else:
+        assert (await require(action)(**kwargs)).role == (Role.OWNER if identity == "owner" else Role.EDITOR)
+    if identity != "editor" or action == Action.VIEW:
+        policy.is_band_active.assert_not_awaited()

@@ -151,3 +151,36 @@ async def test_delete_composition_permissions():
             headers={"Authorization": f"Bearer {owner_token}"},
         )
         assert res_get_deleted.status_code == 404
+
+
+async def test_list_includes_band_compositions_and_excludes_ex_member_roles():
+    from bson import ObjectId
+    from app.db.repositories.bands import BandsRepository
+    from app.main import app
+    db = get_db()
+    uid, other = ObjectId(), ObjectId()
+    band = await BandsRepository().insert("List band", other)
+    try:
+        await db.bands.update_one({"_id": band["_id"]},
+                                 {"$push": {"members": {"user_id": uid, "role": "member"}}})
+        repo = CompositionsRepository()
+        own = await repo.create_composition(uid, "Own")
+        shared = await repo.create_composition(other, "Band")
+        legacy = await repo.create_composition(other, "Legacy")
+        await repo.add_member(legacy["_id"], uid, "viewer")
+        await db.compositions.update_one({"_id": shared["_id"]}, {"$set": {"band_id": band["_id"]}})
+        headers = {"Authorization": f"Bearer {mint_access_token(str(uid))}"}
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            items = (await client.get("/api/compositions", headers=headers)).json()
+            by_id = {item["id"]: item for item in items}
+            assert set(by_id) == {str(d["_id"]) for d in [own, shared, legacy]}
+            assert by_id[str(shared["_id"])]["via_band"] is True
+            assert by_id[str(shared["_id"])]["band_id"] == str(band["_id"])
+            assert by_id[str(own["_id"])]["via_band"] is False
+            assert by_id[str(legacy["_id"])]["via_band"] is False
+            await repo.add_member(shared["_id"], uid, "editor")
+            await db.bands.update_one({"_id": band["_id"]}, {"$pull": {"members": {"user_id": uid}}})
+            remaining = (await client.get("/api/compositions", headers=headers)).json()
+            assert {item["id"] for item in remaining} == {str(own["_id"]), str(legacy["_id"])}
+    finally:
+        await db.bands.delete_one({"_id": band["_id"]})

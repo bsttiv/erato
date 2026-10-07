@@ -4,6 +4,7 @@ from bson import ObjectId
 
 from app.core.errors import NotFoundError
 from app.db.repositories.compositions import CompositionsRepository
+from app.db.repositories.bands import BandsRepository
 from app.db.repositories.section_revisions import SectionRevisionsRepository
 
 
@@ -67,7 +68,14 @@ class CompositionService:
 
     async def list_for_user(self, user_id: str) -> List[Dict[str, Any]]:
         """List all compositions owned by or shared with user."""
-        return await self.repo.list_by_user(user_id)
+        bands = await BandsRepository(self.repo.db).list_by_member(user_id)
+        band_ids = [band["_id"] for band in bands]
+        docs = await self.repo.list_by_user(user_id, band_ids)
+        for doc in docs:
+            invited = any(str(m["user_id"]) == user_id for m in doc.get("members", []))
+            doc["via_band"] = (doc.get("band_id") in band_ids
+                               and str(doc["owner_id"]) != user_id and not invited)
+        return docs
 
     async def update_composition(
         self,
