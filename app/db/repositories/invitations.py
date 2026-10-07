@@ -4,7 +4,7 @@ from bson import ObjectId
 from pymongo import ASCENDING, IndexModel
 from pymongo.asynchronous.database import AsyncDatabase
 
-from app.core.errors import NotFoundError, UnauthorizedError
+from app.core.errors import GoneError, NotFoundError, UnauthorizedError
 from app.db.client import get_db
 
 
@@ -38,7 +38,7 @@ class InvitationsRepository:
         await self.collection.create_indexes([
             IndexModel([("token_hash", ASCENDING)], unique=True, name="uq_invitations_token_hash"),
             IndexModel([("expires_at", ASCENDING)], expireAfterSeconds=0, name="ttl_invitations_expires_at"),
-            IndexModel([("composition_id", ASCENDING)], name="idx_invitations_composition_id"),
+            IndexModel([("target.type", ASCENDING), ("target.id", ASCENDING)], name="idx_invitations_target"),
         ])
 
     async def create_invitation(
@@ -133,3 +133,48 @@ class InvitationsRepository:
 
         res = await self.collection.delete_one({"_id": oid})
         return res.deleted_count > 0
+
+    async def create_band_invitation(
+        self,
+        band_id: Union[str, ObjectId],
+        token_hash: str,
+        expires_at: datetime,
+        created_by: Union[str, ObjectId],
+    ) -> Dict[str, Any]:
+        """Create a reusable band invitation without a composition role."""
+        doc = {
+            "target": {"type": "band", "id": ObjectId(band_id)},
+            "token_hash": token_hash,
+            "expires_at": expires_at,
+            "created_by": ObjectId(created_by),
+            "created_at": datetime.now(timezone.utc),
+        }
+        result = await self.collection.insert_one(doc)
+        doc["_id"] = result.inserted_id
+        return doc
+
+    async def list_by_band(self, band_id: Union[str, ObjectId]) -> List[Dict[str, Any]]:
+        cursor = self.collection.find(
+            {"target.type": "band", "target.id": ObjectId(band_id)}
+        ).sort("created_at", -1)
+        return await cursor.to_list(length=None)
+
+    async def delete_by_band(self, band_id: Union[str, ObjectId]) -> int:
+        result = await self.collection.delete_many(
+            {"target.type": "band", "target.id": ObjectId(band_id)}
+        )
+        return result.deleted_count
+
+    async def redeem_band_invitation(self, token_hash: str) -> Dict[str, Any]:
+        """Validate a band token without consuming it; legacy flow stays separate."""
+        doc = await self.get_by_hash(token_hash)
+        if not doc:
+            raise NotFoundError("Invitación no encontrada")
+        if (doc.get("target") or {}).get("type") != "band":
+            raise GoneError("Invitación antigua no disponible", code="invitation_legacy")
+        expiry = doc["expires_at"]
+        if expiry.tzinfo is None:
+            expiry = expiry.replace(tzinfo=timezone.utc)
+        if expiry <= datetime.now(timezone.utc):
+            raise GoneError("Invitación expirada", code="invitation_expired")
+        return doc
