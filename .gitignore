@@ -56,3 +56,6 @@ dist-ssr/
 .atl/
 .gga
 odd/
+
+# Migration backups
+backups/
