@@ -2,8 +2,9 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, status
 
 from app.core.permissions import Action
+from app.core.plan_policy import PlanPolicy
 from app.db.repositories.users import UsersRepository
-from app.deps import AuthContext, current_user_required, require
+from app.deps import AuthContext, current_user_required, get_plan_policy, require
 from app.schemas.demos import (
 
     CommentResponse,
@@ -18,8 +19,8 @@ from app.services.demo_service import DemoService
 router = APIRouter(prefix="/api/compositions/{composition_id}/demos", tags=["demos"])
 
 
-def get_service() -> DemoService:
-    return DemoService()
+def get_service(policy: PlanPolicy = Depends(get_plan_policy)) -> DemoService:
+    return DemoService(policy=policy)
 
 
 @router.post(
@@ -34,7 +35,7 @@ async def request_upload_signature(
     service: DemoService = Depends(get_service),
 ) -> UploadSignatureResponse:
     """Issue a signed Cloudinary upload credential without receiving file bytes."""
-    sig_params = service.get_upload_signature(composition_id)
+    sig_params = await service.get_upload_signature(composition_id, auth.user["id"])
     return UploadSignatureResponse(**sig_params)
 
 

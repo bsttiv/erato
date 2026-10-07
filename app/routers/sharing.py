@@ -2,7 +2,8 @@ from typing import List
 from fastapi import APIRouter, Depends, status
 
 from app.core.permissions import Action
-from app.deps import AuthContext, require
+from app.core.plan_policy import PlanPolicy
+from app.deps import AuthContext, get_plan_policy, require
 from app.db.repositories.users import UsersRepository
 from app.routers.compositions import _to_response, compute_initials
 from app.schemas.compositions import (
@@ -18,8 +19,8 @@ from app.settings import get_settings
 router = APIRouter(prefix="/api/compositions/{composition_id}", tags=["sharing"])
 
 
-def get_service() -> SharingService:
-    return SharingService()
+def get_service(policy: PlanPolicy = Depends(get_plan_policy)) -> SharingService:
+    return SharingService(policy=policy)
 
 
 @router.get(

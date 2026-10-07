@@ -277,3 +277,109 @@ async def test_comments_expose_author_name_without_email():
         assert by_text["Huerfano"]["author_name"] is None
         assert "owner@test.com" not in res_list.text
         assert "owner@test.com" not in res_comment.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("limit", [1, 2, None])
+async def test_demo_quota_credentials_and_parallel_confirm(limit, monkeypatch):
+    import asyncio
+    from app.main import app
+    from app.core.plan_policy import UnlimitedPlanPolicy
+    from app.deps import get_plan_policy
+    from app.settings import get_settings
+
+    removed_tags = []
+    monkeypatch.setattr("cloudinary.uploader.remove_tag", lambda *args, **kwargs: removed_tags.append(args))
+    barrier = asyncio.Barrier(2)
+    confirming = False
+
+    class LimitedPolicy(UnlimitedPlanPolicy):
+        async def demo_limit(self, user_id):
+            if confirming:
+                await barrier.wait()
+            return limit
+
+    app.dependency_overrides[get_plan_policy] = lambda: LimitedPolicy()
+    user = await UsersRepository().create_user("quota@test.com", "hash", "Gate User")
+    uid = str(user["_id"])
+    repo = CompositionsRepository()
+    comp = await repo.create_composition(owner_id=uid, title="Quota")
+    cid = str(comp["_id"])
+    initial_count = limit - 1 if limit is not None else 21
+    for index in range(initial_count):
+        await repo.add_demo(cid, str(index), str(index), "Existing", 1, uid)
+    headers = {"Authorization": f"Bearer {mint_access_token(uid)}"}
+    settings = get_settings()
+    filters = []
+    collection = repo.collection
+    original_update = type(collection).find_one_and_update
+
+    async def record_update(target_collection, filter_doc, *args, **kwargs):
+        filters.append(filter_doc)
+        return await original_update(target_collection, filter_doc, *args, **kwargs)
+
+    monkeypatch.setattr(type(collection), "find_one_and_update", record_update)
+
+    def upload_body(index):
+        public_id = f"{settings.cloudinary_folder_prefix}/compositions/{cid}/take_{index}"
+        return {"public_id": public_id, "version": "1", "title": "Take", "duration_s": 1,
+                "signature": cloudinary.utils.api_sign_request(
+                    {"public_id": public_id, "version": "1"}, settings.cloudinary_api_secret)}
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        prefix = f"/api/compositions/{cid}/demos"
+        assert (await client.post(prefix + "/upload-signature", headers=headers)).status_code == 200
+        confirming = True
+        responses = await asyncio.gather(*[
+            client.post(prefix, json=upload_body(index), headers=headers) for index in range(2)
+        ])
+        confirming = False
+        assert sorted(r.status_code for r in responses) == ([201, 201] if limit is None else [201, 403])
+        for response in responses:
+            if response.status_code == 403:
+                assert response.json()["error"] == "plan_gate_demo_limit"
+        credential = await client.post(prefix + "/upload-signature", headers=headers)
+        assert credential.status_code == (200 if limit is None else 403)
+        if limit is not None:
+            assert credential.json()["error"] == "plan_gate_demo_limit"
+        stranger = await UsersRepository().create_user("quota-stranger@test.com", "hash", "Gate User")
+        for suffix, body in [("/upload-signature", None), ("", upload_body(3))]:
+            denied = await client.post(prefix + suffix, json=body, headers={
+                "Authorization": f"Bearer {mint_access_token(str(stranger['_id']))}"})
+            assert denied.status_code == 404
+    expected_filter = {"_id": comp["_id"]}
+    if limit is not None:
+        expected_filter[f"demos.{limit - 1}"] = {"$exists": False}
+    assert filters == [expected_filter, expected_filter]
+    assert len(removed_tags) == (2 if limit is None else 1)
+    stored = await repo.get_by_id(cid)
+    assert len(stored["demos"]) == initial_count + (2 if limit is None else 1)
+
+
+@pytest.mark.asyncio
+async def test_demo_signature_at_limit_issues_no_credential(monkeypatch):
+    from app.main import app
+    from app.core.plan_policy import UnlimitedPlanPolicy
+    from app.deps import get_plan_policy
+    from unittest.mock import Mock
+
+    class LimitOnePolicy(UnlimitedPlanPolicy):
+        async def demo_limit(self, user_id):
+            return 1
+
+    from app.core.security.cloudinary_sign import sign_upload_params
+    signer = Mock(wraps=sign_upload_params)
+    monkeypatch.setattr("app.services.demo_service.sign_upload_params", signer)
+    app.dependency_overrides[get_plan_policy] = lambda: LimitOnePolicy()
+    user = await UsersRepository().create_user("credential@test.com", "hash", "Owner")
+    uid = str(user["_id"])
+    repo = CompositionsRepository()
+    comp = await repo.create_composition(owner_id=uid, title="Full")
+    cid = str(comp["_id"])
+    await repo.add_demo(cid, "existing", "existing", "Existing", 1, uid)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(f"/api/compositions/{cid}/demos/upload-signature",
+                                     headers={"Authorization": f"Bearer {mint_access_token(uid)}"})
+    assert response.status_code == 403
+    assert response.json()["error"] == "plan_gate_demo_limit"
+    signer.assert_not_called()

@@ -2,7 +2,8 @@ import time
 from typing import Any, Dict, List, Optional
 import uuid
 
-from app.core.errors import NotFoundError, ValidationError
+from app.core.errors import NotFoundError, PlanGateError, ValidationError
+from app.core.plan_policy import PlanPolicy, UnlimitedPlanPolicy
 from app.core.security.cloudinary_sign import (
     mint_delivery_url,
     sign_upload_params,
@@ -20,12 +21,19 @@ class DemoService:
         self,
         compositions_repo: Optional[CompositionsRepository] = None,
         comments_repo: Optional[CommentsRepository] = None,
+        policy: Optional[PlanPolicy] = None,
     ) -> None:
         self.compositions_repo = compositions_repo or CompositionsRepository()
         self.comments_repo = comments_repo or CommentsRepository()
+        self.policy = policy or UnlimitedPlanPolicy()
 
-    def get_upload_signature(self, composition_id: str) -> Dict[str, Any]:
+    async def get_upload_signature(self, composition_id: str, user_id: str) -> Dict[str, Any]:
         """Mint signed upload parameters for direct-to-Cloudinary upload."""
+        limit = await self.policy.demo_limit(user_id)
+        if limit is not None:
+            demos = await self.compositions_repo.list_demos(composition_id)
+            if len(demos) >= limit:
+                raise PlanGateError("plan_gate_demo_limit")
         return sign_upload_params(composition_id=composition_id)
 
     async def confirm_upload(
@@ -55,25 +63,29 @@ class DemoService:
         if not is_valid:
             raise ValidationError("Firma de subida inválida o identificador fuera de la carpeta autorizada")
 
-        # Attempt to remove 'pending' tag if cloudinary SDK is configured
-        try:
-            import cloudinary.uploader
-            cloudinary.uploader.remove_tag("pending", [public_id], type="authenticated")
-        except Exception:
-            # Non-blocking for offline tests or when credentials are dummy
-            pass
-
+        limit = await self.policy.demo_limit(uploader_id)
         demo_id = uuid.uuid4().hex[:12]
-        updated = await self.compositions_repo.add_demo(
+        updated = await self.compositions_repo.add_demo_if_below(
             composition_id=composition_id,
             demo_id=demo_id,
             cloudinary_public_id=public_id,
             title=title,
             duration_s=duration_s,
             uploaded_by=uploader_id,
+            limit=limit,
         )
         if not updated:
+            if limit is not None:
+                raise PlanGateError("plan_gate_demo_limit")
             raise NotFoundError("Composición no encontrada")
+
+        # Keep quota-rejected assets pending so the orphan sweep can remove them.
+        try:
+            import cloudinary.uploader
+            cloudinary.uploader.remove_tag("pending", [public_id], type="authenticated")
+        except Exception:
+            # Non-blocking for offline tests or when credentials are dummy
+            pass
 
         demo = await self.compositions_repo.get_demo(composition_id, demo_id)
         if not demo:
