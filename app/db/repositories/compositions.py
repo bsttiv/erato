@@ -27,6 +27,14 @@ class CompositionsRepository:
     def collection(self):
         return self.db.compositions
 
+    async def detach_owner_band_compositions(self, user_id: str, band_id: str) -> None:
+        """Detach only this owner's band compositions without preserving legacy roles."""
+        await self.collection.update_many(
+            {'owner_id': ObjectId(user_id), 'band_id': ObjectId(band_id)},
+            {'$set': {'band_id': None, 'band_editable': False, 'members': [],
+                      'updated_at': datetime.now(timezone.utc)}},
+        )
+
     async def ensure_indexes(self) -> None:
         """Create indexes defined in design.md for the compositions collection."""
         await self.collection.create_indexes([

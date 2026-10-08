@@ -69,6 +69,11 @@ class BandsRepository:
             {"$pull": {"members": {"user_id": user}},
              "$set": {"updated_at": datetime.now(timezone.utc)}},
         )
+        if result.matched_count:
+            await self.collection.update_one(
+                {'_id': ObjectId(band_id), 'pending_transfer.to_user_id': user},
+                {'$set': {'pending_transfer': None}},
+            )
         return result.matched_count > 0
 
     async def add_member_if_seat(self, band_id: str | ObjectId, user_id: str | ObjectId,
