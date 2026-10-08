@@ -108,3 +108,19 @@ async def delete_invite(
     service: BandsService = Depends(get_service),
 ) -> None:
     await service.delete_invite(band_id, user['id'], invite_id)
+
+
+@router.post('/{band_id}/leave', status_code=204)
+async def leave_band(
+    band_id: str, user: dict = Depends(current_user_required),
+    service: BandsService = Depends(get_service),
+) -> None:
+    await service.leave(band_id, user['id'])
+
+
+@router.delete('/{band_id}/members/{uid}', status_code=204)
+async def remove_member(
+    band_id: str, uid: str, user: dict = Depends(current_user_required),
+    service: BandsService = Depends(get_service),
+) -> None:
+    await service.remove_member(band_id, user['id'], uid)

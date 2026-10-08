@@ -5,10 +5,11 @@ from bson import ObjectId
 from pydantic import ValidationError as SchemaValidationError
 from pymongo.asynchronous.database import AsyncDatabase
 
-from app.core.errors import ForbiddenError, NotFoundError, PlanGateError, ValidationError
+from app.core.errors import ConflictError, ForbiddenError, NotFoundError, PlanGateError, ValidationError
 from app.core.plan_policy import PlanPolicy
 from app.core.security.tokens import mint_opaque_token
 from app.db.repositories.bands import BandsRepository
+from app.db.repositories.compositions import CompositionsRepository
 from app.db.repositories.invitations import InvitationsRepository
 from app.schemas.bands import BandCreate
 from app.settings import get_settings
@@ -20,6 +21,7 @@ class BandsService:
     def __init__(self, policy: PlanPolicy, db: Optional[AsyncDatabase] = None):
         self.policy = policy
         self.bands = BandsRepository(db)
+        self.compositions = CompositionsRepository(db)
         self.invitations = InvitationsRepository(db)
 
     async def create(self, user: Mapping[str, Any], name: str) -> dict:
@@ -68,6 +70,23 @@ class BandsService:
         if str(band['owner_id']) != user_id:
             raise ForbiddenError()
         return band
+
+    async def leave(self, band_id: str, user_id: str) -> None:
+        band = await self.get_for_user(band_id, user_id)
+        await self._detach_member(band, user_id)
+
+    async def remove_member(self, band_id: str, owner_id: str, target_uid: str) -> None:
+        band = await self._require_owner(band_id, owner_id)
+        if any(str(m['user_id']) == target_uid for m in band['members']):
+            await self._detach_member(band, target_uid)
+
+    async def _detach_member(self, band: dict, user_id: str) -> None:
+        if str(band['owner_id']) == user_id:
+            raise ConflictError('Transfiere la propiedad antes de salir de la banda',
+                                code='owner_must_transfer')
+        band_id = str(band['_id'])
+        await self.compositions.detach_owner_band_compositions(user_id, band_id)
+        await self.bands.remove_member(band_id, user_id)
 
     async def create_invite(self, band_id: str, user_id: str) -> dict:
         await self._require_owner(band_id, user_id)

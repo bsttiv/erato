@@ -310,9 +310,11 @@ B5b validation record (2026-10-07; uncommitted, Claude commits):
 Specs: `bands-and-membership: Members MUST be able to leave, detaching their compositions`. Design AD7 note, AD9.
 Depends on: B5b.
 
-- [ ] B6a.1 RED: create `tests/test_bands_leave.py`: owner leaving -> 409 `owner_must_transfer`; leave order (detach own compositions with `members: []`, then `$pull`); compositions of others stay unchanged; retry after simulated mid-failure is harmless; owner removes a member (same steps; cannot remove self); a transfer aimed at the departing member is cleared (conditional second update); a detached composition no longer honors old member roles (AD7).
-- [ ] B6a.2 GREEN: implement `leave`/`remove_member` in `app/services/bands_service.py`, `app/db/repositories/compositions.py` (`detach_owner_band_compositions`), `app/db/repositories/bands.py`; routes `POST /api/bands/{id}/leave`, `DELETE /api/bands/{id}/members/{uid}` in `app/routers/bands.py`.
-- [ ] B6a.3 REFACTOR + `.venv/bin/pytest tests/`; commit (Spanish), e.g. `feat(bandas): permite salir de una banda y quitar miembros`.
+- [x] B6a.1 RED: create `tests/test_bands_leave.py`: owner leaving -> 409 `owner_must_transfer`; leave order (detach own compositions with `members: []`, then `$pull`); compositions of others stay unchanged; retry after simulated mid-failure is harmless; owner removes a member (same steps; cannot remove self); a transfer aimed at the departing member is cleared (conditional second update); a detached composition no longer honors old member roles (AD7).
+- [x] B6a.2 GREEN: implement `leave`/`remove_member` in `app/services/bands_service.py`, `app/db/repositories/compositions.py` (`detach_owner_band_compositions`), `app/db/repositories/bands.py`; routes `POST /api/bands/{id}/leave`, `DELETE /api/bands/{id}/members/{uid}` in `app/routers/bands.py`.
+- [x] B6a.3 REFACTOR + `.venv/bin/pytest tests/`. Commit by Claude: `feat(bandas): permite salir de una banda y quitar miembros`.
+
+B6a validation (2026-10-07): RED `.venv/bin/pytest tests/test_bands_leave.py`: 9 failed (missing routes / service methods and conditional transfer cleanup). GREEN same command: 9 passed; full `.venv/bin/pytest tests/`: 207 passed. Shared detach helper preserves AD9 ordering; no model changes, transfer implementation or sharing changes. Changes left uncommitted for Claude.
 
 ### Unit B6b (repo: erato) - ownership transfer (~300 lines)
 Specs: `bands-and-membership: Ownership transfer MUST be a request that expires after 14 days`. Design AD10, AD4 rows, OD-1 (unblocked).
