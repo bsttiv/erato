@@ -44,3 +44,16 @@ class BandResponse(BandSummary):
     pending_transfer: Optional[PendingTransfer]
     created_at: datetime
     updated_at: datetime
+
+
+class BandInviteCreate(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+
+
+class BandInviteSummary(BaseModel):
+    id: str
+    expires_at: datetime
+
+
+class BandInviteResponse(BandInviteSummary):
+    invite_url: str

@@ -150,3 +150,18 @@ async def test_add_and_remove_member():
     final_doc = await repo.get_by_id(cid)
     assert len(final_doc["members"]) == 0
     assert len(await repo.list_by_user(member_id)) == 0
+
+
+@pytest.mark.asyncio
+async def test_set_member_role_concurrent_no_duplicates():
+    import asyncio
+    repo = CompositionsRepository()
+    comp = await repo.create_composition(ObjectId(), 'Roles')
+    uid = ObjectId()
+    await asyncio.gather(repo.set_member_role(comp['_id'], uid, 'editor'),
+                         repo.set_member_role(comp['_id'], uid, 'viewer'))
+    members = (await repo.get_by_id(comp['_id']))['members']
+    assert len(members) == 1 and members[0]['user_id'] == uid
+    assert members[0]['role'] in ('editor', 'viewer')
+    await repo.set_member_role(comp['_id'], uid, 'viewer')
+    assert (await repo.get_by_id(comp['_id']))['members'] == [{'user_id': uid, 'role': 'viewer'}]
