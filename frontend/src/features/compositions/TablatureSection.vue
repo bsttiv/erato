@@ -51,6 +51,7 @@
           Agregar
         </ErButton>
         <ErButton
+          v-if="canViewHistory"
           size="sm"
           variant="ghost"
           data-test="open-tablature-history-btn"
@@ -155,6 +156,7 @@ const props = withDefaults(
   defineProps<{
     tabs?: TabEntry[]
     editable?: boolean
+    canViewHistory?: boolean
   }>(),
   {
     tabs: () => [],

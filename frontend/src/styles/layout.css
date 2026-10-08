@@ -1546,3 +1546,10 @@ body {
   }
 }
 
+/* Keep the native disabled group within the existing todo panel layout. */
+.er-todo-fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
