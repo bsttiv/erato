@@ -17,9 +17,17 @@ This runbook documents the configuration, operations, promotion order, and rollb
   - While operating in preview, `erato-cloud`'s submodule MUST track the HEAD of `erato`'s `preview` branch.
   - Verification check before preview testing:
     ```bash
-    git submodule status
-    # Confirm submodule commit matches git rev-parse origin/preview of erato
+    # Run in erato-cloud after the operator refreshes origin/preview in the submodule.
+    git submodule status erato
+    git ls-tree HEAD erato
+    git -C erato rev-parse HEAD
+    git -C erato rev-parse origin/preview
+    # All recorded/core HEAD SHAs must equal the refreshed origin/preview SHA.
     ```
+
+- **Preview pointer-bump order**: merge the required public unit into `erato` `preview` first;
+  then bump the `erato-cloud` gitlink in its dependent PR, run cloud CI against that pin,
+  merge into cloud `preview`, and verify the SHAs before deployment testing.
 
 ---
 
@@ -88,16 +96,46 @@ All variables must isolate preview data from production. No production credentia
 
 ## 5. Database Bootstrap & Idempotent Indexes
 
-The preview database (`erato_preview`) starts completely empty and is prepared using idempotent migration and index scripts:
+The preview database starts empty. These are operator procedures, not commands to run in DOC.
+Use a trusted preview connection and required settings supplied by the operator; run core modules
+from the `erato` root. Only `erato_preview` is permitted here; never use production `erato`.
 
-1. **Bootstrap Core Indexes**:
-   ```bash
-   MONGODB_URI="<cluster-uri>" MONGODB_DB="erato_preview" python scripts/ensure_indexes.py
-   ```
-2. **Bootstrap Cloud Indexes**:
-   - Run the cloud index bootstrap (added by unit C1) against `erato_preview`.
-3. **Core Standalone Verification**:
-   - If `erato-cloud` is detached or disabled, `erato` must remain fully operational on its own with the default `UnlimitedPlanPolicy`.
+**Ordering prerequisite:** deploy the removal of legacy composition invitation routes and redemption
+(F3.2b, already merged) **before** migrating, so old code cannot recreate legacy permissions.
+Pause writes during migration/restore and retain the backup securely outside the deployment.
+
+```bash
+# 1. Inspect IDs without mutations or backup creation.
+MONGODB_DB=erato_preview python -m scripts.migrate_bands
+# 2. Only if legacy data is reported and the operator authorizes apply:
+MONGODB_DB=erato_preview python -m scripts.migrate_bands --apply --confirm-db erato_preview
+# 3. Bootstrap core indexes even when migration reports "nada que migrar".
+MONGODB_DB=erato_preview python -m scripts.ensure_indexes
+```
+
+Apply refuses a missing/mismatched `--confirm-db`; the scripts themselves do not restrict the name
+to preview. Selection: null/absent `band_id` with nonempty `members`, and invitations with
+`composition_id` but no `target`. Apply fsyncs canonical Extended JSON to
+`backups/migrate_bands-<UTC>.json` before clearing members and deleting those invitations.
+It replaces the legacy invitation index with the target index. With no selected documents it
+returns "nada que migrar" without touching indexes. Repeated apply is a no-op after success.
+
+Run the cloud bootstrap from its own root after C1 is available:
+`MONGODB_DB=erato_preview python -m scripts.ensure_cloud_indexes` (host-owned; not verified in DOC).
+Core indexes are explicit, idempotent operations, never startup work. A detached cloud leaves
+core running with `UnlimitedPlanPolicy`.
+
+### Restore a migration backup
+
+```bash
+MONGODB_DB=erato_preview python -m scripts.restore_bands_migration --backup 'backups/migrate_bands-<UTC>.json' --confirm-db erato_preview
+```
+
+Use the exact retained backup filename. Restore sets backed-up composition members, reinserts
+invitations by original `_id` (duplicate keys are ignored), and recreates
+`idx_invitations_composition_id`; it does not remove `idx_invitations_target`, recreate deleted
+compositions, or restore later edits. Restored invitations remain unusable under F3.2b code;
+restore data together with a compatible code/pointer rollback before resuming writes.
 
 ---
 
@@ -113,7 +151,7 @@ When the preview verification phase is complete and signed off:
      ```bash
      cd erato && git checkout main && git pull
      cd .. && git add erato
-     git commit -m "chore: bump erato submodule to main"
+     git commit -m "chore: actualiza el submodulo erato a main"
      ```
 3. **Step 3: Merge Cloud to Main**:
    - Merge `erato-cloud` branch `preview` into `main` via PR.
@@ -132,17 +170,25 @@ In the event of a critical failure or regression during preview testing:
      ```bash
      mongosh "<cluster-uri>/erato_preview" --eval "db.dropDatabase()"
      ```
-   - Re-run the index bootstrap script if reprovisioning a clean slate.
-2. **Rollback Index Changes (Non-destructive)**:
+   - Re-run core and, once available, cloud bootstraps from section 5 for a clean slate.
+   - To preserve legacy data instead, pause writes and use the backup restore procedure above.
+     Choose restore or database reset; dropping the database discards all preview data.
+2. **Rollback Index Changes (Documents Retained)**:
    - To remove newly added indexes without dropping existing collections:
      ```bash
-     MONGODB_URI="<cluster-uri>" MONGODB_DB="erato_preview" python scripts/ensure_indexes.py --rollback
+     MONGODB_URI="<cluster-uri>" MONGODB_DB="erato_preview" python -m scripts.ensure_indexes --rollback
      ```
+   - `--rollback` has no `--confirm-db` guard. It drops only `idx_bands_owner_id`,
+     `idx_bands_members_user_id`, `idx_compositions_band_id`, `idx_invitations_target`, and
+     `uq_section_revisions_comp_section_rev`; absent indexes are tolerated. It does not restore
+     the legacy index or data. Restore legacy data/index via the backup script when required.
 3. **Rollback Submodule Pointer**:
    - Revert the submodule commit in `erato-cloud` to the prior working commit:
      ```bash
      git revert <submodule-bump-commit>
      ```
+   - Restore the previous compatible deployment and rerun the pointer check against the chosen
+     rollback commit (a rollback pin intentionally differs from current preview HEAD).
 4. **Rollback Feature Flags**:
    - If `FREE_PRO_ENABLED` causes issues or was misconfigured, remove or set the variable to `false` in the Vercel dashboard and redeploy.
 
