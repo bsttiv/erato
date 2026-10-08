@@ -35,6 +35,27 @@ class CompositionsRepository:
                       'updated_at': datetime.now(timezone.utc)}},
         )
 
+    async def set_band(self, composition_id: str, band_id: Optional[str],
+                       band_editable: bool) -> Optional[Dict[str, Any]]:
+        """Attach a band or detach atomically, clearing all roles on detach."""
+        fields = {"band_id": ObjectId(band_id) if band_id is not None else None,
+                  "band_editable": band_editable if band_id is not None else False,
+                  "updated_at": datetime.now(timezone.utc)}
+        if band_id is None:
+            fields["members"] = []
+        return await self.collection.find_one_and_update(
+            {"_id": ObjectId(composition_id)}, {"$set": fields},
+            return_document=ReturnDocument.AFTER,
+        )
+
+    async def detach_all_band_compositions(self, band_id: str) -> None:
+        """Detach every composition of a deleted band, including explicit roles."""
+        await self.collection.update_many(
+            {"band_id": ObjectId(band_id)},
+            {"$set": {"band_id": None, "band_editable": False, "members": [],
+                      "updated_at": datetime.now(timezone.utc)}},
+        )
+
     async def ensure_indexes(self) -> None:
         """Create indexes defined in design.md for the compositions collection."""
         await self.collection.create_indexes([

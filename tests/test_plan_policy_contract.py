@@ -211,3 +211,64 @@ async def test_existing_gate_call_sites_honor_user_scoped_policy(call_site, monk
     question = "demo_limit" if call_site in ("signature", "confirm") else "can_view_history"
     assert response.json()["error"] == ("plan_gate_demo_limit" if question == "demo_limit" else "plan_gate_history")
     assert policy.recorded_calls == [(question, (uid,))]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('operation', ['attach', 'put', 'delete', 'detach', 'invalid_attach', 'invalid_put'])
+@pytest.mark.parametrize('sharing_allowed', [False, True])
+async def test_band_sharing_gate_order_and_gate_free_detach(operation, sharing_allowed):
+    from bson import ObjectId
+    from app.db.repositories.bands import BandsRepository
+    from app.db.repositories.compositions import CompositionsRepository
+
+    uid, member = str(ObjectId()), str(ObjectId())
+    bands, comps = BandsRepository(), CompositionsRepository()
+    band = await bands.insert('Policy contract', uid)
+    bid = str(band['_id'])
+    await bands.add_member_if_seat(bid, member, None)
+    comp = await comps.create_composition(uid, 'Policy sharing')
+    cid = str(comp['_id'])
+    await comps.collection.update_one({'_id': comp['_id']}, {'$set': {'band_id': band['_id'], 'band_editable': True}})
+    await comps.set_member_role(cid, member, 'editor')
+
+    class SharingPolicy(RecordingStandInPolicy):
+        async def can_share_with_people(self, user_id):
+            await super().can_share_with_people(user_id)
+            return sharing_allowed
+
+    policy = SharingPolicy()
+    app.dependency_overrides[get_plan_policy] = lambda: policy
+    requests = {
+        'attach': ('PATCH', '/band', {'band_id': bid, 'band_editable': True}),
+        'put': ('PUT', f'/members/{member}', {'role': 'viewer'}),
+        'delete': ('DELETE', f'/members/{member}', None),
+        'detach': ('PATCH', '/band', {'band_id': None, 'band_editable': True}),
+        'invalid_attach': ('PATCH', '/band', {'band_id': str(ObjectId()), 'band_editable': True}),
+        'invalid_put': ('PUT', f'/members/{ObjectId()}', {'role': 'viewer'}),
+    }
+    try:
+        method, suffix, body = requests[operation]
+        async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
+            response = await client.request(method, f'/api/compositions/{cid}{suffix}', json=body,
+                                            headers={'Authorization': f'Bearer {mint_access_token(uid)}'})
+        expected = []
+        if operation == 'detach':
+            assert response.status_code == 200
+            doc = await comps.get_by_id(cid)
+            assert (doc['band_id'], doc['band_editable'], doc['members']) == (None, False, [])
+        elif operation.startswith('invalid'):
+            assert response.status_code == 409
+            assert response.json()['error'] == 'not_a_band_member'
+        else:
+            assert response.status_code == 403
+            if operation != 'delete':
+                expected.append(('can_share_with_people', (uid,)))
+            if operation == 'delete' or sharing_allowed:
+                expected.append(('is_band_active', (bid,)))
+            assert response.json()['error'] == ('band_inactive' if operation == 'delete' or sharing_allowed else 'plan_gate_sharing')
+            doc = await comps.get_by_id(cid)
+            assert doc['band_id'] == band['_id'] and doc['members'][0]['role'] == 'editor'
+        assert policy.recorded_calls == expected
+    finally:
+        await comps.delete_composition(cid)
+        await bands.collection.delete_one({'_id': band['_id']})

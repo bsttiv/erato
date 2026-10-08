@@ -12,6 +12,8 @@ from app.schemas.compositions import (
     InviteResponse,
     MemberDetail,
     UpdateVisibilityRequest,
+    UpdateBandRequest,
+    UpdateMemberRoleRequest,
 )
 from app.services.sharing_service import SharingService
 from app.settings import get_settings
@@ -188,3 +190,41 @@ async def revoke_invite(
     """Revoke an active invitation (owner only)."""
     await service.revoke_invite(invite_id)
     return {"message": "Invitación revocada correctamente"}
+
+
+@router.patch("/band", response_model=CompositionResponse)
+async def update_band(
+    composition_id: str,
+    body: UpdateBandRequest,
+    auth: AuthContext = Depends(require(Action.MANAGE_SHARING)),
+    service: SharingService = Depends(get_service),
+) -> CompositionResponse:
+    updated = await service.set_band(
+        composition_id, str(auth.composition["owner_id"]), body.band_id, body.band_editable,
+    )
+    if body.band_id is not None:
+        updated["band_active"] = True
+    return _to_response(updated, role=auth.role)
+
+
+@router.put("/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def update_member_role(
+    composition_id: str,
+    user_id: str,
+    body: UpdateMemberRoleRequest,
+    auth: AuthContext = Depends(require(Action.MANAGE_SHARING)),
+    service: SharingService = Depends(get_service),
+) -> None:
+    await service.set_member_role(
+        auth.composition, str(auth.composition["owner_id"]), user_id, body.role,
+    )
+
+
+@router.delete("/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_member(
+    composition_id: str,
+    user_id: str,
+    auth: AuthContext = Depends(require(Action.MANAGE_SHARING)),
+    service: SharingService = Depends(get_service),
+) -> None:
+    await service.remove_member(auth.composition, user_id)

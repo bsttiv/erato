@@ -39,11 +39,7 @@ class BandsService:
     async def delete_band(self, band_id: str) -> None:
         if await self.bands.get_by_id(band_id) is None:
             return
-        await self.bands.db.compositions.update_many(
-            {'band_id': ObjectId(band_id)},
-            {'$set': {'band_id': None, 'band_editable': False, 'members': [],
-                      'updated_at': datetime.now(timezone.utc)}},
-        )
+        await self.compositions.detach_all_band_compositions(band_id)
         await self.invitations.delete_by_band(band_id)
         await self.bands.collection.delete_one({'_id': ObjectId(band_id)})
 

@@ -149,3 +149,35 @@ async def test_invite_roles_validation_and_permissions():
             headers={"Authorization": f"Bearer {stranger_token}"},
         )
         assert res_stranger_edit.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_departed_band_member_legacy_role_is_ignored():
+    from bson import ObjectId
+    from app.db.repositories.bands import BandsRepository
+    from app.main import app
+
+    owner, member = str(ObjectId()), str(ObjectId())
+    bands, comps = BandsRepository(), CompositionsRepository()
+    band = await bands.insert('Role departure', owner)
+    bid = str(band['_id'])
+    await bands.add_member_if_seat(bid, member, None)
+    comp = await comps.create_composition(owner, 'Legacy role')
+    cid = str(comp['_id'])
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
+            path = f'/api/compositions/{cid}'
+            owner_headers = {'Authorization': f'Bearer {mint_access_token(owner)}'}
+            member_headers = {'Authorization': f'Bearer {mint_access_token(member)}'}
+            assert (await client.patch(path + '/band', json={'band_id': bid, 'band_editable': True}, headers=owner_headers)).status_code == 200
+            await comps.set_member_role(cid, member, 'editor')
+            await bands.remove_member(bid, member)
+            assert (await comps.get_by_id(cid))['members']
+            assert (await client.get(path, headers=member_headers)).status_code == 404
+            assert (await client.get(path)).status_code == 404
+            await client.patch(path + '/visibility', json={'visibility': 'public'}, headers=owner_headers)
+            assert (await client.get(path)).status_code == 200
+            assert (await client.get(path, headers=member_headers)).json()['user_role'] == 'viewer'
+            assert (await client.patch(path, json={'title': 'Denied'}, headers=member_headers)).status_code == 403
+    finally:
+        await bands.collection.delete_one({'_id': band['_id']})
