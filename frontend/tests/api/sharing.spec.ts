@@ -1,205 +1,29 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import {
-  setVisibility,
-  createInvite,
-  listInvites,
-  revokeInvite,
-  redeemInvite,
-  listMembers,
-} from '@/api/sharing'
-
-describe('Sharing API client contract', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  it('setVisibility(id, visibility) sends PATCH /compositions/{id}/visibility with { visibility }', async () => {
-    const mockResponse = {
-      id: 'comp-1',
-      owner_id: 'user-1',
-      title: 'Song',
-      visibility: 'public',
-      created_at: '2026-10-01T12:00:00Z',
-      updated_at: '2026-10-01T12:00:00Z',
-    }
-
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify(mockResponse), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    )
-
-    const result = await setVisibility('comp-1', 'public')
-
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
-    const [url, init] = fetchSpy.mock.calls[0]
-    expect(url.toString()).toContain('/api/compositions/comp-1/visibility')
-    expect(init?.method).toBe('PATCH')
-    expect(JSON.parse(init?.body as string)).toEqual({ visibility: 'public' })
-    expect(result.visibility).toBe('public')
-  })
-
-  it('createInvite(id, payload) sends POST /compositions/{id}/invites with role and optional invited_email', async () => {
-    const mockInvite = {
-      id: 'inv-1',
-      composition_id: 'comp-1',
-      invite_url: 'https://erato.app/invite/token123',
-      invited_email: 'bandmate@example.com',
-      role: 'viewer',
-      expires_at: '2026-10-08T12:00:00Z',
-      used_at: null,
-    }
-
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify(mockInvite), {
-        status: 201,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    )
-
-    const result = await createInvite('comp-1', {
-      email: 'bandmate@example.com',
-      role: 'viewer',
-    })
-
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
-    const [url, init] = fetchSpy.mock.calls[0]
-    expect(url.toString()).toContain('/api/compositions/comp-1/invites')
-    expect(init?.method).toBe('POST')
-    expect(JSON.parse(init?.body as string)).toEqual({
-      invited_email: 'bandmate@example.com',
-      role: 'viewer',
-    })
-    expect(result.invite_url).toBe('https://erato.app/invite/token123')
-    expect(result.role).toBe('viewer')
-  })
-
-  it('createInvite(id, { role }) omits invited_email from the body when no email is given', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(
-        JSON.stringify({
-          id: 'inv-2',
-          composition_id: 'comp-1',
-          invite_url: 'https://erato.app/invite/t2',
-          role: 'editor',
-          expires_at: '2026-10-08T12:00:00Z',
-        }),
-        { status: 201, headers: { 'Content-Type': 'application/json' } }
-      )
-    )
-
-    await createInvite('comp-1', { role: 'editor' })
-
-    const [, init] = fetchSpy.mock.calls[0]
-    const body = JSON.parse(init?.body as string)
-    expect(body).toEqual({ role: 'editor' })
-    expect('invited_email' in body).toBe(false)
-  })
-
-  it('listInvites(id) calls GET /compositions/{id}/invites and returns InviteResponse[]', async () => {
-    const mockInvites = [
-      {
-        id: 'inv-1',
-        composition_id: 'comp-1',
-        invite_url: null,
-        invited_email: 'bandmate@example.com',
-        role: 'editor',
-        expires_at: '2026-10-08T12:00:00Z',
-        used_at: null,
-      },
-    ]
-
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify(mockInvites), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    )
-
-    const result = await listInvites('comp-1')
-
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
-    const [url] = fetchSpy.mock.calls[0]
-    expect(url.toString()).toContain('/api/compositions/comp-1/invites')
-    expect(result).toEqual(mockInvites)
-  })
-
-  it('revokeInvite(id, inviteId) calls DELETE /compositions/{id}/invites/{inviteId}', async () => {
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify({ message: 'Invitación revocada correctamente' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    )
-
-    await revokeInvite('comp-1', 'inv-1')
-
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
-    const [url, init] = fetchSpy.mock.calls[0]
-    expect(url.toString()).toContain('/api/compositions/comp-1/invites/inv-1')
-    expect(init?.method).toBe('DELETE')
-  })
-
-  it('redeemInvite(token) calls POST /auth/redeem-invite with { token }', async () => {
-    const mockRedeem = {
-      message: 'Invitación aceptada',
-      composition_id: 'comp-1',
-    }
-
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify(mockRedeem), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    )
-
-    const result = await redeemInvite('secret-token')
-
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
-    const [url, init] = fetchSpy.mock.calls[0]
-    expect(url.toString()).toContain('/api/auth/redeem-invite')
-    expect(init?.method).toBe('POST')
-    expect(JSON.parse(init?.body as string)).toEqual({ token: 'secret-token' })
-    expect(result).toEqual(mockRedeem)
-  })
-
-  it('listMembers(id) calls GET /compositions/{id}/members and returns MemberDetail[]', async () => {
-    const mockMembers = [
-      {
-        user_id: 'user-1',
-        display_name: 'Miles Davis',
-        email: 'miles@example.com',
-        initials: 'MD',
-        role: 'owner',
-        pending: false,
-      },
-      {
-        user_id: 'user-2',
-        display_name: null,
-        email: 'coltrane@example.com',
-        initials: 'C',
-        role: 'viewer',
-        pending: true,
-      },
-    ]
-
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      new Response(JSON.stringify(mockMembers), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      })
-    )
-
-    const result = await listMembers('comp-1')
-
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
-    const [url] = fetchSpy.mock.calls[0]
-    expect(url.toString()).toContain('/api/compositions/comp-1/members')
-    expect(result).toEqual(mockMembers)
-  })
+import { it, expect, vi, afterEach } from 'vitest'
+import * as sharing from '@/api/sharing'
+import { HttpError } from '@/api/compositions'
+afterEach(() => vi.restoreAllMocks())
+it.each([
+  ['setCompositionBand', ['c', 'b', true], '/compositions/c/band', 'PATCH', { band_id: 'b', band_editable: true }, 200],
+  ['setCompositionBand', ['c', null, false], '/compositions/c/band', 'PATCH', { band_id: null, band_editable: false }, 200],
+  ['setMemberRole', ['c', 'u', 'viewer'], '/compositions/c/members/u', 'PUT', { role: 'viewer' }, 204],
+  ['removeMember', ['c', 'u'], '/compositions/c/members/u', 'DELETE', undefined, 204],
+  ['redeemInvite', ['token'], '/auth/redeem-invite', 'POST', { token: 'token' }, 200],
+  ['setVisibility', ['c', 'public'], '/compositions/c/visibility', 'PATCH', { visibility: 'public' }, 200],
+  ['listMembers', ['c'], '/compositions/c/members', 'GET', undefined, 200],
+])('%s follows its API contract', async (name, args, path, method, body, status) => {
+  const payload = name === 'redeemInvite' ? { band_id: 'b', status: 'joined' } : { visibility: 'public' }
+  const spy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(status === 204 ? null : JSON.stringify(payload), { status: Number(status) }))
+  const result = await (sharing as any)[String(name)](...args as any[])
+  const [url, init] = spy.mock.calls[0]
+  expect(String(url)).toContain(`/api${path}`); expect(init?.method ?? 'GET').toBe(method)
+  expect(init?.body ? JSON.parse(String(init.body)) : undefined).toEqual(body)
+  expect(result).toEqual(status === 204 ? undefined : expect.objectContaining(payload))
+})
+it('removes legacy invite operations', () => {
+  for (const name of ['createInvite', 'listInvites', 'revokeInvite']) expect(sharing).not.toHaveProperty(name)
+})
+it.each(['setCompositionBand', 'setMemberRole', 'removeMember', 'redeemInvite', 'listMembers', 'setVisibility'])('%s preserves machine-readable backend errors', async name => {
+  vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ error: 'band_inactive', detail: 'internal' }), { status: 403 }))
+  await expect((sharing as any)[name]('c', 'u', true)).rejects.toMatchObject({ code: 'band_inactive', status: 403 })
+  await expect((sharing as any)[name]('c', 'u', true)).rejects.toBeInstanceOf(HttpError)
 })

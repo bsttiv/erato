@@ -23,7 +23,7 @@ async def clean_db():
 
 
 @pytest.mark.asyncio
-async def test_invite_roles_validation_and_permissions():
+async def test_band_member_roles_validation_and_permissions():
     from app.main import app
     users_repo = UsersRepository()
     owner = await users_repo.create_user("owner@test.com", "hash", "Owner")
@@ -44,32 +44,18 @@ async def test_invite_roles_validation_and_permissions():
         assert res_create.status_code == 201
         cid = res_create.json()["id"]
 
-        # 1. Invalid role in invite rejected with 422
-        res_invalid_role = await client.post(
-            f"/api/compositions/{cid}/invites",
-            json={"role": "admin", "invited_email": "viewer@test.com"},
-            headers={"Authorization": f"Bearer {owner_token}"},
-        )
-        assert res_invalid_role.status_code == 422
-
-        # 2. Invite with role "viewer" accepted with 201
-        res_viewer_invite = await client.post(
-            f"/api/compositions/{cid}/invites",
-            json={"role": "viewer", "invited_email": "viewer@test.com"},
-            headers={"Authorization": f"Bearer {owner_token}"},
-        )
-        assert res_viewer_invite.status_code == 201
-        inv_data = res_viewer_invite.json()
-        assert inv_data["role"] == "viewer"
-        token_plain = inv_data["invite_url"].split("/")[-1]
-
-        # 3. Redeem viewer invite
-        res_redeem = await client.post(
-            "/api/auth/redeem-invite",
-            json={"token": token_plain},
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-        assert res_redeem.status_code == 200
+        from app.db.repositories.bands import BandsRepository
+        band = await BandsRepository().insert('Roles', str(owner['_id']))
+        bid = str(band['_id'])
+        await BandsRepository().add_member_if_seat(bid, str(viewer_user['_id']), None)
+        await client.patch(f'/api/compositions/{cid}/band',
+                           json={'band_id': bid, 'band_editable': True},
+                           headers={'Authorization': f'Bearer {owner_token}'})
+        path = f"/api/compositions/{cid}/members/{viewer_user['_id']}"
+        assert (await client.put(path, json={'role': 'admin'},
+                                headers={'Authorization': f'Bearer {owner_token}'})).status_code == 422
+        assert (await client.put(path, json={'role': 'viewer'},
+                                headers={'Authorization': f'Bearer {owner_token}'})).status_code == 204
 
         # Check composition members has viewer role
         res_owner_get = await client.get(
@@ -149,6 +135,8 @@ async def test_invite_roles_validation_and_permissions():
             headers={"Authorization": f"Bearer {stranger_token}"},
         )
         assert res_stranger_edit.status_code == 403
+
+        await BandsRepository().collection.delete_one({"_id": band["_id"]})
 
 
 @pytest.mark.asyncio

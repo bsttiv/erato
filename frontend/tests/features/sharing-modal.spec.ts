@@ -1,327 +1,147 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { ref } from 'vue'
 import { mount, flushPromises } from '@vue/test-utils'
 import SharingModal from '@/features/sharing/SharingModal.vue'
 import AppModal from '@/shared/AppModal.vue'
-import * as sharingApi from '@/api/sharing'
-import type { MemberDetail, InviteResponse } from '@/api/sharing'
+import * as sharing from '@/api/sharing'
+import * as bands from '@/api/bands'
+import * as compositions from '@/api/compositions'
+import { HttpError } from '@/api/compositions'
 
-const sampleMembers: MemberDetail[] = [
-  {
-    user_id: 'user-owner',
-    display_name: 'Carlos Santana',
-    email: 'carlos@santana.com',
-    initials: 'CS',
-    role: 'owner',
-    pending: false,
-  },
-  {
-    user_id: 'user-editor',
-    display_name: 'Ana Pérez',
-    email: 'ana@perez.com',
-    initials: 'AP',
-    role: 'editor',
-    pending: false,
-  },
-  {
-    user_id: 'user-viewer',
-    display_name: 'Juan Domínguez',
-    email: 'juan@dominguez.com',
-    initials: 'JD',
-    role: 'viewer',
-    pending: false,
-  },
-  {
-    user_id: null,
-    invite_id: 'inv-pending',
-    display_name: null,
-    email: 'pendiente@banda.com',
-    initials: null,
-    role: 'editor',
-    pending: true,
-  },
-]
-
-describe('SharingModal feature', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks()
-    vi.spyOn(sharingApi, 'listMembers').mockResolvedValue(sampleMembers)
-    vi.spyOn(sharingApi, 'listInvites').mockResolvedValue([])
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: vi.fn().mockResolvedValue(undefined),
-      },
-    })
+const state = vi.hoisted(() => ({ allowed: true }))
+vi.mock('@/features/plan/useEntitlements', () => ({ useEntitlements: () => ({
+  entitlements: ref({ can_share_with_people: state.allowed }), refresh: vi.fn(),
+}) }))
+const song = { id: 'c1', owner_id: 'owner', title: 'Canción', visibility: 'private' as const,
+  todos: [], members: [{ user_id: 'm1', role: 'viewer' as const }],
+  band_id: 'b1', band_editable: false, created_at: '', updated_at: '' }
+const band = { id: 'b1', name: 'Trío', owner_id: 'owner', user_role: 'member' as const,
+  seats_used: 2, seat_limit: null, active: true, pending_transfer: null, created_at: '', updated_at: '',
+  members: [{ user_id: 'owner', display_name: 'Dueño', initials: 'D', role: 'member' as const },
+    { user_id: 'm1', display_name: 'Ana', initials: 'A', role: 'member' as const },
+    { user_id: 'm2', display_name: 'Luis', initials: 'L', role: 'owner' as const }] }
+function setup(props = {}) {
+  return mount(SharingModal, { props: { compositionId: 'c1', visibility: 'public', shareSlug: 'slug', ...props } })
+}
+function button(w: ReturnType<typeof setup>, text: string) {
+  return w.findAll('button').find(b => b.text() === text)!
+}
+beforeEach(() => {
+  vi.restoreAllMocks(); state.allowed = true
+  vi.spyOn(compositions, 'getComposition').mockResolvedValue(song)
+  vi.spyOn(bands, 'listBands').mockResolvedValue([band])
+  vi.spyOn(bands, 'getBand').mockResolvedValue(band)
+  vi.spyOn(sharing, 'listMembers').mockResolvedValue([
+    { user_id: 'owner', role: 'owner', pending: false },
+    { user_id: 'm1', role: 'viewer', pending: false },
+    { user_id: 'outsider', display_name: 'Fuera', role: 'editor', pending: false },
+  ])
+  Object.assign(navigator, { clipboard: { writeText: vi.fn().mockResolvedValue(undefined) } })
+})
+describe('SharingModal band sharing', () => {
+  it('keeps two visibility cards, AppModal close and a separate labelled band control without invites', async () => {
+    const w = setup(); await flushPromises()
+    expect(w.findAll('.er-share-card')).toHaveLength(2)
+    expect(w.findAll('.er-share-card').map(b => b.text())).toEqual([
+      expect.stringContaining('Con enlace'), expect.stringContaining('Privada')])
+    expect(w.find('select[aria-label="Banda"]').exists()).toBe(true)
+    expect(w.text()).not.toContain('Crear enlace de invitación')
+    expect(w.text()).not.toContain('invitación pendiente')
+    expect(w.text()).not.toMatch(/!|\p{Extended_Pictographic}/u)
+    w.findComponent(AppModal).vm.$emit('close'); expect(w.emitted('close')).toBeTruthy()
   })
-
-  it('is wrapped inside AppModal and emits close on escape or modal close', async () => {
-    const wrapper = mount(SharingModal, {
-      props: {
-        compositionId: 'comp-100',
-        title: 'Bajo el farol',
-        visibility: 'public',
-        shareSlug: 'bajo-el-farol-xyz',
-      },
-    })
-    await flushPromises()
-
-    const appModal = wrapper.findComponent(AppModal)
-    expect(appModal.exists()).toBe(true)
-    expect(appModal.props('open')).toBe(true)
-
-    // Trigger close on AppModal
-    appModal.vm.$emit('close')
-    expect(wrapper.emitted('close')).toBeTruthy()
+  it('loads attached band and offers roles only to its members, excluding the composition owner', async () => {
+    const w = setup(); await flushPromises()
+    expect(bands.getBand).toHaveBeenCalledWith('b1')
+    expect(w.find('select[aria-label="Banda"]').element).toHaveProperty('value', 'b1')
+    expect(w.findAll('select[data-test="member-role"]')).toHaveLength(2)
+    expect(w.text()).toContain('Ana'); expect(w.text()).toContain('Luis')
+    expect(w.text()).not.toContain('Fuera')
+    expect(w.find('select[aria-label="Rol de Ana"]').element).toHaveProperty('value', 'viewer')
   })
-
-  it('presents exactly two visibility options: Con enlace and Privada (D7)', async () => {
-    const wrapper = mount(SharingModal, {
-      props: {
-        compositionId: 'comp-100',
-        title: 'Bajo el farol',
-        visibility: 'private',
-        shareSlug: 'bajo-el-farol-xyz',
-      },
-    })
-    await flushPromises()
-
-    const cards = wrapper.findAll('.er-share-card')
-    expect(cards.length).toBe(2)
-    expect(cards[0].text()).toContain('Con enlace')
-    expect(cards[1].text()).toContain('Privada')
+  it('attaches a selected user band with band_editable without changing visibility', async () => {
+    const detachedSong = { ...song, band_id: null, members: [] }
+    vi.spyOn(compositions, 'getComposition').mockResolvedValue(detachedSong)
+    const save = vi.spyOn(sharing, 'setCompositionBand').mockResolvedValue({ ...song, band_editable: true })
+    const visibility = vi.spyOn(sharing, 'setVisibility')
+    const w = setup(); await flushPromises()
+    await w.find('select[aria-label="Banda"]').setValue('b1')
+    await w.find('input[type="checkbox"]').setValue(true)
+    await button(w, 'Guardar banda').trigger('click'); await flushPromises()
+    expect(save).toHaveBeenCalledWith('c1', 'b1', true)
+    expect(visibility).not.toHaveBeenCalled()
   })
-
-  it('toggling visibility calls setVisibility with correct arguments', async () => {
-    const setVisSpy = vi.spyOn(sharingApi, 'setVisibility').mockResolvedValue({
-      id: 'comp-100',
-      owner_id: 'user-owner',
-      title: 'Bajo el farol',
-      visibility: 'public',
-      is_public: true,
-      todos: [],
-      members: [],
-      demos: [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-
-    const wrapper = mount(SharingModal, {
-      props: {
-        compositionId: 'comp-100',
-        title: 'Bajo el farol',
-        visibility: 'private',
-        shareSlug: 'bajo-el-farol-xyz',
-      },
-    })
-    await flushPromises()
-
-    const publicCard = wrapper.findAll('.er-share-card')[0]
-    await publicCard.trigger('click')
-    await flushPromises()
-
-    expect(setVisSpy).toHaveBeenCalledWith('comp-100', 'public')
-    expect(wrapper.emitted('visibilityChanged')?.[0]).toEqual(['public'])
+  it('sets a role for a band member', async () => {
+    const save = vi.spyOn(sharing, 'setMemberRole').mockResolvedValue(undefined)
+    const w = setup(); await flushPromises()
+    await w.find('select[aria-label="Rol de Luis"]').setValue('editor'); await flushPromises()
+    expect(save).toHaveBeenCalledWith('c1', 'm2', 'editor')
   })
-
-  it('displays read-only share link with working copy button when public', async () => {
-    const wrapper = mount(SharingModal, {
-      props: {
-        compositionId: 'comp-100',
-        title: 'Bajo el farol',
-        visibility: 'public',
-        shareSlug: 'bajo-el-farol-xyz',
-      },
-    })
-    await flushPromises()
-
-    const linkContainer = wrapper.find('.er-share-link')
-    expect(linkContainer.exists()).toBe(true)
-
-    const input = linkContainer.find('input[readonly]')
-    expect(input.exists()).toBe(true)
-    expect((input.element as HTMLInputElement).value).toContain('/c/bajo-el-farol-xyz')
-
-    const copyBtn = linkContainer.find('button')
-    expect(copyBtn.text()).toContain('Copiar')
-
-    await copyBtn.trigger('click')
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining('/c/bajo-el-farol-xyz')
-    )
+  it('confirms or cancels detach inline, then clears roles', async () => {
+    const save = vi.spyOn(sharing, 'setCompositionBand').mockResolvedValue({ ...song, band_id: null, members: [] })
+    const w = setup(); await flushPromises()
+    await button(w, 'Desvincular banda').trigger('click'); expect(save).not.toHaveBeenCalled()
+    await button(w, 'No').trigger('click'); expect(button(w, 'Desvincular banda')).toBeDefined()
+    await button(w, 'Desvincular banda').trigger('click')
+    await button(w, 'Sí').trigger('click'); await flushPromises()
+    expect(save).toHaveBeenCalledWith('c1', null, false)
+    expect(w.findAll('[data-test="member-role"]')).toHaveLength(0)
   })
-
-  it('displays permission checklist explaining access rules', async () => {
-    const wrapper = mount(SharingModal, {
-      props: {
-        compositionId: 'comp-100',
-        title: 'Bajo el farol',
-        visibility: 'public',
-      },
-    })
-    await flushPromises()
-
-    const permList = wrapper.find('.er-perm-list')
-    expect(permList.exists()).toBe(true)
-    expect(permList.text().toLowerCase()).toContain('ver letra y acordes')
-    expect(permList.text().toLowerCase()).toContain('escuchar demos')
+  it('confirms removal of a role and explains inherited band access', async () => {
+    const remove = vi.spyOn(sharing, 'removeMember').mockResolvedValue(undefined)
+    const w = setup(); await flushPromises()
+    await button(w, 'Quitar rol').trigger('click'); expect(remove).not.toHaveBeenCalled()
+    expect(w.text()).toContain('acceso de la banda')
+    await button(w, 'Sí').trigger('click'); await flushPromises()
+    expect(remove).toHaveBeenCalledWith('c1', 'm1')
   })
-
-  const createdInvite = {
-    id: 'inv-new',
-    composition_id: 'comp-100',
-    role: 'viewer',
-    expires_at: '2026-10-08T12:00:00Z',
-    invite_url: 'http://localhost/invite/plain-token',
-  } as InviteResponse
-
-  function mountPrivate() {
-    return mount(SharingModal, {
-      props: { compositionId: 'comp-100', title: 'Bajo el farol', visibility: 'private' },
-    })
-  }
-
-  it('invite row has no email input, a role dropdown and an enabled create-link button', async () => {
-    const wrapper = mountPrivate()
-    await flushPromises()
-
-    const inviteRow = wrapper.find('.er-invite-row')
-    expect(inviteRow.exists()).toBe(true)
-    expect(inviteRow.find('input[type="email"]').exists()).toBe(false)
-    expect(wrapper.html()).not.toContain('correo@ejemplo.com')
-
-    const roleSelect = inviteRow.find('select')
-    expect(roleSelect.text()).toContain('Editor')
-    expect(roleSelect.text()).toContain('Solo ver')
-
-    const inviteBtn = inviteRow.find('button[data-test="send-invite-btn"]')
-    expect(inviteBtn.text()).toContain('Crear enlace de invitación')
-    expect(inviteBtn.attributes('disabled')).toBeUndefined()
+  it('explains the gate and keeps public link and visibility working', async () => {
+    state.allowed = false
+    const save = vi.spyOn(sharing, 'setVisibility').mockResolvedValue({ ...song, visibility: 'private' })
+    const w = setup(); await flushPromises()
+    expect(w.find('select[aria-label="Banda"]').exists()).toBe(false)
+    expect(w.text()).toContain('Compartir con personas no está disponible')
+    await button(w, 'Copiar enlace').trigger('click')
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('/c/slug'))
+    await w.findAll('.er-share-card')[1].trigger('click'); await flushPromises()
+    expect(save).toHaveBeenCalledWith('c1', 'private')
   })
-
-  it('creates the invite without invited_email and with the selected role', async () => {
-    const createSpy = vi.spyOn(sharingApi, 'createInvite').mockResolvedValue(createdInvite)
-    const wrapper = mountPrivate()
-    await flushPromises()
-
-    await wrapper.find('.er-invite-row select').setValue('viewer')
-    await wrapper.find('button[data-test="send-invite-btn"]').trigger('click')
-    await flushPromises()
-
-    expect(createSpy).toHaveBeenCalledTimes(1)
-    expect(createSpy).toHaveBeenCalledWith('comp-100', { role: 'viewer' })
+  it.each(['plan_gate_sharing', 'band_inactive', 'not_a_band_member', 'forbidden', 'not_found'])('maps %s without losing displayed data', async code => {
+    vi.spyOn(sharing, 'setMemberRole').mockRejectedValue(new HttpError('server', 403, code))
+    const w = setup(); await flushPromises()
+    await w.find('select[aria-label="Rol de Ana"]').setValue('editor'); await flushPromises()
+    expect(w.find('[role="alert"]').text()).not.toContain('server')
+    expect(w.find('[role="alert"]').text()).not.toMatch(/!|\p{Extended_Pictographic}/u)
+    expect(w.find('select[aria-label="Rol de Ana"]').element).toHaveProperty('value', 'viewer')
   })
-
-  it('shows the created link and the expiry date derived from expires_at', async () => {
-    vi.spyOn(sharingApi, 'createInvite').mockResolvedValue(createdInvite)
-    const wrapper = mountPrivate()
-    await flushPromises()
-
-    await wrapper.find('button[data-test="send-invite-btn"]').trigger('click')
-    await flushPromises()
-
-    const result = wrapper.find('[data-test="invite-result"]')
-    expect(result.exists()).toBe(true)
-    const input = result.find('input[readonly]')
-    expect((input.element as HTMLInputElement).value).toBe('http://localhost/invite/plain-token')
-
-    const expected = new Date('2026-10-08T12:00:00Z').toLocaleDateString('es')
-    expect(result.text()).toContain(`Vence el ${expected}`)
-    expect(result.text().toLowerCase()).not.toContain('un solo uso')
-  })
-
-  it('copy button writes the invite link to the clipboard and confirms', async () => {
-    vi.spyOn(sharingApi, 'createInvite').mockResolvedValue(createdInvite)
-    const wrapper = mountPrivate()
-    await flushPromises()
-
-    await wrapper.find('button[data-test="send-invite-btn"]').trigger('click')
-    await flushPromises()
-
-    const copyBtn = wrapper.find('[data-test="copy-invite-btn"]')
-    expect(copyBtn.text()).toContain('Copiar enlace')
-    await copyBtn.trigger('click')
-    await flushPromises()
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith('http://localhost/invite/plain-token')
-    expect(wrapper.find('[data-test="invite-result"]').text()).toContain('Enlace copiado')
-  })
-
-  it('does not crash when the clipboard write fails', async () => {
-    vi.spyOn(sharingApi, 'createInvite').mockResolvedValue(createdInvite)
-    Object.assign(navigator, {
-      clipboard: { writeText: vi.fn().mockRejectedValue(new Error('denied')) },
-    })
-    const wrapper = mountPrivate()
-    await flushPromises()
-
-    await wrapper.find('button[data-test="send-invite-btn"]').trigger('click')
-    await flushPromises()
-    await wrapper.find('[data-test="copy-invite-btn"]').trigger('click')
-    await flushPromises()
-
-    expect(wrapper.find('[data-test="invite-result"]').text()).not.toContain('Enlace copiado')
-  })
-
-  it('renders a pending invite without email as role plus pending label, never undefined', async () => {
-    vi.spyOn(sharingApi, 'listMembers').mockResolvedValue([
-      {
-        user_id: null,
-        invite_id: 'inv-x',
-        display_name: null,
-        email: null,
-        initials: null,
-        role: 'viewer',
-        pending: true,
-      },
-    ])
-    const wrapper = mountPrivate()
-    await flushPromises()
-
-    const item = wrapper.find('.er-member')
-    const text = item.text()
-    expect(text.toLowerCase()).toContain('invitación pendiente')
-    expect(text).toContain('Solo ver')
-    expect(text).not.toContain('undefined')
-    expect(text).not.toContain('null')
-    expect(text).not.toContain('()')
-    expect(item.find('.er-member-id').text()).toBe('Invitación por enlace')
-  })
-
-  it('member list displays owner, active members, and pending invitations with initials, name, email and role badge', async () => {
-    const wrapper = mount(SharingModal, {
-      props: {
-        compositionId: 'comp-100',
-        title: 'Bajo el farol',
-        visibility: 'private',
-      },
-    })
-    await flushPromises()
-
-    const memberList = wrapper.find('.er-invites-list')
-    expect(memberList.exists()).toBe(true)
-
-    const items = memberList.findAll('.er-member')
-    expect(items.length).toBe(4)
-
-    // Owner item
-    expect(items[0].text()).toContain('CS')
-    expect(items[0].text()).toContain('Carlos Santana')
-    expect(items[0].text()).toContain('carlos@santana.com')
-    expect(items[0].text().toLowerCase()).toContain('dueño')
-
-    // Editor item
-    expect(items[1].text()).toContain('AP')
-    expect(items[1].text()).toContain('Ana Pérez')
-    expect(items[1].text()).toContain('ana@perez.com')
-    expect(items[1].text().toLowerCase()).toContain('editor')
-
-    // Viewer item
-    expect(items[2].text()).toContain('JD')
-    expect(items[2].text()).toContain('Juan Domínguez')
-    expect(items[2].text()).toContain('juan@dominguez.com')
-    expect(items[2].text().toLowerCase()).toContain('solo ver')
-
-    // Pending invitation item
-    expect(items[3].text()).toContain('pendiente@banda.com')
-    expect(items[3].text().toLowerCase()).toContain('invitación pendiente')
-  })
+})
+it('uses design-system focus styles on visibility cards and the band checkbox', async () => {
+  const w = setup(); await flushPromises()
+  expect(w.findAll('.er-share-card').every(b => b.classes().includes('er-focus'))).toBe(true)
+  expect(w.find('input[type="checkbox"]').classes()).toContain('er-focus')
+  expect(w.find('input[readonly]').attributes('aria-label')).toBe('Enlace de lectura')
+})
+it('keeps inactive band roles readable and disables their changes while permitting confirmed detach', async () => {
+  vi.spyOn(bands, 'listBands').mockResolvedValue([{ ...band, active: false }])
+  vi.spyOn(bands, 'getBand').mockResolvedValue({ ...band, active: false })
+  const w = setup(); await flushPromises()
+  expect(w.text()).toContain('inactiva')
+  expect(w.find('select[data-test="member-role"]').attributes('disabled')).toBeDefined()
+  expect(button(w, 'Guardar banda').attributes('disabled')).toBeDefined()
+  expect(button(w, 'Desvincular banda').attributes('disabled')).toBeUndefined()
+})
+it('uses the newly minted public slug', async () => {
+  vi.spyOn(sharing, 'setVisibility').mockResolvedValue({ ...song, visibility: 'public', share_slug: 'minted' })
+  const w = setup({ visibility: 'private', shareSlug: null }); await flushPromises()
+  await w.findAll('.er-share-card')[0].trigger('click'); await flushPromises()
+  await button(w, 'Copiar enlace').trigger('click')
+  expect(navigator.clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining('/c/minted'))
+})
+it('shows load and clipboard failures in Spanish', async () => {
+  vi.spyOn(bands, 'getBand').mockRejectedValue(new HttpError('internal', 404, 'not_found'))
+  const w = setup(); await flushPromises()
+  expect(w.find('[role="alert"]').text()).toContain('No se encontró')
+  vi.mocked(navigator.clipboard.writeText).mockRejectedValue(new Error('denied'))
+  await button(w, 'Copiar enlace').trigger('click'); await flushPromises()
+  expect(w.find('[role="alert"]').text()).toContain('Cópialo desde el campo')
 })

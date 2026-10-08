@@ -12,7 +12,6 @@ from app.db.repositories.compositions import CompositionsRepository
 from app.db.repositories.invitations import InvitationsRepository
 from app.deps import get_plan_policy
 from app.main import app
-from app.services.sharing_service import SharingService
 
 pytestmark = pytest.mark.asyncio
 
@@ -93,12 +92,17 @@ async def test_multiuse_redeem_and_errors(client):
     assert response.status_code == 404 and response.json()['error'] == 'not_found'
 
 
-async def test_legacy_response_unchanged(client):
+async def test_legacy_token_is_gone_without_mutating_data(client):
     owner, user = ObjectId(), ObjectId()
     comp = await CompositionsRepository().create_composition(owner, 'Legacy')
-    _, token = await SharingService().create_invite(str(comp['_id']), str(owner), role='viewer')
+    token = 'legacy-token'
+    doc = {'composition_id': comp['_id'], 'token_hash': hash_opaque_token(token),
+           'role': 'viewer', 'used_at': None,
+           'expires_at': datetime.now(timezone.utc) + timedelta(days=14)}
+    result = await get_db().invitations.insert_one(doc)
+    before = await get_db().invitations.find_one({'_id': result.inserted_id})
     response = await client.post('/api/auth/redeem-invite', headers=headers(user), json={'token': token})
-    assert response.status_code == 200
-    assert response.json() == {'message': 'Invitación canjeada con éxito', 'composition_id': str(comp['_id'])}
-    assert (await CompositionsRepository().get_by_id(comp['_id']))['members'] == [{'user_id': user, 'role': 'viewer'}]
-    assert (await InvitationsRepository().get_by_hash(hash_opaque_token(token)))['used_at'] is not None
+    assert response.status_code == 410
+    assert response.json()['error'] == 'invitation_legacy'
+    assert (await CompositionsRepository().get_by_id(comp['_id']))['members'] == []
+    assert await get_db().invitations.find_one({'_id': result.inserted_id}) == before
