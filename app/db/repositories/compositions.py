@@ -456,3 +456,19 @@ class CompositionsRepository:
             return []
         return doc.get("demos") or []
 
+
+    async def set_member_role(self, composition_id: Union[str, ObjectId],
+                              user_id: Union[str, ObjectId], role: str) -> None:
+        """Set an existing role or conditionally insert without duplicate members."""
+        oid, uid = ObjectId(composition_id), ObjectId(user_id)
+        now = datetime.now(timezone.utc)
+        result = await self.collection.update_one(
+            {'_id': oid, 'members.user_id': uid},
+            {'$set': {'members.$.role': role, 'updated_at': now}},
+        )
+        if not result.matched_count:
+            await self.collection.update_one(
+                {'_id': oid, 'members.user_id': {'$ne': uid}},
+                {'$push': {'members': {'user_id': uid, 'role': role}},
+                 '$set': {'updated_at': now}},
+            )

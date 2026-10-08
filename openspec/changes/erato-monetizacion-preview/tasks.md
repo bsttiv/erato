@@ -292,11 +292,19 @@ Observed B5a TDD output (2026-10-07):
 Specs: `bands-and-membership: Invitations MUST target a band and carry no role`, `Joining MUST honor the policy seat limit atomically`; `sharing-and-visibility: invite roles`. Design AD4, AD8, OD-6 data flow.
 Depends on: B5a.
 
-- [ ] B5b.1 RED: create `tests/test_bands_invites.py`: owner creates/lists/deletes band invitations (`invite_url` built with `build_app_url`); body with `role` -> 422; redeem via `POST /api/auth/redeem-invite` returns `{band_id, status: "joined"|"already_member"}`; invitation multi-use by two users; unknown token 404; legacy 410; expired 410; inactive band -> 403 `band_inactive`.
-- [ ] B5b.2 RED: create `tests/test_seat_race.py`: `add_member_if_seat` with limit from `policy.seat_limit`; `asyncio.gather` of N redeems at the last seat admits exactly one and the rest get 409 `band_full`; already member is not duplicated; `None` limit means unbounded.
-- [ ] B5b.3 RED: extend `tests/test_compositions_repository.py`: `set_member_role` is atomic (two concurrent calls leave one entry, no duplicates).
-- [ ] B5b.4 GREEN: modify `app/db/repositories/bands.py` (`add_member_if_seat`), `app/db/repositories/compositions.py` (`set_member_role`), `app/db/repositories/invitations.py`, `app/services/bands_service.py` (invites, redeem/join), `app/routers/bands.py`, `app/routers/auth.py` (`redeem-invite` returns the join result), `app/schemas/bands.py`.
-- [ ] B5b.5 REFACTOR + `.venv/bin/pytest tests/`; commit (Spanish), e.g. `feat(bandas): invita con enlaces multiuso y une miembros con limite atomico de plazas`.
+- [x] B5b.1 RED: create `tests/test_bands_invites.py`: owner creates/lists/deletes band invitations (`invite_url` built with `build_app_url`); body with `role` -> 422; redeem via `POST /api/auth/redeem-invite` returns `{band_id, status: "joined"|"already_member"}`; invitation multi-use by two users; unknown token 404; legacy 410; expired 410; inactive band -> 403 `band_inactive`.
+- [x] B5b.2 RED: create `tests/test_seat_race.py`: `add_member_if_seat` with limit from `policy.seat_limit`; `asyncio.gather` of N redeems at the last seat admits exactly one and the rest get 409 `band_full`; already member is not duplicated; `None` limit means unbounded.
+- [x] B5b.3 RED: extend `tests/test_compositions_repository.py`: `set_member_role` is atomic (two concurrent calls leave one entry, no duplicates).
+- [x] B5b.4 GREEN: modify `app/db/repositories/bands.py` (`add_member_if_seat`), `app/db/repositories/compositions.py` (`set_member_role`), `app/db/repositories/invitations.py`, `app/services/bands_service.py` (invites, redeem/join), `app/routers/bands.py`, `app/routers/auth.py` (`redeem-invite` returns the join result), `app/schemas/bands.py`. redeem-invite dispatches on target: band tokens join the band; tokens without target keep the legacy composition redeem until B7.2b (orchestrator resolution consistent with the B1 author decision, 2026-10-07).
+- [x] B5b.5 REFACTOR + `.venv/bin/pytest tests/`; commit by Claude: `feat(bandas): invita con enlaces multiuso y une miembros con límite atómico de plazas`.
+
+B5b validation record (2026-10-07; uncommitted, Claude commits):
+- RED focused run: `5 failed, 5 passed in 1.09s`. `test_bands_invites.py`: create returned `404 != 201`, missing `invite_url`; `test_seat_race.py`: missing `invite_url` and `AttributeError: add_member_if_seat`; `test_compositions_repository.py`: `AttributeError: set_member_role`.
+- First GREEN attempt: `1 failed, 9 passed in 1.07s`; corrected expiry comparison for Mongo millisecond precision and naive UTC. GREEN: `10 passed in 1.04s`.
+- REFACTOR: imports moved to module scope. An accidentally overlapping focused/full run shared `erato_test` cleanup: focused `1 failed, 9 passed`, full `3 failed, 195 passed`; discarded as concurrent harness interference and rerun sequentially without code changes.
+- Final focused `.venv/bin/pytest tests/test_bands_invites.py tests/test_seat_race.py tests/test_compositions_repository.py`: `10 passed in 1.00s`. Full `.venv/bin/pytest tests/`: `198 passed in 14.13s`. `git diff --check` clean.
+- Legacy HTTP response preserved per orchestrator resolution; B1 repository still rejects legacy tokens with 410 on the band-only method. No B6/B7 behavior, schema/index changes, or manual database operations.
+- [ ] B5b commit (Claude): `feat(bandas): invita con enlaces multiuso y une miembros con límite atómico de plazas`.
 
 ### Unit B6a (repo: erato) - leave and remove (~200 lines)
 Specs: `bands-and-membership: Members MUST be able to leave, detaching their compositions`. Design AD7 note, AD9.
@@ -320,7 +328,7 @@ Depends on: B5b.
 
 - [ ] B7.1 RED (tests rewritten first): rewrite `tests/test_sharing_router.py` and `tests/test_sharing_roles.py` for the new model: composition `/invites` endpoints are gone (404/405); `PATCH /api/compositions/{id}/band {band_id, band_editable}` owner only, owner must be a member, sharing gate then band active, `band_editable=false` -> viewers (P9); detach (`band_id: null`) empties `members`, sets `band_editable` false and is never gated; `PUT /api/compositions/{id}/members/{uid}` only for users in the composition's band (else 409 `not_a_band_member`); `DELETE .../members/{uid}`; legacy `members` roles ignored after the user leaves the band (AD7); public visibility still allows anonymous view; private composition hidden from non-invited. PUT and DELETE /api/compositions/{id}/members/{uid} on a band composition MUST refuse with 403 band_inactive while the band is inactive (spec sharing-and-visibility: sharing changes refused while inactive).
 - [ ] B7.2 GREEN: modify `app/services/sharing_service.py` (band attach/detach, member roles, remove composition invitation creation), `app/routers/sharing.py` (remove `/invites`, add `/band`, `/members/{user_id}`), `app/db/repositories/compositions.py` (`set_band`, `detach_all_band_compositions`).
-- [ ] B7.2b GREEN: remove the legacy `create_invitation`/`redeem_invitation` composition methods from `app/db/repositories/invitations.py` and their tests (kept transitionally by B1 so `preview` never breaks; author decision 2026-10-07).
+- [ ] B7.2b GREEN: remove the legacy `create_invitation`/`redeem_invitation` composition methods from `app/db/repositories/invitations.py` and their tests, and remove the legacy branch of POST /api/auth/redeem-invite (kept transitionally by B1 so `preview` never breaks; author decision 2026-10-07).
 - [ ] B7.3 REFACTOR + full `.venv/bin/pytest tests/`; commit (Spanish), e.g. `feat(compartir): comparte composiciones con una banda y limita los roles a sus miembros`.
 
 ### Unit FX (repo: erato) - payment-only frontend extension point (~220 lines)

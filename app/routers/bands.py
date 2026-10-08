@@ -6,7 +6,8 @@ from app.core.plan_policy import PlanPolicy
 from app.db.repositories.users import UsersRepository
 from app.deps import current_user_required, get_plan_policy
 from app.routers.compositions import compute_initials
-from app.schemas.bands import BandCreate, BandRename, BandResponse, BandSummary
+from app.schemas.bands import (BandCreate, BandRename, BandResponse, BandSummary,
+                               BandInviteCreate, BandInviteResponse, BandInviteSummary)
 from app.services.bands_service import BandsService
 
 router = APIRouter(prefix='/api/bands', tags=['bands'])
@@ -83,3 +84,27 @@ async def rename_band(
 ) -> BandResponse:
     doc = await service.rename(band_id, user['id'], body.name)
     return await _to_response(doc, user['id'], service.policy)
+
+
+@router.post('/{band_id}/invites', response_model=BandInviteResponse, status_code=201)
+async def create_invite(
+    band_id: str, body: BandInviteCreate = BandInviteCreate(),
+    user: dict = Depends(current_user_required), service: BandsService = Depends(get_service),
+) -> dict:
+    return await service.create_invite(band_id, user['id'])
+
+
+@router.get('/{band_id}/invites', response_model=list[BandInviteSummary])
+async def list_invites(
+    band_id: str, user: dict = Depends(current_user_required),
+    service: BandsService = Depends(get_service),
+) -> list[dict]:
+    return await service.list_invites(band_id, user['id'])
+
+
+@router.delete('/{band_id}/invites/{invite_id}', status_code=204)
+async def delete_invite(
+    band_id: str, invite_id: str, user: dict = Depends(current_user_required),
+    service: BandsService = Depends(get_service),
+) -> None:
+    await service.delete_invite(band_id, user['id'], invite_id)

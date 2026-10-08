@@ -5,6 +5,7 @@ from bson import ObjectId
 from pymongo import ASCENDING, IndexModel
 from pymongo.asynchronous.database import AsyncDatabase
 
+from app.core.errors import ConflictError, NotFoundError
 from app.db.client import get_db
 
 
@@ -69,3 +70,23 @@ class BandsRepository:
              "$set": {"updated_at": datetime.now(timezone.utc)}},
         )
         return result.matched_count > 0
+
+    async def add_member_if_seat(self, band_id: str | ObjectId, user_id: str | ObjectId,
+                                 limit: Optional[int]) -> str:
+        """Admit one member with a single conditional seat update."""
+        uid = ObjectId(user_id)
+        query = {'_id': ObjectId(band_id), 'members.user_id': {'$ne': uid}}
+        if limit is not None:
+            query['$expr'] = {'$lt': [{'$size': '$members'}, limit]}
+        result = await self.collection.update_one(
+            query, {'$push': {'members': {'user_id': uid, 'role': 'member'}},
+                    '$set': {'updated_at': datetime.now(timezone.utc)}},
+        )
+        if result.matched_count:
+            return 'joined'
+        band = await self.get_by_id(band_id)
+        if band is None:
+            raise NotFoundError()
+        if any(m['user_id'] == uid for m in band['members']):
+            return 'already_member'
+        raise ConflictError('La banda no tiene plazas disponibles', code='band_full')
