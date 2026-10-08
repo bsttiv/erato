@@ -1,4 +1,5 @@
 import pytest
+from pathlib import Path
 from typing import Optional
 from fastapi import APIRouter, Depends
 from httpx import ASGITransport, AsyncClient
@@ -9,6 +10,19 @@ from app.db.repositories.users import UsersRepository
 from app.deps import get_host_capabilities, get_plan_policy
 from app.main import app
 import api.index
+
+
+def test_seams_documentation_pins_host_contract():
+    path = Path(__file__).resolve().parents[1] / "docs" / "seams.md"
+    assert path.is_file(), "docs/seams.md must document the host contract"
+    documentation = path.read_text(encoding="utf-8")
+    methods = {name for name, value in vars(PlanPolicy).items()
+               if not name.startswith("_") and callable(value)}
+    for name in sorted(methods | {
+        "get_plan_policy", "get_host_capabilities", "BandsService.create_for_user",
+        "BandsService.delete_band", "createEratoApp", "PaymentExtension",
+    }):
+        assert name in documentation, f"Missing seam: {name}"
 
 
 @pytest.fixture(autouse=True)

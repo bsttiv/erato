@@ -8,12 +8,16 @@ import { refreshEntitlements } from './features/plan/useEntitlements'
 import { EXTENSION_ROUTE_PREFIX, PAYMENT_EXTENSION_KEY, type PaymentExtension, type EratoAppOptions } from './extension'
 export { EXTENSION_ROUTE_PREFIX, PAYMENT_EXTENSION_KEY, type PaymentNavItem, type PaymentExtension, type EratoAppOptions } from './extension'
 
+function isPaymentPath(path: string): boolean {
+  return path === EXTENSION_ROUTE_PREFIX || path.startsWith(`${EXTENSION_ROUTE_PREFIX}/`)
+}
+
 export function createEratoRouter(payments?: PaymentExtension): Router {
   const extensionRecords: { path: string; name: RouteRecordRaw['name'] }[] = []
   function validate(records: RouteRecordRaw[], parent = ''): void {
     for (const route of records) {
       const path = route.path.startsWith('/') ? route.path : `${parent}/${route.path}`
-      if (!path.startsWith(EXTENSION_ROUTE_PREFIX)) throw new Error('Payment routes must start with /plan')
+      if (!isPaymentPath(path)) throw new Error('Payment routes must start with /plan')
       if (route.meta?.requiresAuth !== true || route.meta.public || route.meta.guestOnly) {
         throw new Error('Payment routes must require authentication')
       }
@@ -41,7 +45,7 @@ export function createEratoRouter(payments?: PaymentExtension): Router {
   }
   setupNavigationGuard(router)
   router.afterEach((to, from, failure) => {
-    if (!failure && from.path.startsWith(EXTENSION_ROUTE_PREFIX) && !to.path.startsWith(EXTENSION_ROUTE_PREFIX)) {
+    if (!failure && isPaymentPath(from.path) && !isPaymentPath(to.path)) {
       void refreshEntitlements()
     }
   })

@@ -412,9 +412,18 @@ F3b review corrections (2026-10-07):
 Specs: `plan-policy-port: The core MUST accept external routers and keep a stable app entry`; `preview-deployment: Indexes MUST be bootstrapped`, `Promotion and rollback documented`. Design "docs/seams.md".
 Depends on: B6b, FX, F3.
 
-- [ ] DOC.1 RED: add a docs-pin test in `tests/test_plan_policy_contract.py` that `docs/seams.md` exists and mentions each port method, `get_plan_policy`, `get_host_capabilities`, `BandsService.create_for_user`, `BandsService.delete_band`, `createEratoApp`, `PaymentExtension`. Observe failure.
-- [ ] DOC.2 GREEN: create `docs/seams.md` (getters, port methods, entitlements shape, host operations, `createEratoApp` payments option, entry point, import rule `app.*` never `erato.app.*`); complete `docs/runbook-preview.md` (migration dry-run then apply only on `erato_preview`, rollback steps, pointer check, pointer-bump order).
-- [ ] DOC.3 Run full `.venv/bin/pytest tests/` and `cd frontend && npm run test:unit && npm run build`; commit (Spanish), e.g. `docs(seams): documenta el contrato para erato-cloud y completa el runbook`.
+- [x] DOC.1 RED: add a docs-pin test in `tests/test_plan_policy_contract.py` that `docs/seams.md` exists and mentions each port method, `get_plan_policy`, `get_host_capabilities`, `BandsService.create_for_user`, `BandsService.delete_band`, `createEratoApp`, `PaymentExtension`. Observe failure.
+- [x] DOC.2 GREEN: create `docs/seams.md` (getters, port methods, entitlements shape, host operations, `createEratoApp` payments option, entry point, import rule `app.*` never `erato.app.*`); complete `docs/runbook-preview.md` (migration dry-run then apply only on `erato_preview`, rollback steps, pointer check, pointer-bump order).
+- [x] DOC.3 Run full `.venv/bin/pytest tests/` and `cd frontend && npm run test:unit && npm run build`.
+- [x] DOC commit by Claude: `docs(seams): documenta el contrato para erato-cloud y completa el runbook`, plus `fix(frontend): limita la extensión de pagos a rutas bajo /plan` found while documenting.
+
+DOC execution evidence (2026-10-07):
+- RED docs pin: `1 failed, 23 deselected in 0.46s`; `AssertionError: docs/seams.md must document the host contract`. GREEN focused: `1 passed, 23 deselected in 0.39s`.
+- Full backend: `238 passed in 20.52s`. Frontend: `53 files / 417 tests passed` in 11.75s; `vue-tsc && vite build` passed, 137 modules, built in 1.62s. Existing frontend harness warnings remain.
+- Names/signatures and core script flags verified from code; no migration/bootstrap run against preview or production. Cloud commands are documented future host procedures, not verified by accessing erato-cloud.
+- Design discrepancies: AD18 uses Motor `AsyncIOMotorDatabase`/`BandDocument`, code uses PyMongo `AsyncDatabase`/`dict`; AD12 declarations live in `extension.ts` and are re-exported by `app.ts`; `/plan` guard is a string prefix, not a path-segment boundary. AD6 injection holds for HTTP, but sharing/demo/versioning service constructors retain unlimited fallbacks when directly constructed without policy.
+- Authored lines exceed ~120 because the seven-method contract, actual frontend guards, safe migration/restore limitations and operational pointer/rollback procedures require additional detail. Only the two DOC documents, contract test and this task record changed; no dependencies, git writes, landing/pasos.md edits or erato-cloud access.
+
 
 ---
 

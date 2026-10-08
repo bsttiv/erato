@@ -5,6 +5,7 @@ import { createEratoApp, createEratoRouter, PAYMENT_EXTENSION_KEY } from '@/app'
 import AppNavExtras from '@/shared/AppNavExtras.vue'
 import { setAccessToken } from '@/api/client'
 import { resetAuthReadyForTesting, setAuthenticated } from '@/router/authReady'
+import * as entitlements from '@/features/plan/useEntitlements'
 
 const page = { template: '<p>Pago</p>' }
 const payments = {
@@ -14,6 +15,48 @@ const payments = {
 }
 afterEach(() => { setAccessToken(null); resetAuthReadyForTesting(); vi.restoreAllMocks() })
 describe('Payment app factory', () => {
+  it.each(['/planet', '/planilla'])('rejects payment-like top-level path %s', path => {
+    expect(() => createEratoApp({ payments: { routes: [
+      { path, component: page, meta: { requiresAuth: true } },
+    ] } })).toThrow('Payment routes must start with /plan')
+  })
+  it.each(['/planet', '/planilla'])('rejects payment-like absolute child path %s', path => {
+    expect(() => createEratoApp({ payments: { routes: [{
+      path: '/plan', component: page, meta: { requiresAuth: true },
+      children: [{ path, component: page, meta: { requiresAuth: true } }],
+    }] } })).toThrow('Payment routes must start with /plan')
+  })
+  it.each(['/plan', '/plan/bands/new'])('accepts payment path %s', path => {
+    const app = createEratoApp({ payments: { routes: [
+      { path, component: page, meta: { requiresAuth: true } },
+    ] } })
+    const router = app.config.globalProperties.$router
+    expect(router.resolve(path).matched.some(record => record.path === path)).toBe(true)
+    router.options.history.destroy()
+  })
+  it.each([
+    ['/planet', '/', 0], ['/planilla', '/', 0],
+    ['/plan', '/planet', 1], ['/plan/bands/new', '/planilla', 1],
+    ['/plan', '/plan/bands/new', 0],
+  ] as const)('refreshes only on leaving payment paths: %s -> %s', async (from, to, calls) => {
+    const refresh = vi.spyOn(entitlements, 'refreshEntitlements').mockResolvedValue(undefined)
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ access_token: 'jwt' })))
+    setAccessToken('jwt')
+    setAuthenticated(true)
+    const router = createEratoRouter({ routes: [
+      { path: '/plan', component: page, meta: { requiresAuth: true } },
+      { path: '/plan/bands/new', component: page, meta: { requiresAuth: true } },
+    ] })
+    // Non-payment host routes let the refresh boundary be exercised independently of registration.
+    for (const path of ['/planet', '/planilla']) router.addRoute({ path, component: page })
+    await router.push(from)
+    expect(router.currentRoute.value.path).toBe(from)
+    refresh.mockClear()
+    await router.push(to)
+    expect(refresh).toHaveBeenCalledTimes(calls)
+    router.options.history.destroy()
+  })
   it('creates only one browser history for a registered entry', () => {
     const listen = vi.spyOn(window, 'addEventListener')
     const router = createEratoRouter(payments)
