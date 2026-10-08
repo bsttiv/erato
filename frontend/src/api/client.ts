@@ -1,13 +1,15 @@
-let inMemoryAccessToken: string | null = null
+import { ref } from 'vue'
+
+const accessToken = ref<string | null>(null)
 let onAuthFailureCallback: (() => void) | null = null
 let refreshPromise: Promise<string | null> | null = null
 
 export function setAccessToken(token: string | null): void {
-  inMemoryAccessToken = token
+  accessToken.value = token
 }
 
 export function getAccessToken(): string | null {
-  return inMemoryAccessToken
+  return accessToken.value
 }
 
 export function setOnAuthFailure(cb: () => void): void {
@@ -55,8 +57,8 @@ export async function apiClient(
   const url = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`
 
   const headers = new Headers(options.headers || {})
-  if (inMemoryAccessToken && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${inMemoryAccessToken}`)
+  if (accessToken.value && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${accessToken.value}`)
   }
 
   const reqOptions: RequestInit = {

@@ -6,6 +6,7 @@
       </router-link>
 
       <div class="er-field-row">
+        <AppNavExtras />
         <router-link to="/compositions/new" class="er-btn er-btn--primary">
           Nueva canción
         </router-link>
@@ -62,6 +63,7 @@ import { ErSegmented, ErIcon, ErBrand, type SegmentedOption } from '@/design-sys
 import { listCompositions, type CompositionListItem } from '@/api/compositions'
 import { getMe } from '@/api/auth'
 import CompositionCard from './CompositionCard.vue'
+import AppNavExtras from '@/shared/AppNavExtras.vue'
 import { statusLabel } from './status'
 
 const compositions = ref<CompositionListItem[]>([])

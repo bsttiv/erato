@@ -1,19 +1,24 @@
+import { ref, watch } from 'vue'
 import { setAccessToken, getAccessToken } from '@/api/client'
 
 let authReadyPromise: Promise<boolean> | null = null
 let authReadyResolved = false
-let authenticated = false
+const authenticated = ref(false)
+
+watch(getAccessToken, token => {
+  if (!token) authenticated.value = false
+}, { flush: 'sync' })
 
 export function isAuthReady(): boolean {
   return authReadyResolved
 }
 
 export function isAuthenticated(): boolean {
-  return !!getAccessToken() || authenticated
+  return !!getAccessToken() || authenticated.value
 }
 
 export function setAuthenticated(val: boolean): void {
-  authenticated = val
+  authenticated.value = val
 }
 
 export function ensureAuthReady(): Promise<boolean> {
@@ -36,7 +41,7 @@ export function ensureAuthReady(): Promise<boolean> {
           const data = await res.json()
           if (data && data.access_token) {
             setAccessToken(data.access_token)
-            authenticated = true
+            authenticated.value = true
             authReadyResolved = true
             return true
           }
@@ -46,7 +51,7 @@ export function ensureAuthReady(): Promise<boolean> {
       }
 
       setAccessToken(null)
-      authenticated = false
+      authenticated.value = false
       authReadyResolved = true
       return false
     })()
@@ -58,5 +63,5 @@ export function ensureAuthReady(): Promise<boolean> {
 export function resetAuthReadyForTesting(): void {
   authReadyPromise = null
   authReadyResolved = false
-  authenticated = false
+  authenticated.value = false
 }
