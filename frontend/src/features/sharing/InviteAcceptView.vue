@@ -14,11 +14,10 @@
         // INVITACIÓN
       </div>
       <h1 class="er-dash-headline">
-        Te invitaron a colaborar
+        Te invitaron a una banda
       </h1>
       <p class="er-auth-subtitle">
-        Al aceptar, la composición se suma a tu espacio y podrás trabajar en ella con el rol
-        que te asignaron.
+        Al aceptar, te sumas a la banda y podrás abrir las composiciones que comparte contigo.
       </p>
 
       <div v-if="error" class="er-auth-error" role="alert">
@@ -42,6 +41,8 @@ import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ErButton, ErBrand } from '@/design-system'
 import { redeemInvite } from '@/api/sharing'
+import { useEntitlements } from '@/features/plan/useEntitlements'
+import { bandErrorMessage } from '@/features/bands/bandErrors'
 
 const route = useRoute()
 const router = useRouter()
@@ -49,17 +50,7 @@ const router = useRouter()
 const redeeming = ref(false)
 const error = ref<string | null>(null)
 
-const INVALID_LINK_MESSAGE =
-  'Este enlace de invitación no es válido o ya venció. Pide a quien te invitó que cree uno nuevo.'
-const GENERIC_MESSAGE = 'No pudimos aceptar la invitación. Inténtalo de nuevo en unos minutos.'
-
-function toMessage(err: unknown): string {
-  const text = err instanceof Error ? err.message.toLowerCase() : ''
-  if (/inv[aá]lid|expir|venc|no encontrad|not found|invalid/.test(text)) {
-    return INVALID_LINK_MESSAGE
-  }
-  return GENERIC_MESSAGE
-}
+const { refresh } = useEntitlements()
 
 async function accept() {
   if (redeeming.value) return
@@ -68,9 +59,10 @@ async function accept() {
   try {
     const token = String(route.params.token ?? '')
     const res = await redeemInvite(token)
-    await router.push(`/compositions/${res.composition_id}`)
+    await refresh()
+    await router.push(`/bands/${res.band_id}`)
   } catch (err) {
-    error.value = toMessage(err)
+    error.value = bandErrorMessage(err, 'invitation')
   } finally {
     redeeming.value = false
   }

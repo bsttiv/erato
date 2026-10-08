@@ -1,6 +1,9 @@
 import { HttpError } from '@/api/compositions'
 
 const messages: Record<string, string> = {
+  plan_gate_sharing: 'Compartir con personas no está disponible con tu plan.',
+  invitation_expired: 'Esta invitación venció. Pide un nuevo enlace a quien te invitó.',
+  invitation_legacy: 'Esta invitación antigua ya no está disponible. Pide una invitación a la banda.',
   band_full: 'No quedan plazas en esta banda.',
   transfer_pending: 'Ya hay una transferencia pendiente.',
   owner_must_transfer: 'Transfiere la propiedad antes de salir de la banda.',
@@ -14,7 +17,10 @@ const messages: Record<string, string> = {
   forbidden: 'No tienes permiso para realizar esta acción.',
   not_found: 'No se encontró la banda o ya no tienes acceso.',
 }
-export function bandErrorMessage(error: unknown): string {
+export function bandErrorMessage(error: unknown, context?: 'invitation'): string {
+  if (context === 'invitation' && error instanceof HttpError && error.code === 'not_found') {
+    return 'Esta invitación no existe. Pide un nuevo enlace a quien te invitó.'
+  }
   return (error instanceof HttpError && messages[error.code || '']) ||
     'No se pudo completar la acción. Inténtalo de nuevo.'
 }

@@ -46,39 +46,16 @@ async def test_members_projection_and_security():
         assert res_create.status_code == 201
         cid = res_create.json()["id"]
 
-        # Add editor via invite
-        res_inv_editor = await client.post(
-            f"/api/compositions/{cid}/invites",
-            json={"role": "editor", "invited_email": "editor@test.com"},
-            headers={"Authorization": f"Bearer {owner_token}"},
-        )
-        token_editor = res_inv_editor.json()["invite_url"].split("/")[-1]
-        await client.post(
-            "/api/auth/redeem-invite",
-            json={"token": token_editor},
-            headers={"Authorization": f"Bearer {editor_token}"},
-        )
-
-        # Add viewer via invite
-        res_inv_viewer = await client.post(
-            f"/api/compositions/{cid}/invites",
-            json={"role": "viewer", "invited_email": "viewer@test.com"},
-            headers={"Authorization": f"Bearer {owner_token}"},
-        )
-        token_viewer = res_inv_viewer.json()["invite_url"].split("/")[-1]
-        await client.post(
-            "/api/auth/redeem-invite",
-            json={"token": token_viewer},
-            headers={"Authorization": f"Bearer {viewer_token}"},
-        )
-
-        # Create a pending invite (not redeemed yet)
-        res_pending_inv = await client.post(
-            f"/api/compositions/{cid}/invites",
-            json={"role": "editor", "invited_email": "pending@test.com"},
-            headers={"Authorization": f"Bearer {owner_token}"},
-        )
-        pending_id = res_pending_inv.json()["id"]
+        # Existing member roles remain readable; legacy pending invites are excluded.
+        await CompositionsRepository().set_member_role(cid, str(editor['_id']), 'editor')
+        await CompositionsRepository().set_member_role(cid, str(viewer['_id']), 'viewer')
+        from datetime import datetime, timedelta, timezone
+        from bson import ObjectId
+        await get_db().invitations.insert_one({
+            'composition_id': ObjectId(cid), 'token_hash': 'pending-legacy',
+            'role': 'editor', 'used_at': None, 'invited_email': 'pending@test.com',
+            'expires_at': datetime.now(timezone.utc) + timedelta(days=14),
+        })
 
         # 1. GET /api/compositions/{id}/members for owner
         res_members = await client.get(
@@ -87,7 +64,8 @@ async def test_members_projection_and_security():
         )
         assert res_members.status_code == 200
         members_data = res_members.json()
-        assert len(members_data) == 4  # owner + editor + viewer + pending invite
+        assert len(members_data) == 3  # owner + editor + viewer
+        assert all(not m["pending"] and m["user_id"] for m in members_data)
 
         # Active owner
         m_owner = next(m for m in members_data if m["role"] == "owner")
@@ -112,13 +90,6 @@ async def test_members_projection_and_security():
         assert m_viewer["initials"] == "JD"
         assert m_viewer["role"] == "viewer"
         assert m_viewer["pending"] is False
-
-        # Pending invite
-        m_pending = next(m for m in members_data if m.get("invite_id") == pending_id)
-        assert m_pending["user_id"] is None
-        assert m_pending["email"] == "pending@test.com"
-        assert m_pending["role"] == "editor"
-        assert m_pending["pending"] is True
 
         # 2. Permissions check:
         # Editor cannot GET members -> 403

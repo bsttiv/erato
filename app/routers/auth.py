@@ -2,9 +2,8 @@ import logging
 from typing import Optional
 from fastapi import APIRouter, Cookie, Depends, Response, status
 
-from app.core.errors import NotFoundError, UnauthorizedError
+from app.core.errors import UnauthorizedError
 from app.core.security.tokens import hash_opaque_token
-from app.db.repositories.invitations import InvitationsRepository
 from app.routers.bands import get_service as get_bands_service
 from app.services.bands_service import BandsService
 from app.deps import current_user_required
@@ -181,21 +180,5 @@ async def redeem_invite(
     current_identity: dict = Depends(current_user_required),
     bands: BandsService = Depends(get_bands_service),
 ) -> dict:
-    """Dispatch band invitations while preserving the legacy composition flow."""
-    digest = hash_opaque_token(body.token)
-    invitation = await InvitationsRepository().get_by_hash(digest)
-    if invitation is None:
-        raise NotFoundError("Invitación no encontrada")
-    if (invitation.get("target") or {}).get("type") == "band":
-        return await bands.redeem_invite(digest, current_identity["id"])
-    from app.services.sharing_service import SharingService
-    service = SharingService()
-    comp_id = await service.redeem_invite(
-        plaintext_token=body.token,
-        user_id=current_identity["id"],
-    )
-    return {
-        "message": "Invitación canjeada con éxito",
-        "composition_id": comp_id,
-    }
-
+    """Redeem reusable band invitations, rejecting legacy tokens through the repository."""
+    return await bands.redeem_invite(hash_opaque_token(body.token), current_identity["id"])

@@ -4,23 +4,12 @@ from bson import ObjectId
 from pymongo import ASCENDING, IndexModel
 from pymongo.asynchronous.database import AsyncDatabase
 
-from app.core.errors import GoneError, NotFoundError, UnauthorizedError
+from app.core.errors import GoneError, NotFoundError
 from app.db.client import get_db
 
 
 class InvitationsRepository:
-    """Repository managing the 'invitations' collection per the Approved Data Model.
-    
-    Shape:
-    - _id: ObjectId
-    - composition_id: ObjectId
-    - token_hash: str (unique SHA-256 digest)
-    - invited_email: Optional[str]
-    - role: str ("editor")
-    - expires_at: datetime (TTL index)
-    - used_at: Optional[datetime] (null initially)
-    - created_by: ObjectId
-    """
+    """Repository for reusable band invitations and legacy token rejection."""
 
     def __init__(self, db: Optional[AsyncDatabase] = None) -> None:
         self._db = db
@@ -41,34 +30,6 @@ class InvitationsRepository:
             IndexModel([("target.type", ASCENDING), ("target.id", ASCENDING)], name="idx_invitations_target"),
         ])
 
-    async def create_invitation(
-        self,
-        composition_id: Union[str, ObjectId],
-        token_hash: str,
-        expires_at: datetime,
-        created_by: Union[str, ObjectId],
-        invited_email: Optional[str] = None,
-        role: str = "editor",
-    ) -> Dict[str, Any]:
-        """Create a new invitation record."""
-        cid = ObjectId(composition_id) if isinstance(composition_id, str) else composition_id
-        creator = ObjectId(created_by) if isinstance(created_by, str) else created_by
-
-        doc: Dict[str, Any] = {
-            "composition_id": cid,
-            "token_hash": token_hash,
-            "invited_email": invited_email.strip().lower() if invited_email else None,
-            "role": role,
-            "expires_at": expires_at,
-            "used_at": None,
-            "created_by": creator,
-            "created_at": datetime.now(timezone.utc),
-        }
-
-        result = await self.collection.insert_one(doc)
-        doc["_id"] = result.inserted_id
-        return doc
-
     async def get_by_hash(self, token_hash: str) -> Optional[Dict[str, Any]]:
         """Look up an invitation by token digest."""
         return await self.collection.find_one({"token_hash": token_hash})
@@ -82,45 +43,6 @@ class InvitationsRepository:
         else:
             oid = invitation_id
         return await self.collection.find_one({"_id": oid})
-
-    async def list_by_composition(
-        self,
-        composition_id: Union[str, ObjectId],
-    ) -> List[Dict[str, Any]]:
-        """List all active or historical invitations for a composition."""
-        cid = ObjectId(composition_id) if isinstance(composition_id, str) else composition_id
-        cursor = self.collection.find({"composition_id": cid}).sort("created_at", -1)
-        return await cursor.to_list(length=None)
-
-    async def redeem_invitation(self, token_hash: str) -> Dict[str, Any]:
-        """Redeem an invitation digest idempotently.
-        
-        - If unexpired and unconsumed (used_at is null), sets used_at to now.
-        - If already consumed, safely returns existing document (idempotent replay).
-        - If expired, raises UnauthorizedError.
-        - If not found, raises NotFoundError.
-        """
-        doc = await self.collection.find_one({"token_hash": token_hash})
-        if not doc:
-            raise NotFoundError("Invitación no encontrada")
-
-        doc_exp = doc["expires_at"]
-        if doc_exp.tzinfo is None:
-            doc_exp = doc_exp.replace(tzinfo=timezone.utc)
-        if doc_exp < datetime.now(timezone.utc):
-            raise UnauthorizedError("Invitación expirada")
-
-        if doc.get("used_at") is not None:
-            # Already redeemed: idempotent return
-            return doc
-
-        now = datetime.now(timezone.utc)
-        updated = await self.collection.find_one_and_update(
-            {"token_hash": token_hash, "used_at": None},
-            {"$set": {"used_at": now}},
-            return_document=True,
-        )
-        return updated or doc
 
     async def revoke_invitation(self, invitation_id: Union[str, ObjectId]) -> bool:
         """Revoke / delete an invitation by ID."""
@@ -166,7 +88,7 @@ class InvitationsRepository:
         return result.deleted_count
 
     async def redeem_band_invitation(self, token_hash: str) -> Dict[str, Any]:
-        """Validate a band token without consuming it; legacy flow stays separate."""
+        """Validate a reusable band token and reject legacy composition tokens."""
         doc = await self.get_by_hash(token_hash)
         if not doc:
             raise NotFoundError("Invitación no encontrada")

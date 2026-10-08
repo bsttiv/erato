@@ -1,93 +1,50 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import InviteAcceptView from '@/features/sharing/InviteAcceptView.vue'
-import * as sharingApi from '@/api/sharing'
-
+import * as sharing from '@/api/sharing'
+import { HttpError } from '@/api/compositions'
+const refresh = vi.hoisted(() => vi.fn())
+vi.mock('@/features/plan/useEntitlements', () => ({ useEntitlements: () => ({ refresh }) }))
+beforeEach(() => { vi.restoreAllMocks(); refresh.mockReset().mockResolvedValue(undefined) })
 async function setup() {
-  const router = createRouter({
-    history: createMemoryHistory(),
-    routes: [
-      { path: '/', name: 'dashboard', component: { template: '<div />' } },
-      { path: '/invite/:token', name: 'invite-redeem', component: InviteAcceptView },
-      { path: '/compositions/:id', name: 'composition-detail', component: { template: '<div />' } },
-    ],
-  })
-  await router.push('/invite/tok-abc')
-  await router.isReady()
-  const wrapper = mount(InviteAcceptView, { global: { plugins: [router] } })
-  return { router, wrapper }
+  const router = createRouter({ history: createMemoryHistory(), routes: [
+    { path: '/', component: { template: '<div />' } },
+    { path: '/invite/:token', component: InviteAcceptView },
+    { path: '/bands/:id', component: { template: '<div />' } },
+  ] })
+  await router.push('/invite/token'); await router.isReady()
+  return { router, w: mount(InviteAcceptView, { global: { plugins: [router] } }) }
 }
-
-describe('InviteAcceptView', () => {
-  beforeEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  it('shows a Spanish explanation and the accept button', async () => {
-    const { wrapper } = await setup()
-    expect(wrapper.find('.er-form-card').exists()).toBe(true)
-    expect(wrapper.find('.er-topbar-brand .er-brand').exists()).toBe(true)
-    expect(wrapper.find('.er-brand .er-nav-lamp').exists()).toBe(true)
-    expect(wrapper.find('.er-brand .er-nav-name').text()).toBe('Erato')
-    expect(wrapper.text()).toContain('Te invitaron a colaborar')
-    const btn = wrapper.find('button')
-    expect(btn.text()).toContain('Aceptar invitación')
-    expect(btn.attributes('disabled')).toBeUndefined()
-    expect(wrapper.text().toLowerCase()).not.toContain('un solo uso')
-  })
-
-  it('redeems with the route token and navigates to the composition', async () => {
-    const spy = vi
-      .spyOn(sharingApi, 'redeemInvite')
-      .mockResolvedValue({ message: 'ok', composition_id: 'comp-9' })
-    const { wrapper, router } = await setup()
-
-    await wrapper.find('button').trigger('click')
-    await flushPromises()
-
-    expect(spy).toHaveBeenCalledWith('tok-abc')
-    expect(router.currentRoute.value.path).toBe('/compositions/comp-9')
-  })
-
-  it('disables the button while redeeming', async () => {
-    let resolve!: (v: { message: string; composition_id: string }) => void
-    vi.spyOn(sharingApi, 'redeemInvite').mockReturnValue(
-      new Promise((r) => {
-        resolve = r
-      })
-    )
-    const { wrapper } = await setup()
-
-    await wrapper.find('button').trigger('click')
-    expect(wrapper.find('button').attributes('disabled')).toBeDefined()
-    expect(wrapper.find('button').text()).toContain('Aceptando')
-
-    resolve({ message: 'ok', composition_id: 'c' })
-    await flushPromises()
-  })
-
-  it('shows a clear error when the link is invalid or expired', async () => {
-    vi.spyOn(sharingApi, 'redeemInvite').mockRejectedValue(new Error('Invitación inválida o expirada'))
-    const { wrapper, router } = await setup()
-
-    await wrapper.find('button').trigger('click')
-    await flushPromises()
-
-    const err = wrapper.find('.er-auth-error')
-    expect(err.exists()).toBe(true)
-    expect(err.text()).toContain('no es válido o ya venció')
-    expect(router.currentRoute.value.path).toBe('/invite/tok-abc')
-    expect(wrapper.find('button').attributes('disabled')).toBeUndefined()
-  })
-
-  it('shows a generic Spanish error for unexpected failures', async () => {
-    vi.spyOn(sharingApi, 'redeemInvite').mockRejectedValue(new Error('Network down'))
-    const { wrapper } = await setup()
-
-    await wrapper.find('button').trigger('click')
-    await flushPromises()
-
-    expect(wrapper.find('.er-auth-error').text()).toContain('No pudimos aceptar la invitación')
-  })
+it('speaks about joining a band, uses the brand and follows copy rules', async () => {
+  const { w } = await setup()
+  expect(w.text()).toContain('Te invitaron a una banda')
+  expect(w.find('.er-brand').exists()).toBe(true)
+  expect(w.text()).not.toMatch(/!|\p{Extended_Pictographic}/u)
+})
+it.each(['joined', 'already_member'] as const)('refreshes before routing to the band for %s', async status => {
+  vi.spyOn(sharing, 'redeemInvite').mockResolvedValue({ band_id: 'b', status })
+  let resolve!: () => void
+  refresh.mockReturnValue(new Promise<void>(r => { resolve = r }))
+  const { w, router } = await setup()
+  await w.find('button').trigger('click'); await flushPromises()
+  expect(sharing.redeemInvite).toHaveBeenCalledWith('token'); expect(refresh).toHaveBeenCalledOnce()
+  expect(router.currentRoute.value.path).toBe('/invite/token')
+  expect(w.find('button').attributes('disabled')).toBeDefined()
+  resolve(); await flushPromises(); expect(router.currentRoute.value.path).toBe('/bands/b')
+})
+it.each([
+  ['invitation_expired', 'venció'], ['invitation_legacy', 'antigua'],
+  ['band_full', 'plazas'], ['band_inactive', 'inactiva'], ['not_found', 'invitación no'],
+])('maps %s in Spanish', async (code, text) => {
+  vi.spyOn(sharing, 'redeemInvite').mockRejectedValue(new HttpError('internal', 410, code))
+  const { w, router } = await setup(); await w.find('button').trigger('click'); await flushPromises()
+  expect(w.find('[role="alert"]').text()).toContain(text)
+  expect(w.text()).not.toMatch(/!|\p{Extended_Pictographic}/u)
+  expect(refresh).not.toHaveBeenCalled(); expect(router.currentRoute.value.path).toBe('/invite/token')
+})
+it('reports unexpected failures without navigating', async () => {
+  vi.spyOn(sharing, 'redeemInvite').mockRejectedValue(new Error('network'))
+  const { w } = await setup(); await w.find('button').trigger('click'); await flushPromises()
+  expect(w.find('[role="alert"]').text()).toContain('No se pudo completar')
 })

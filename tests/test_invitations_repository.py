@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from bson import ObjectId
 
-from app.core.errors import NotFoundError, UnauthorizedError
+from app.core.errors import NotFoundError
 from app.db.client import get_db
 from app.db.repositories.invitations import InvitationsRepository
 
@@ -33,57 +33,9 @@ async def test_ttl_index_exists():
     assert ttl_index["expireAfterSeconds"] == 0
 
 
-@pytest.mark.asyncio
-async def test_create_and_redeem_invitation_idempotent():
-    repo = InvitationsRepository()
-    comp_id = ObjectId()
-    creator_id = ObjectId()
-    token_hash = "sha256_invite_hash_123"
-    expires_at = datetime.now(timezone.utc) + timedelta(days=14)
-
-    inv = await repo.create_invitation(
-        composition_id=comp_id,
-        token_hash=token_hash,
-        expires_at=expires_at,
-        created_by=creator_id,
-        role="editor",
-    )
-
-    assert inv["_id"] is not None
-    assert inv["composition_id"] == comp_id
-    assert inv["used_at"] is None
-    assert inv["role"] == "editor"
-
-    # First redemption: marks used_at
-    redeemed_1 = await repo.redeem_invitation(token_hash)
-    assert redeemed_1["used_at"] is not None
-    first_used_at = redeemed_1["used_at"]
-
-    # Second redemption (replay): is idempotent, returns doc with original used_at intact
-    redeemed_2 = await repo.redeem_invitation(token_hash)
-    assert redeemed_2["used_at"] == first_used_at
-
-
-@pytest.mark.asyncio
-async def test_redeem_expired_or_nonexistent_invitation():
-    repo = InvitationsRepository()
-    comp_id = ObjectId()
-    creator_id = ObjectId()
-    past = datetime.now(timezone.utc) - timedelta(days=1)
-
-    expired_hash = "sha256_expired_hash"
-    await repo.create_invitation(
-        composition_id=comp_id,
-        token_hash=expired_hash,
-        expires_at=past,
-        created_by=creator_id,
-    )
-
-    with pytest.raises(UnauthorizedError, match="expirada"):
-        await repo.redeem_invitation(expired_hash)
-
-    with pytest.raises(NotFoundError):
-        await repo.redeem_invitation("nonexistent_hash")
+def test_legacy_repository_methods_removed():
+    assert not hasattr(InvitationsRepository, 'create_invitation')
+    assert not hasattr(InvitationsRepository, 'redeem_invitation')
 
 
 @pytest.mark.asyncio
@@ -101,12 +53,12 @@ async def test_band_invitation_shape_multi_use_and_scoped_deletion():
         assert "used_at" not in redeemed
     assert "used_at" not in await repo.get_by_hash("band-token")
     await repo.create_band_invitation(ObjectId(), "other-band", expiry, creator)
-    legacy = await repo.create_invitation(band, "legacy", expiry, creator)
+    legacy = await repo.collection.insert_one({"composition_id": band, "token_hash": "legacy"})
     assert [doc["_id"] for doc in await repo.list_by_band(str(band))] == [invitation["_id"]]
     assert await repo.delete_by_band(str(band)) == 1
     assert await repo.delete_by_band(band) == 0
     assert await repo.get_by_hash("other-band") is not None
-    assert await repo.get_by_id(legacy["_id"]) is not None
+    assert await repo.get_by_id(legacy.inserted_id) is not None
 
 
 @pytest.mark.asyncio
@@ -115,7 +67,8 @@ async def test_band_redeem_legacy_expired_and_unknown():
 
     repo = InvitationsRepository()
     now = datetime.now(timezone.utc)
-    await repo.create_invitation(ObjectId(), "legacy", now + timedelta(days=14), ObjectId())
+    await repo.collection.insert_one({"composition_id": ObjectId(), "token_hash": "legacy",
+                                      "expires_at": now + timedelta(days=14)})
     await repo.create_band_invitation(ObjectId(), "expired", now - timedelta(seconds=1), ObjectId())
     for token, code in (("legacy", "invitation_legacy"), ("expired", "invitation_expired")):
         with pytest.raises(GoneError) as caught:
