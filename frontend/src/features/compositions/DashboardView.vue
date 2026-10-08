@@ -6,6 +6,7 @@
       </router-link>
 
       <div class="er-field-row">
+        <router-link to="/bands" class="er-btn er-btn--ghost">Bandas</router-link>
         <AppNavExtras />
         <router-link to="/compositions/new" class="er-btn er-btn--primary">
           Nueva canción
