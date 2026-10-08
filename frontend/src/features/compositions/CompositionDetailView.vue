@@ -219,6 +219,8 @@
           />
         </section>
 
+        <SavedInEratoFooter v-if="showSavedInEratoFooter" />
+
         <!-- Sharing modal -->
         <SharingModal
           v-if="showShareModal && comp"
@@ -275,6 +277,8 @@ import {
 } from '@/design-system'
 import { useDrawer } from '@/shared/useDrawer'
 import ReadOnlyBanner from './ReadOnlyBanner.vue'
+import SavedInEratoFooter from './SavedInEratoFooter.vue'
+import { isAuthenticated } from '@/router/authReady'
 import { useEntitlements } from '@/features/plan/useEntitlements'
 import ChordGrid from './ChordGrid.vue'
 import TablatureSection from './TablatureSection.vue'
@@ -526,6 +530,10 @@ async function onStatusChange(newStatus: string) {
 const isPublic = computed(() => {
   return comp.value?.visibility === 'public' || comp.value?.is_public === true
 })
+
+const showSavedInEratoFooter = computed(() =>
+  comp.value?.visibility === 'public' && !isAuthenticated() && !comp.value.user_role
+)
 
 const showSidebar = computed(() => {
   if (!comp.value) return false

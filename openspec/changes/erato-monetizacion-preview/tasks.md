@@ -145,10 +145,17 @@ Depends on: L2.
 Specs: `sharing-and-visibility: Anonymous viewers of a public composition MUST see the "Guardado en Erato" footer`.
 Depends on: none.
 
-- [ ] G1.1 RED: `frontend/tests/features/saved-in-erato-footer.spec.ts`: footer renders with a register link for an anonymous viewer on a public composition; absent for authenticated users and for the owner; absent on private/forbidden views; no `!`/emoji. Run `cd frontend && npm run test:unit -- tests/features/saved-in-erato-footer.spec.ts` and observe failure.
-- [ ] G1.2 GREEN: create `frontend/src/features/compositions/SavedInEratoFooter.vue` (native `<a class="er-btn">` to `/register`), wire into `frontend/src/features/compositions/CompositionDetailView.vue` for anonymous public views only.
-- [ ] G1.3 REFACTOR + `cd frontend && npm run test:unit && npm run build`.
-- [ ] G1.4 Commit (Spanish), e.g. `feat(composiciones): muestra el pie Guardado en Erato en enlaces publicos anonimos`.
+- [x] G1.1 RED: `frontend/tests/features/saved-in-erato-footer.spec.ts`: footer renders with a register link for an anonymous viewer on a public composition; absent for authenticated users and for the owner; absent on private/forbidden views; no `!`/emoji. Run `cd frontend && npm run test:unit -- tests/features/saved-in-erato-footer.spec.ts` and observe failure.
+- [x] G1.2 GREEN: create `frontend/src/features/compositions/SavedInEratoFooter.vue` (native `<a class="er-btn">` to `/register`), wire into `frontend/src/features/compositions/CompositionDetailView.vue` for anonymous public views only.
+- [x] G1.3 REFACTOR + `cd frontend && npm run test:unit && npm run build`.
+- [x] G1.4 Commit by Claude: `feat(composiciones): muestra el pie Guardado en Erato en enlaces públicos anónimos` (Claude replaced the nonexistent `er-btn--quiet` with `er-btn--ghost`).
+
+G1 execution evidence (2026-10-07):
+- RED: focused Vitest run -> 1 failed / 11 passed (12), 1.57s; `Unable to get footer` for the anonymous public viewer. An initial command used the wrong relative file path and found no tests; it is not the RED evidence.
+- GREEN: focused run -> 12 passed, 1.57s. Final full `npm run test:unit` -> 55 files / 452 tests passed, 12.48s. `npm run build` -> vue-tsc and Vite passed, built in 1.60s.
+- Full verification first exposed routers without the named register route and missing required fixture fields; used RouterLink to `/register` and completed the fixture, then reran checks. Existing harness warnings remain.
+- Reuses `er-row`, `er-btn`, and `er-btn--quiet`; no new CSS or dependencies. Keyboard focus and SPA navigation tested. Token contrast for ink on bg-100/200/300 is at least 12.61:1 in Noche and 11.75:1 in Matiné; no browser visual audit performed.
+- Only G1 component, detail integration, focused spec, and this task record changed. No model changes, git writes, landing/pasos.md/design-system edits, or erato-cloud access. G1.4 remains for Claude.
 
 ---
 
