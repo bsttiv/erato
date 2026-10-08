@@ -118,6 +118,17 @@ class UpdateVisibilityRequest(BaseModel):
     visibility: str = Field(..., pattern="^(public|private)$")
 
 
+class UpdateBandRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+    band_id: Optional[str]
+    band_editable: bool
+
+
+class UpdateMemberRoleRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+    role: Literal["editor", "viewer"]
+
+
 class CreateInviteRequest(BaseModel):
     invited_email: Optional[str] = None
     role: str = Field("editor", pattern="^(editor|viewer)$")
