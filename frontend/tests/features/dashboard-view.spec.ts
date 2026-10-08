@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import DashboardView from '@/features/compositions/DashboardView.vue'
 import CompositionCard from '@/features/compositions/CompositionCard.vue'
@@ -73,6 +73,22 @@ describe('DashboardView and CompositionCard', () => {
       created_at: '2026-01-01T00:00:00Z',
     })
     vi.spyOn(compApi, 'listCompositions').mockResolvedValue(mockCompositions)
+  })
+
+  it('lists band compositions with a marker only for band-derived access', async () => {
+    const bandComposition = { ...mockCompositions[0], id: 'band-song', owner_id: 'other', band_id: 'band-1', via_band: true }
+    vi.mocked(compApi.listCompositions).mockResolvedValue([bandComposition, mockCompositions[1]])
+    const router = setupRouter()
+    await router.push('/')
+    const wrapper = mount(DashboardView, { global: { plugins: [router] } })
+    await flushPromises()
+    const cards = wrapper.findAllComponents(CompositionCard)
+    expect(cards).toHaveLength(2)
+    expect(cards[0].findAll('.er-tag--amber').map(tag => tag.text())).toContain('Compartida con tu banda')
+    expect(cards[0].attributes('href')).toBe('/compositions/band-song')
+    expect(cards[1].text()).not.toContain('Compartida con tu banda')
+    expect(wrapper.text()).not.toMatch(/[!\p{Extended_Pictographic}]/u)
+    wrapper.unmount()
   })
 
   it('renders top app bar with brand, new composition button, and user avatar', async () => {

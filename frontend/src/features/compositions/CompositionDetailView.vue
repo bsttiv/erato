@@ -142,6 +142,8 @@
           </div>
         </header>
 
+        <ReadOnlyBanner v-if="comp.band_active === false" :owner="comp.user_role === 'owner'" />
+
         <!-- Jump nav strip with live counts -->
         <nav class="er-sectionnav" aria-label="Secciones de la composición">
           <a v-if="isSectionEnabled('lyrics')" href="#sec-lyrics">letra</a>
@@ -161,6 +163,7 @@
               :title="`Letra — ${comp.title}`"
               :chords="compChords"
               :editable="canEdit"
+              :can-view-history="canViewHistory"
               @update:lyrics="onLyricsUpdate"
               @open-history="activeHistorySection = 'lyrics'"
             />
@@ -172,10 +175,12 @@
               id="sec-todos"
               class="er-section"
             >
-              <ErTodoList
-                v-model="todoItems"
-                title="Tareas y arreglos"
-              />
+              <fieldset class="er-todo-fieldset" :disabled="!canEdit" aria-label="Tareas y arreglos">
+                <ErTodoList
+                  v-model="todoItems"
+                  title="Tareas y arreglos"
+                />
+              </fieldset>
             </section>
           </div>
         </div>
@@ -186,6 +191,7 @@
           id="sec-chords"
           :chords="compChords"
           :editable="canEdit"
+          :can-view-history="canViewHistory"
           @update:chords="onChordsUpdate"
           @open-history="activeHistorySection = 'chords'"
         />
@@ -195,6 +201,7 @@
           id="sec-tablature"
           :tabs="compTabs"
           :editable="canEdit"
+          :can-view-history="canViewHistory"
           @update:tabs="onTabsUpdate"
           @open-history="activeHistorySection = 'tablature'"
         />
@@ -234,7 +241,7 @@
         />
 
         <SectionHistoryPanel
-          v-if="comp && activeHistorySection"
+          v-if="comp && activeHistorySection && canViewHistory"
           :open="!!activeHistorySection"
           :composition-id="comp.id"
           :section="activeHistorySection"
@@ -267,6 +274,8 @@ import {
   type Tone,
 } from '@/design-system'
 import { useDrawer } from '@/shared/useDrawer'
+import ReadOnlyBanner from './ReadOnlyBanner.vue'
+import { useEntitlements } from '@/features/plan/useEntitlements'
 import ChordGrid from './ChordGrid.vue'
 import TablatureSection from './TablatureSection.vue'
 import LyricsSection from './LyricsSection.vue'
@@ -338,6 +347,9 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
 })
+
+const { entitlements } = useEntitlements()
+const canViewHistory = computed(() => entitlements.value?.can_view_history === true)
 
 const loading = ref(false)
 const showShareModal = ref(false)
@@ -472,7 +484,8 @@ watch(
 )
 
 const canEdit = computed(() => {
-  return comp.value?.user_role === 'owner' || comp.value?.user_role === 'editor'
+  return comp.value?.user_role === 'owner' ||
+    (comp.value?.user_role === 'editor' && comp.value?.band_active !== false)
 })
 
 const statusTone = computed<Tone>(() => {
@@ -490,7 +503,7 @@ const statusTone = computed<Tone>(() => {
 const isUpdatingStatus = ref(false)
 
 async function onStatusChange(newStatus: string) {
-  if (!comp.value || isUpdatingStatus.value) return
+  if (!canEdit.value || !comp.value || isUpdatingStatus.value) return
   const prevStatus = comp.value.status || 'idea'
   if (newStatus === prevStatus) return
 

@@ -25,7 +25,7 @@
           Agregar acorde
         </ErButton>
         <ErButton
-          v-if="editable"
+          v-if="editable && canViewHistory"
           size="sm"
           variant="ghost"
           data-test="open-chords-history-btn"
@@ -118,6 +118,7 @@ const props = withDefaults(
   defineProps<{
     chords?: ChordsSection | null
     editable?: boolean
+    canViewHistory?: boolean
   }>(),
   {
     chords: null,

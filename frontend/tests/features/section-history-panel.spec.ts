@@ -7,6 +7,10 @@ import * as compApi from '@/api/compositions'
 import { HttpError } from '@/api/compositions'
 import { createRouter, createMemoryHistory } from 'vue-router'
 
+vi.mock('@/features/plan/useEntitlements', () => ({
+  useEntitlements: () => ({ entitlements: { value: { can_view_history: true } } }),
+}))
+
 const mockHistoryItems: historyApi.HistoryItemSummary[] = [
   {
     rev: 2,

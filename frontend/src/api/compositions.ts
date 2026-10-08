@@ -73,6 +73,8 @@ export interface CompositionCounts {
 }
 
 export interface CompositionListItem {
+  band_id?: string | null
+  via_band?: boolean
   id: string
   owner_id: string
   title: string
@@ -90,6 +92,9 @@ export interface CompositionListItem {
 }
 
 export interface CompositionResponse {
+  band_id?: string | null
+  band_editable?: boolean
+  band_active?: boolean | null
   id: string
   owner_id: string
   title: string

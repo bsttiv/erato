@@ -6,6 +6,8 @@
         <ErTag :tone="statusTone" dot>{{ label }}</ErTag>
       </div>
 
+      <ErTag v-if="composition.via_band" tone="amber">Compartida con tu banda</ErTag>
+
       <h3 class="er-card-title">{{ composition.title }}</h3>
 
       <div class="er-card-chords">

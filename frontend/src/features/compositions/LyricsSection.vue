@@ -20,6 +20,7 @@
           {{ mode === 'chords' ? 'Ver letra' : 'Editar acordes' }}
         </ErButton>
         <ErButton
+          v-if="canViewHistory"
           size="sm"
           variant="ghost"
           data-test="open-lyrics-history-btn"
@@ -65,6 +66,7 @@ withDefaults(
     title?: string
     chords?: string[] | { entries?: Array<{ name: string }> }
     editable?: boolean
+    canViewHistory?: boolean
   }>(),
   {
     lyrics: '',
