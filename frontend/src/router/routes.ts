@@ -8,6 +8,18 @@ export const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/bands',
+    name: 'bands',
+    component: () => import('@/features/bands/BandView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/bands/:id',
+    name: 'band-detail',
+    component: () => import('@/features/bands/BandView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/login',
     name: 'login',
     component: () => import('@/features/auth/AuthView.vue'),
