@@ -7,7 +7,7 @@ from app.db.repositories.users import UsersRepository
 from app.deps import current_user_required, get_plan_policy
 from app.routers.compositions import compute_initials
 from app.schemas.bands import (BandCreate, BandRename, BandResponse, BandSummary,
-                               BandInviteCreate, BandInviteResponse, BandInviteSummary)
+                               BandInviteCreate, BandInviteResponse, BandInviteSummary, BandTransferCreate)
 from app.services.bands_service import BandsService
 
 router = APIRouter(prefix='/api/bands', tags=['bands'])
@@ -124,3 +124,29 @@ async def remove_member(
     service: BandsService = Depends(get_service),
 ) -> None:
     await service.remove_member(band_id, user['id'], uid)
+
+
+@router.post('/{band_id}/transfer', response_model=BandResponse, status_code=201)
+async def request_transfer(
+    band_id: str, body: BandTransferCreate, user: dict = Depends(current_user_required),
+    service: BandsService = Depends(get_service),
+) -> BandResponse:
+    doc = await service.request_transfer(band_id, user['id'], body.to_user_id)
+    return await _to_response(doc, user['id'], service.policy)
+
+
+@router.delete('/{band_id}/transfer', status_code=204)
+async def cancel_transfer(
+    band_id: str, user: dict = Depends(current_user_required),
+    service: BandsService = Depends(get_service),
+) -> None:
+    await service.cancel_transfer(band_id, user['id'])
+
+
+@router.post('/{band_id}/transfer/accept', response_model=BandResponse)
+async def accept_transfer(
+    band_id: str, user: dict = Depends(current_user_required),
+    service: BandsService = Depends(get_service),
+) -> BandResponse:
+    doc = await service.accept_transfer(band_id, user['id'])
+    return await _to_response(doc, user['id'], service.policy)
