@@ -57,3 +57,8 @@ class BandInviteSummary(BaseModel):
 
 class BandInviteResponse(BandInviteSummary):
     invite_url: str
+
+
+class BandTransferCreate(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    to_user_id: str

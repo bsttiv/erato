@@ -95,3 +95,39 @@ class BandsRepository:
         if any(m['user_id'] == uid for m in band['members']):
             return 'already_member'
         raise ConflictError('La banda no tiene plazas disponibles', code='band_full')
+
+    async def request_transfer(self, band_id: str, owner_id: str, target_id: str,
+                               now: datetime, expires_at: datetime) -> bool:
+        result = await self.collection.update_one(
+            {'_id': ObjectId(band_id), 'owner_id': ObjectId(owner_id),
+             'members.user_id': ObjectId(target_id),
+             '$or': [{'pending_transfer': None}, {'pending_transfer.expires_at': {'$lte': now}}]},
+            {'$set': {'pending_transfer': {'to_user_id': ObjectId(target_id),
+                      'requested_by': ObjectId(owner_id), 'requested_at': now,
+                      'expires_at': expires_at}}},
+        )
+        return result.matched_count > 0
+
+    async def clear_transfer(self, band_id: str, transfer: dict,
+                             user_id: Optional[str] = None, now: Optional[datetime] = None) -> bool:
+        query = {'_id': ObjectId(band_id),
+                 'pending_transfer.to_user_id': transfer['to_user_id'],
+                 'pending_transfer.expires_at': transfer['expires_at']}
+        if user_id is not None:
+            query['$or'] = [{'owner_id': ObjectId(user_id)},
+                            {'pending_transfer.to_user_id': ObjectId(user_id)}]
+            query['pending_transfer.expires_at'] = {'$eq': transfer['expires_at'], '$gt': now}
+        result = await self.collection.update_one(query, {'$set': {'pending_transfer': None}})
+        return result.matched_count > 0
+
+    async def swap_owner(self, band_id: str, owner_id: str, target_id: str,
+                         now: datetime) -> bool:
+        owner, target = ObjectId(owner_id), ObjectId(target_id)
+        result = await self.collection.update_one(
+            {'_id': ObjectId(band_id), 'owner_id': owner, 'members.user_id': target,
+             'pending_transfer.to_user_id': target, 'pending_transfer.expires_at': {'$gt': now}},
+            {'$set': {'owner_id': target, 'members.$[old].role': 'member',
+                      'members.$[new].role': 'owner', 'pending_transfer': None, 'updated_at': now}},
+            array_filters=[{'old.user_id': owner}, {'new.user_id': target}],
+        )
+        return result.matched_count > 0
