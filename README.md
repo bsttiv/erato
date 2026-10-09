@@ -211,7 +211,7 @@ Erato is structured for seamless single-origin deployment on Vercel:
 1. `vercel.json` routes `/api/(.*)` to `api/index.py` (Vercel Serverless Python function re-exporting the FastAPI ASGI app).
 2. All other routes serve the static SPA compiled into `frontend/dist`.
 3. Production environment variables (`MONGODB_URI` pointing to MongoDB Atlas M0, Cloudinary credentials, `JWT_SECRET`, etc.) are configured via the Vercel Project Settings dashboard.
-4. Daily maintenance cron sweeps call `/api/cron/orphan-sweep` authenticated via `CRON_SECRET` or Vercel's `x-vercel-cron` header.
+4. Daily maintenance cron sweeps call `/api/cron/orphan-sweep` authenticated only via the `CRON_SECRET` bearer token, which Vercel sends automatically when the variable is set. The `x-vercel-cron` header is not trusted, because any client can send it.
 5. After setting the environment variables, create the MongoDB indexes once (unique and TTL indexes): export `MONGODB_URI` / `MONGODB_DB` in your shell (never commit them), together with any placeholder values for `JWT_SECRET`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` and `CLOUDINARY_API_SECRET` (the app settings require them to load, the script does not use them), and run `python -m scripts.ensure_indexes` against Atlas. For local Docker use `docker compose exec backend python -m scripts.ensure_indexes`. The script is idempotent, so it is safe to re-run. It is intentionally not executed at app startup, because every serverless cold start would repeat it.
 
 ---

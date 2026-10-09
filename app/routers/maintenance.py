@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import hmac
 import logging
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Header, status
@@ -81,20 +82,19 @@ def execute_orphan_sweep() -> List[str]:
 @router.get("/orphan-sweep", status_code=status.HTTP_200_OK)
 async def orphan_sweep(
     authorization: Optional[str] = Header(None),
-    x_vercel_cron: Optional[str] = Header(None),
 ) -> Dict[str, Any]:
     """Vercel Cron target for daily orphan Cloudinary asset cleanup.
-    
-    Protected by CRON_SECRET bearer token or Vercel cron header.
+
+    Protected only by the CRON_SECRET bearer token, which Vercel sends on cron calls.
+    The x-vercel-cron header is not trusted because any client can set it.
     """
     settings = get_settings()
 
-    is_vercel_cron = x_vercel_cron == "1"
-    is_secret_valid = bool(
-        settings.cron_secret and authorization == f"Bearer {settings.cron_secret}"
+    is_secret_valid = bool(settings.cron_secret) and hmac.compare_digest(
+        authorization or "", f"Bearer {settings.cron_secret}"
     )
 
-    if not (is_vercel_cron or is_secret_valid):
+    if not is_secret_valid:
         raise UnauthorizedError("No autorizado para ejecutar el sweep de mantenimiento")
 
     deleted = execute_orphan_sweep()
