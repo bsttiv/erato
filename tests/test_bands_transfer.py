@@ -37,7 +37,7 @@ async def setup():
     bid = str(band['_id'])
     for uid in (target, other):
         await repo.add_member_if_seat(bid, uid, None)
-    with patch('app.services.bands_service.datetime', Clock), patch('app.routers.bands.datetime', Clock):
+    with patch('app.services.bands_service.datetime', Clock), patch('app.presenters.bands.datetime', Clock):
         async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
             yield db, client, bid, owner, target, other
     await db.bands.drop()

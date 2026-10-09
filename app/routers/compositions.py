@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, status
 
 from app.core.permissions import Action
 from app.core.plan_policy import PlanPolicy
+from app.presenters.users import compute_initials
 from app.deps import AuthContext, current_user_required, get_plan_policy, require
 from app.schemas.compositions import (
     CompositionCounts,
@@ -23,18 +24,6 @@ router = APIRouter(prefix="/api/compositions", tags=["compositions"])
 
 def get_service() -> CompositionService:
     return CompositionService()
-
-
-def compute_initials(name: Optional[str]) -> Optional[str]:
-    """Derive 1-2 uppercase characters from display name."""
-    if not name:
-        return None
-    parts = name.strip().split()
-    if not parts:
-        return None
-    if len(parts) == 1:
-        return parts[0][:2].upper()
-    return (parts[0][0] + parts[1][0]).upper()
 
 
 def _to_response(
