@@ -183,6 +183,11 @@ class BandsService:
         if not await self.policy.confirm_band_transfer(band_id, owner_id, user_id):
             raise ConflictError('No se ha confirmado la transferencia', code='transfer_not_confirmed')
         if not await self.bands.swap_owner(band_id, owner_id, user_id, datetime.now(timezone.utc)):
-            logging.getLogger(__name__).warning('transfer_swap_lost band_id=%s', band_id)
+            logger = logging.getLogger(__name__)
+            logger.warning('transfer_swap_lost band_id=%s', band_id)
+            try:
+                await self.policy.abort_band_transfer(band_id, owner_id, user_id)
+            except Exception:
+                logger.exception('transfer_abort_failed band_id=%s', band_id)
             raise self._transfer_missing()
         return await self.bands.get_by_id(band_id)

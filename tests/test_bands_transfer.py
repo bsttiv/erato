@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from bson import ObjectId
@@ -123,7 +123,7 @@ async def test_accept_validation_and_lazy_get(setup):
     assert await db.bands.find_one({'_id': ObjectId(bid)}) == {**before, 'pending_transfer': None}
 
 
-@pytest.mark.parametrize('outcome', ['success', 'refuse', 'error', 'cancel', 'leave'])
+@pytest.mark.parametrize('outcome', ['success', 'refuse', 'error', 'cancel', 'leave', 'abort_error'])
 async def test_confirm_before_writes_and_atomic_swap(setup, outcome, caplog):
     db, client, bid, owner, target, other = setup
     before = await seed(db, bid, owner, target)
@@ -140,11 +140,19 @@ async def test_confirm_before_writes_and_atomic_swap(setup, outcome, caplog):
             events.append('confirm')
             if outcome == 'error':
                 raise host_error
-            if outcome == 'cancel':
+            if outcome in ('cancel', 'abort_error'):
                 await original(db.bands, {'_id': ObjectId(bid)}, {'$set': {'pending_transfer': None}})
             if outcome == 'leave':
                 await original(db.bands, {'_id': ObjectId(bid)}, {'$pull': {'members': {'user_id': target}}})
             return outcome != 'refuse'
+
+        async def abort_band_transfer(self, band_id, previous, new):
+            assert (band_id, previous, new) == (bid, str(owner), str(target))
+            assert all(isinstance(value, str) for value in (band_id, previous, new))
+            assert events == ['confirm', 'write']
+            events.append('abort')
+            if outcome == 'abort_error':
+                raise RuntimeError('compensation unavailable')
 
     async def observe(collection, query, update, **kwargs):
         events.append('write')
@@ -162,16 +170,21 @@ async def test_confirm_before_writes_and_atomic_swap(setup, outcome, caplog):
             assert response.json() == host_error.to_dict()
         assert events == ['confirm'] and after == before
         return
-    assert events == ['confirm', 'write'] and len(writes) == 1
+    assert events == (['confirm', 'write', 'abort'] if outcome in ('cancel', 'leave', 'abort_error')
+                      else ['confirm', 'write']) and len(writes) == 1
     query, update, kwargs = writes[0]
     assert query == {'_id': ObjectId(bid), 'owner_id': owner, 'members.user_id': target,
                      'pending_transfer.to_user_id': target, 'pending_transfer.expires_at': {'$gt': NOW}}
     assert kwargs['array_filters'] == [{'old.user_id': owner}, {'new.user_id': target}]
     assert update['$set'] == {'owner_id': target, 'members.$[old].role': 'member',
                               'members.$[new].role': 'owner', 'pending_transfer': None, 'updated_at': NOW}
-    if outcome in ('cancel', 'leave'):
+    if outcome in ('cancel', 'leave', 'abort_error'):
         error(response, 404, 'transfer_not_found')
-        assert 'transfer_swap_lost' in caplog.text and after['owner_id'] == owner
+        assert f'transfer_swap_lost band_id={bid}' in caplog.text and after['owner_id'] == owner
+        if outcome == 'abort_error':
+            record = next(record for record in caplog.records
+                          if record.getMessage() == f'transfer_abort_failed band_id={bid}')
+            assert record.levelname == 'ERROR' and record.exc_info is not None
     else:
         assert response.status_code == 200 and response.json()['user_role'] == 'owner'
         assert after['owner_id'] == target and after['pending_transfer'] is None
@@ -222,3 +235,17 @@ async def test_request_conditional_update_and_reread(setup):
         error(await call(client, bid, owner, 'request', other), 409, 'transfer_pending')
         error(await call(client, bid, owner, 'request', ObjectId()), 409, 'not_a_band_member')
     assert await db.bands.find_one({'_id': ObjectId(bid)}) == before
+
+
+@pytest.mark.parametrize('reason', ['expired', 'not_member'])
+async def test_invalid_accept_does_not_abort(setup, reason):
+    db, client, bid, owner, target, other = setup
+    await seed(db, bid, owner, target, expired=reason == 'expired')
+    if reason == 'not_member':
+        await db.bands.update_one({'_id': ObjectId(bid)}, {'$pull': {'members': {'user_id': target}}})
+    abort = AsyncMock()
+    with patch.object(UnlimitedPlanPolicy, 'abort_band_transfer', abort, create=True):
+        response = await call(client, bid, target, 'accept')
+    error(response, 410 if reason == 'expired' else 409,
+          'transfer_expired' if reason == 'expired' else 'not_a_band_member')
+    abort.assert_not_awaited()

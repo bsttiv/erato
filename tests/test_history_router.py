@@ -65,6 +65,9 @@ class RecordingPolicy:
     ) -> bool:
         return True
 
+    async def abort_band_transfer(self, band_id: str, previous_owner_id: str, new_owner_id: str) -> None:
+        return None
+
 
 @pytest.mark.asyncio
 async def test_history_invalid_section_returns_404_without_touching_db():

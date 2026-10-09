@@ -53,6 +53,12 @@ async def test_unlimited_plan_policy_answers_seven_questions():
     assert await policy.confirm_band_transfer("band-456", "user-1", "user-2") is True
 
 
+@pytest.mark.asyncio
+async def test_abort_band_transfer_contract():
+    assert 'abort_band_transfer' in vars(PlanPolicy)
+    assert await UnlimitedPlanPolicy().abort_band_transfer("band-456", "user-1", "user-2") is None
+
+
 class RecordingStandInPolicy:
     """Mock policy implementing PlanPolicy Protocol that records invocation arguments."""
 
@@ -86,6 +92,9 @@ class RecordingStandInPolicy:
     async def confirm_band_transfer(self, band_id: str, previous_owner_id: str, new_owner_id: str) -> bool:
         self.recorded_calls.append(("confirm_band_transfer", (band_id, previous_owner_id, new_owner_id)))
         return False
+
+    async def abort_band_transfer(self, band_id: str, previous_owner_id: str, new_owner_id: str) -> None:
+        self.recorded_calls.append(("abort_band_transfer", (band_id, previous_owner_id, new_owner_id)))
 
 
 def test_plan_policy_protocol_conformance():
@@ -180,7 +189,6 @@ async def test_app_accepts_host_external_routers(restore_routes):
         res = await client.get("/api/cloud/ping")
         assert res.status_code == 200
         assert res.json() == {"cloud": "pong"}
-
 
 
 @pytest.mark.asyncio

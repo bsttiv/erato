@@ -43,10 +43,13 @@ composition context. The core contains no plan catalogue or payment provider imp
 | `seat_limit(band_id: str) -> Optional[int]` | Atomic band join ceiling; `None` means unlimited. |
 | `is_band_active(band_id: str) -> bool` | Allow invitation creation/join and band sharing changes; band-derived content writes require activity, owner content edits are exempt. |
 | `confirm_band_transfer(band_id: str, previous_owner_id: str, new_owner_id: str) -> bool` | Called before the owner/role swap; `False` yields 409 `transfer_not_confirmed`, host `AppError` propagates, neither changes core transfer state. |
+| `abort_band_transfer(band_id: str, previous_owner_id: str, new_owner_id: str) -> None` | Called once after a confirmed transfer loses its conditional owner swap; the host owns compensation. |
 
 `UnlimitedPlanPolicy` answers `True` to all boolean methods and `None` to both limits.
 A successful transfer confirmation precedes a conditional swap: a lost swap returns 404 and
-logs `transfer_swap_lost`; host subscription changes are not automatically compensated by core.
+logs `transfer_swap_lost`; on a lost swap the core calls `abort_band_transfer` once (exceptions are
+logged as `transfer_abort_failed` and do not change the 404); the host owns the compensation.
+A process that dies between confirm and swap is not compensated.
 Hosts own subscription resolution and any provider compensation (design AD19/AD20).
 
 ## Entitlements response
