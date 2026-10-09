@@ -187,6 +187,7 @@ class PlanPolicy(Protocol):
     async def is_band_active(self, band_id: str) -> bool: ...
     # Transfer hook: called on accept BEFORE the core swaps owner and roles.
     async def confirm_band_transfer(self, band_id: str, previous_owner_id: str, new_owner_id: str) -> bool: ...
+    async def abort_band_transfer(self, band_id: str, previous_owner_id: str, new_owner_id: str) -> None: ...
 
 class UnlimitedPlanPolicy:  # True, True, True, None, None, True, True
 ```
@@ -318,8 +319,10 @@ created with `pending_transfer: null`.
      -> `$set owner_id: B, "members.$[old].role": "member", "members.$[new].role": "owner", pending_transfer: null, updated_at`
      with `arrayFilters [{"old.user_id": A}, {"new.user_id": B}]`.
   4. If step 3 matches nothing (the owner canceled in the window between 1 and 3), the core logs a
-     `transfer_swap_lost` warning and answers 404 `transfer_not_found`; see Risks (the host's
-     subscription step already ran).
+     `transfer_swap_lost` warning and calls `abort_band_transfer(band_id, A, B)` once so the host
+     can compensate its subscription step. Exceptions are logged as `transfer_abort_failed` and
+     do not change the 404 `transfer_not_found` response. A process that dies between confirm
+     and swap is not compensated; see Risks.
 - **Lazy expiry on read**: `GET /api/bands/{id}` reports an expired request as `pending_transfer: null`
   without writing (the next request/accept overwrites or clears it).
 **Alternatives considered**: separate `band_transfers` collection (rejected by OD-1); swap first and
@@ -908,7 +911,7 @@ The proposal's slice table predates the 2026-10-04 decisions. Units whose conten
 | Duplicate Vue instances when the cloud web build imports core sources | `resolve.dedupe: ['vue', 'vue-router']`; Vitest test mounts `createEratoApp` from the cloud |
 | MongoDB may reject two indexes with the same key pattern (`idx_subscriptions_subject` and the partial unique) on older servers | bootstrap test against the CI Mongo version and Atlas M0 version; if rejected, author decides (D4 owns the index set) |
 | No transactions: multi-step writes (leave, checkout + compensation, transfer step, snapshot) can stop midway | ordering per AD9/AD11/AD18/AD20, idempotent retries, explicit reverts, snapshot failure tolerated by spec |
-| Transfer window: the host subscription step runs (AD20) and then the core swap loses a race with a concurrent cancel; the band keeps owner A while the new subscription's payer is B | window is milliseconds and needs the owner to cancel at that instant; logged as `transfer_swap_lost`; payer-only cloud actions check the payer, so B can still cancel; acceptable for preview, revisit with the gateway |
+| Transfer window: a lost swap race after the host subscription step (AD20) is now compensated via `abort_band_transfer`; the remaining risk is the function dying between confirm and swap | host owns compensation; abort exceptions are logged as `transfer_abort_failed` without changing the 404; revisit the process-death gap with the gateway |
 | Checkout compensation fails (band created, activation failed, delete failed) | the band exists without a subscription, i.e. inactive and read-only for members; logged with band id; owner can reactivate from the plan page or it is cleaned manually (runbook) |
 | Per-request cost of OD-4 resolution (up to three indexed reads) | request-scoped memo (AD19); only on requests that ask an entitlement question; projections `{_id: 1}`; indexes already approved |
 | Entitlements shown in the UI go stale after joining/leaving a band or paying | `useEntitlements` refreshes after join, leave, transfer and on return from `/plan*`; backend is authoritative on every request |

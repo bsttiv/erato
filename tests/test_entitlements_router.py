@@ -44,6 +44,9 @@ class DenyAllPolicy:
     async def confirm_band_transfer(self, band_id: str, previous_owner_id: str, new_owner_id: str) -> bool:
         return False
 
+    async def abort_band_transfer(self, band_id: str, previous_owner_id: str, new_owner_id: str) -> None:
+        return None
+
 
 @pytest.mark.asyncio
 async def test_entitlements_requires_authentication():

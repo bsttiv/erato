@@ -255,6 +255,9 @@ class DummyRecordingPolicy:
     async def confirm_band_transfer(self, band_id: str, prev_id: str, new_id: str) -> bool:
         return True
 
+    async def abort_band_transfer(self, band_id: str, previous_owner_id: str, new_owner_id: str) -> None:
+        return None
+
 
 @pytest.mark.asyncio
 async def test_service_history_invalid_section_raises_not_found():

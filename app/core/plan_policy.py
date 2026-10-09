@@ -4,7 +4,7 @@ from typing import Optional, Protocol, runtime_checkable
 
 @runtime_checkable
 class PlanPolicy(Protocol):
-    """Port for plan and quota evaluation. Closed set of seven questions."""
+    """Port for plan and quota evaluation and transfer lifecycle hooks."""
 
     # User-scoped entitlement questions: acting user only, no composition or band context.
     async def can_share_with_people(self, user_id: str) -> bool: ...
@@ -18,6 +18,8 @@ class PlanPolicy(Protocol):
 
     # Transfer hook: called on accept BEFORE the core swaps owner and roles.
     async def confirm_band_transfer(self, band_id: str, previous_owner_id: str, new_owner_id: str) -> bool: ...
+    # Called only after a confirmed transfer whose owner swap was lost, so the host can undo what confirm did.
+    async def abort_band_transfer(self, band_id: str, previous_owner_id: str, new_owner_id: str) -> None: ...
 
 
 class UnlimitedPlanPolicy:
@@ -43,6 +45,9 @@ class UnlimitedPlanPolicy:
 
     async def confirm_band_transfer(self, band_id: str, previous_owner_id: str, new_owner_id: str) -> bool:
         return True
+
+    async def abort_band_transfer(self, band_id: str, previous_owner_id: str, new_owner_id: str) -> None:
+        return None
 
 
 @dataclass
