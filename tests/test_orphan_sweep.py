@@ -57,13 +57,14 @@ async def test_orphan_sweep_endpoint_guard(monkeypatch):
         )
         assert res_wrong.status_code == 401
 
-        # Request with Vercel cron header -> 200
-        with patch("app.routers.maintenance.execute_orphan_sweep", return_value=[]):
+        # Any client can send x-vercel-cron, so it never authorizes on its own -> 401
+        with patch("app.routers.maintenance.execute_orphan_sweep", return_value=[]) as sweep:
             res_cron_header = await client.get(
                 "/api/cron/orphan-sweep",
                 headers={"x-vercel-cron": "1"},
             )
-            assert res_cron_header.status_code == 200
+            assert res_cron_header.status_code == 401
+            sweep.assert_not_called()
 
         # Request with correct secret -> 200
         with patch("app.routers.maintenance.execute_orphan_sweep", return_value=["erato/c1/orphan"]):
@@ -94,10 +95,11 @@ async def test_orphan_sweep_endpoint_guard_no_secret(monkeypatch):
         )
         assert res_bearer.status_code == 401
 
-        # Request with x-vercel-cron -> 200
-        with patch("app.routers.maintenance.execute_orphan_sweep", return_value=[]):
+        # Without CRON_SECRET the endpoint stays closed, even with x-vercel-cron -> 401
+        with patch("app.routers.maintenance.execute_orphan_sweep", return_value=[]) as sweep:
             res_cron = await client.get(
                 "/api/cron/orphan-sweep",
                 headers={"x-vercel-cron": "1"},
             )
-            assert res_cron.status_code == 200
+            assert res_cron.status_code == 401
+            sweep.assert_not_called()
