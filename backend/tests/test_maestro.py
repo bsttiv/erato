@@ -369,3 +369,12 @@ def test_mae_046_rejected_api_key_is_an_upstream_error(api, db, monkeypatch):
         assert response.status_code == 502
         assert response.json()["code"] == "session_upstream_error"
     assert db.sessions.find_one() == before
+
+
+def test_mae_047_vercel_entrypoint_serves_the_api_prefix():
+    from app.asgi import app
+
+    with TestClient(app) as client:
+        assert client.get("/api/health").status_code == 200
+        response = client.post("/api/auth/login", headers={"X-Device-Id": "device"}, json={})
+    assert response.status_code == 422 and response.json()["code"] == "validation_error"

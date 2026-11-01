@@ -77,3 +77,4 @@ Approved by the author on 2026-11-01, together with the SES-021 change. MAE-044 
 | MAE-044 | Two clients of the same browser, both needing a refresh | Call `refresh()` on both at once | The second `/auth/refresh` starts only after the first ends; both clients hold a session |
 | MAE-045 | Browser without `navigator.locks` | Call `refresh()` | Works as today, with no lock |
 | MAE-046 | Maestro answers `401` with `Missing API Key` or `Invalid API Key` | Authenticated request and `POST /auth/refresh` | `502 session_upstream_error`, not `401`; the session row is unchanged |
+| MAE-047 | Vercel entrypoint `app.asgi` | `GET /api/health`, and `POST /api/auth/login` with an empty body | `200`, and `422 validation_error` instead of `404`; approved 2026-11-01 |

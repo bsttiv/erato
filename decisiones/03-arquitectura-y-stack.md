@@ -75,7 +75,7 @@ Decisión del autor (2026-10-23): el despliegue usa **Vercel Services** definido
 
 - Servicio `frontend`: raíz `frontend/`.
 - Servicio `backend`: raíz `backend/`, entrypoint `app.asgi:app` (módulo `backend/app/asgi.py`, instancia a nivel de módulo que Vercel necesita porque `main.py` solo expone la fábrica).
-- El frontend se sirve en `/` y el backend FastAPI en `/api`. Una transformación de ruta (`request.path`) quita el prefijo `/api` antes de llegar a FastAPI: **las rutas de FastAPI se declaran sin el prefijo** y no se usa `root_path`.
+- El frontend se sirve en `/` y el backend FastAPI en `/api`. **Las rutas de FastAPI se declaran sin el prefijo.** Vercel entrega la ruta original, así que `backend/app/asgi.py` fija `root_path = "/api"` (revisión aprobada el 2026-11-01; reemplaza a la transformación `request.path`, que no resolvía el prefijo).
 - Reescrituras: `/api/(.*)` → backend; `/assets/(.*)` y las rutas con punto (`/(.*\..*)`) → frontend; cualquier otra ruta → frontend con `path: /index.html` (**SPA fallback**, necesario porque el router usa historial web y las rutas como `/canciones/:id` son enlaces directos).
 - Contenido textual de `vercel.json`:
 
@@ -83,13 +83,11 @@ Decisión del autor (2026-10-23): el despliegue usa **Vercel Services** definido
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "services": {
-    "frontend": { "root": "frontend/" },
+    "frontend": { "root": "frontend/", "framework": "vite" },
     "backend": {
       "root": "backend/",
-      "entrypoint": "app.asgi:app",
-      "routes": [
-        { "src": "/api/(.*)", "transforms": [ { "type": "request.path", "op": "set", "args": "/$1" } ] }
-      ]
+      "framework": "fastapi",
+      "entrypoint": "app.asgi:app"
     }
   },
   "rewrites": [

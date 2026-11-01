@@ -5,10 +5,7 @@
     "backend": {
       "root": "backend/",
       "framework": "fastapi",
-      "entrypoint": "app.asgi:app",
-      "routes": [
-        { "src": "/api/(.*)", "transforms": [ { "type": "request.path", "op": "set", "args": "/$1" } ] }
-      ]
+      "entrypoint": "app.asgi:app"
     }
   },
   "rewrites": [
