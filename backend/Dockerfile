@@ -1,17 +1,8 @@
-FROM python:3.12-slim
-
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg libopus0 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/app
-
-COPY requirements.txt .
-
-RUN pip install --no-cache-dir -r requirements.txt
-
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen
+ENV PATH="/app/.venv/bin:$PATH"
 COPY . .
-
-EXPOSE 8000
-
-CMD ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--reload"]

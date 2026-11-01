@@ -1,0 +1,69 @@
+x-backend-environment: &backend-environment
+  MONGODB_URI: ${MONGODB_URI:-mongodb://mongo:27017/?replicaSet=rs0}
+  MONGODB_DB: ${MONGODB_DB:-erato_local}
+  CLOUDINARY_URL: ${CLOUDINARY_URL:-}
+  MAESTRO_URL: ${MAESTRO_URL:-http://maestro-mock:8000/api/v1/maestro}
+  MAESTRO_API_KEY: ${MAESTRO_API_KEY:-local-mock-key}
+  INVITATION_TTL: ${INVITATION_TTL:-7d}
+
+services:
+  mongo:
+    image: mongo:8.0
+    command: [mongod, --replSet, rs0, --bind_ip_all]
+    ports: ["127.0.0.1:27017:27017"]
+    volumes: [mongo-data:/data/db]
+    healthcheck:
+      test: [CMD-SHELL, "mongosh --quiet --eval 'try { if (!rs.status().ok) quit(1); } catch (e) { rs.initiate({_id:\"rs0\",members:[{_id:0,host:\"mongo:27017\"}]}); } if (!db.hello().isWritablePrimary) quit(1);'"]
+      interval: 2s
+      timeout: 5s
+      retries: 40
+  maestro-mock:
+    build: ./maestro-mock
+    environment:
+      MAESTRO_API_KEY: ${MAESTRO_API_KEY:-local-mock-key}
+  maestro-mock-control:
+    build: ./maestro-mock
+    profiles: [test]
+    environment:
+      MAESTRO_API_KEY: ${MAESTRO_API_KEY:-local-mock-key}
+      MAESTRO_MOCK_CONTROL: "1"
+  backend:
+    build: ./backend
+    environment: *backend-environment
+    ports: ["127.0.0.1:8000:8000"]
+    volumes: [./backend/app:/app/app:z]
+    depends_on:
+      mongo: {condition: service_healthy}
+      maestro-mock: {condition: service_started}
+  frontend:
+    build: ./frontend
+    ports: ["127.0.0.1:5173:5173"]
+    volumes:
+      - ./frontend/src:/app/src:z
+      - ./frontend/public:/app/public:z
+      - ./frontend/index.html:/app/index.html:z
+      - ./frontend/tailwind.theme.js:/app/tailwind.theme.js:z
+    depends_on: [backend]
+  backend-test:
+    build: ./backend
+    profiles: [test]
+    environment:
+      <<: *backend-environment
+      MONGODB_DB: erato_test
+      MAESTRO_URL: http://maestro-mock-control:8000/api/v1/maestro
+      TEST_MAESTRO_PLAIN_URL: http://maestro-mock:8000/api/v1/maestro
+    volumes:
+      - ./maestro-mock:/maestro-mock:ro,z
+      - ./compose.yaml:/compose.yaml:ro,z
+      - ./.env.example:/.env.example:ro,z
+    depends_on:
+      mongo: {condition: service_healthy}
+      maestro-mock-control: {condition: service_started}
+      maestro-mock: {condition: service_started}
+    command: [sh, -c, "${TEST_BACKEND_COMMAND:-pytest -q}"]
+  frontend-test:
+    build: ./frontend
+    profiles: [test]
+    command: [sh, -c, "${TEST_FRONTEND_COMMAND:-npm test}"]
+volumes:
+  mongo-data:

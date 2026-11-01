@@ -1,27 +1,17 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd frontend && npm ci && npm run build",
-  "outputDirectory": "frontend/dist",
-  "functions": {
-    "api/index.py": {
-      "maxDuration": 30,
-      "excludeFiles": "{frontend/**,erato-design-system/**,openspec/**,tests/**,scripts/**,odd/**}"
+  "services": {
+    "frontend": { "root": "frontend/", "framework": "vite" },
+    "backend": {
+      "root": "backend/",
+      "framework": "fastapi",
+      "entrypoint": "app.asgi:app"
     }
   },
   "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
-  "crons": [
-    {
-      "path": "/api/cron/orphan-sweep",
-      "schedule": "0 3 * * *"
-    }
+    { "source": "/api/(.*)", "destination": { "service": "backend" } },
+    { "source": "/assets/(.*)", "destination": { "service": "frontend" } },
+    { "source": "/(.*\\..*)", "destination": { "service": "frontend" } },
+    { "source": "/(.*)", "destination": { "service": "frontend", "path": "/index.html" } }
   ]
 }

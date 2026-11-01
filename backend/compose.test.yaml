@@ -1,0 +1,20 @@
+x-test-environment: &test-environment
+  MONGODB_URI: mongodb://mongo:27017/?replicaSet=rs0
+  MONGODB_DB: erato_test
+  CLOUDINARY_URL: cloudinary://test-key:test-secret@erato-test
+  MAESTRO_URL: http://maestro-mock-control:8000/api/v1/maestro
+  MAESTRO_API_KEY: test-api-key
+  INVITATION_TTL: 7d
+services:
+  mongo:
+    ports: !reset []
+  maestro-mock:
+    environment:
+      MAESTRO_API_KEY: test-api-key
+  maestro-mock-control:
+    environment:
+      MAESTRO_API_KEY: test-api-key
+  backend-test:
+    environment:
+      <<: *test-environment
+      TEST_MAESTRO_PLAIN_URL: http://maestro-mock:8000/api/v1/maestro
