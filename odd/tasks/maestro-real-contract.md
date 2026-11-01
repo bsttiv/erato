@@ -8,14 +8,14 @@ Large because implementation waits on the author's test approval (AGENTS.md, rul
 - S2: `sessions.jti` becomes `sessions.sid` (string, unique index), approved 2026-11-01. The old `jti_1` index is removed.
 - S3: logout revokes in Maestro with the current access token. Other devices close by deleting their Erato row, approved 2026-11-01 as "Cierre local".
 - S4: tests follow `tests_md/propuesta-maestro-real-2026-11-01.md` once approved.
-- S5: "quiero literalmente poner este directorio dentro de github.com/bsttiv/erato". The method is pending the author's decision.
+- S5: "quiero literalmente poner este directorio dentro de github.com/bsttiv/erato". The author chose "Sin historia" and "Rama y PR".
 
 ## Tasks
 
 - T1 [S4] inline: done, approved 2026-11-01
 - T2 [S1, S2, S3] inline: done, 71c5eca and 970efe3; both verifier blockers rechecked as fixed. Risk: items 1, 2 and 3
 - T3 [S1] inline: update `archivos/arquitectura.md`, `archivos/esquema_mongodb.md`, `backend/API.md`, `.env.example`, compose files and `tests_md/README.md`. Done, 6149fd8 for `.env.example`
-- T4 [S5] inline: blocked by the author's decision
+- T4 [S5] inline: pushed as `feat/erato-rewrite` (3ac578d) with a PR; merge is the author's, after configuring Vercel
 
 Route evidence: every task is inline. One behaviour with dependent parts, so the Writer trigger does not apply.
 
@@ -33,3 +33,6 @@ Route evidence: every task is inline. One behaviour with dependent parts, so the
 - L10 (2026-11-01): verifier on 71c5eca: S1, S3, S4 pass; S2 fails. Blocker 1: two old rows without `sid` collide on the new unique index and stop startup. Blocker 2: two tabs refreshing together make Maestro see reuse and revoke the session, 30 of 30 trials. Backend at 6149fd8: 594 passed. It also read one line of `.env.example`, `MAESTRO_URL` without the prefix, against its instructions; its scratch copy was removed. Corrections proposed as MAE-042 to MAE-046, pending approval.
 - L11 (2026-11-01, author): "apruebo, explica tambien lo del limite de maestro", for MAE-042 to MAE-046 and the SES-021 change. RED: MAE-042, 043, 044 and 046 failed; MAE-045 already held.
 - L12 (2026-11-01): corrections in 970efe3. `make test`: backend 597 passed, frontend 194 passed and 1 skipped; `vue-tsc` passed. Recheck: blocker 1 fixed with real uvicorn on three cases, blocker 2 fixed for tabs of one browser, with the Web Locks API under Node and simulated cookies, not a real browser. Open: overlap outside the lock still ends the session; a row without `sid` is deleted on every start, as approved in MAE-042; authenticated flows against the real Maestro are unverified. Risk: items 1, 2 and 3.
+- L13 (2026-11-01, author): chose "Sin historia", then "Rama y PR (Recomendado)".
+- L14 (2026-11-01): `bsttiv/erato` deploys through Vercel to `erato-alpha.vercel.app`, so `main` was not touched. One commit, 3ac578d, on top of its old main with the tree of this branch; the private history was not pushed. The snapshot scan found no credentials or personal email addresses, excluding `.env.example`, which this session cannot read. `.github/` and the CLA workflow leave with the merge.
+- L15 (2026-11-01, author): pasted the Vercel error "[MULTIPLE_FRAMEWORKS_SERVICE] Multiple frameworks detected in project root: Vite, Container. Specify "framework" explicitly in services." Both service roots hold a Dockerfile for local compose, so `vercel.json` now pins `vite` and `fastapi`.
