@@ -1,0 +1,12 @@
+[project]
+name = "erato-backend"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "pymongo>=4.10,<5", "httpx>=0.27,<1", "argon2-cffi>=23.1,<26", "cloudinary>=1.40,<2"]
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "PyJWT>=2.9,<3", "pyyaml>=6,<7"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]

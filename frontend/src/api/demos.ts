@@ -1,163 +1,75 @@
-import { apiClient } from './client'
+import { client } from '../stores/session'
 
-export interface UploadSignatureResponse {
-  signature: string
-  timestamp: number
-  folder: string
-  api_key: string
-  cloud_name: string
-  resource_type: string
-  type: string
-  tags: string
-}
-
-/** Modal-facing shape (Cloudinary upload response + title); mapped to the backend body. */
-export interface ConfirmUploadPayload {
-  public_id: string
-  version: number | string
-  signature: string
-  title: string
-  /** Seconds, as reported by Cloudinary; may be missing for some files. */
-  duration?: number
-}
-
-interface DemoResponse {
-  demo_id: string
-  cloudinary_public_id: string
-  title: string
-  duration_s: number
-  uploaded_by: string
-  uploaded_at: string
-}
-
-interface CommentResponse {
+/** Author projection of a comment: only the public fields. */
+export interface CommentAuthor { username: string; display_name: string }
+export interface DemoComment {
   id: string
-  composition_id: string
   demo_id: string
-  author_id: string
-  author_name?: string | null
   timestamp_s: number
   text: string
   created_at: string
+  updated_at: string
+  author: CommentAuthor | null
 }
-
-function toDemoTake(d: DemoResponse): DemoTake {
-  return {
-    id: d.demo_id,
-    title: d.title,
-    public_id: d.cloudinary_public_id,
-    duration: d.duration_s,
-    date: d.uploaded_at,
-  }
-}
-
-function toDemoComment(c: CommentResponse): DemoComment {
-  return {
-    id: c.id,
-    t: c.timestamp_s,
-    author: c.author_name?.trim() || 'Usuario',
-    text: c.text,
-    created_at: c.created_at,
-  }
-}
-
-/** Backend envelope is `{error, message, detail, details}`; always yield a string. */
-async function errorMessage(res: Response, fallback: string): Promise<string> {
-  const err = await res.json().catch(() => ({}))
-  if (typeof err?.detail === 'string' && err.detail) return err.detail
-  if (typeof err?.message === 'string' && err.message) return err.message
-  return fallback
-}
-
-export interface DemoComment {
-  id?: string
-  t: number
-  author: string
-  text: string
-  created_at?: string
-}
-
-export interface DemoTake {
+/** A demo as embedded in the song. Public reads omit `uploaded_by`; they add `author`. */
+export interface Demo {
   id: string
   title: string
-  public_id: string
-  duration: number
-  date?: string
-  note?: string
-  src?: string
-  comments?: DemoComment[]
+  duration_s: number
+  mime_type?: string
+  size_bytes?: number
+  uploaded_at?: string
+  author?: CommentAuthor | null
+}
+export interface SignedUrl { url: string; expires_in: number }
+export interface UploadTarget { upload_url: string; fields: Record<string, string | number> }
+
+/** Client-side convenience only; the server enforces the real limit. */
+export const MAX_DEMO_BYTES = 100 * 1024 ** 2
+
+/** Thrown when the direct upload to storage fails; `status` is 0 for a network or CORS failure. */
+export class StorageError extends Error {
+  constructor(public status: number) { super('Storage upload failed') }
 }
 
-export async function requestUploadSignature(
-  compositionId: string
-): Promise<UploadSignatureResponse> {
-  const res = await apiClient(`/compositions/${compositionId}/demos/upload-signature`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+/** POST the file straight to storage with its signed fields, reporting progress as a 0..1 fraction. */
+export function uploadToStorage(target: UploadTarget, file: File, onProgress: (fraction: number) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const form = new FormData()
+    Object.entries(target.fields).forEach(([name, value]) => form.append(name, String(value)))
+    form.append('file', file)
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', target.upload_url)
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total) }
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new StorageError(xhr.status)))
+    xhr.onerror = () => reject(new StorageError(0))
+    xhr.send(form)
   })
-  if (!res.ok) {
-    throw new Error(await errorMessage(res, 'Error al obtener firma de subida'))
-  }
-  return res.json()
 }
 
-export async function confirmUpload(
-  compositionId: string,
-  payload: ConfirmUploadPayload
-): Promise<DemoTake> {
-  const res = await apiClient(`/compositions/${compositionId}/demos`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      public_id: payload.public_id,
-      version: String(payload.version),
-      signature: payload.signature,
-      title: payload.title,
-      duration_s: payload.duration ?? 0,
-    }),
-  })
-  if (!res.ok) {
-    throw new Error(await errorMessage(res, 'Error al confirmar demo'))
-  }
-  return toDemoTake(await res.json())
-}
+const id = encodeURIComponent
 
-export async function getPlaybackUrl(
-  compositionId: string,
-  demoId: string
-): Promise<{ url: string; expires_at: number }> {
-  const res = await apiClient(`/compositions/${compositionId}/demos/${demoId}/url`)
-  if (!res.ok) {
-    throw new Error(await errorMessage(res, 'Error al obtener enlace de reproducción'))
+/**
+ * Demo endpoints. Signed-in screens address the song by id; the public link
+ * addresses it by slug and can only read (the server has no writes under /c/).
+ */
+export function demosApi(base: { songId?: string; slug?: string }) {
+  const isPublic = !base.songId
+  const root = isPublic ? `/c/${id(String(base.slug))}` : `/songs/${id(String(base.songId))}`
+  const options = isPublic ? { authenticated: false } : {}
+  return {
+    playbackUrl: (demoId: string) => client.request<SignedUrl>(`${root}/demos/${id(demoId)}/url`, options),
+    comments: (demoId: string) => client.request<DemoComment[]>(`${root}/demos/${id(demoId)}/comments`, options),
+    uploadUrl: () => client.request<UploadTarget>(`${root}/demos/upload-url`, { method: 'POST' }),
+    confirm: (publicId: string, title?: string) =>
+      client.request<Demo>(`${root}/demos`, { method: 'POST', body: title ? { public_id: publicId, title } : { public_id: publicId } }),
+    rename: (demoId: string, title: string) => client.request<Demo>(`${root}/demos/${id(demoId)}`, { method: 'PATCH', body: { title } }),
+    remove: (demoId: string) => client.request(`${root}/demos/${id(demoId)}`, { method: 'DELETE' }),
+    addComment: (demoId: string, timestamp_s: number, text: string) =>
+      client.request<DemoComment>(`${root}/demos/${id(demoId)}/comments`, { method: 'POST', body: { timestamp_s, text } }),
+    editComment: (demoId: string, commentId: string, text: string) =>
+      client.request<DemoComment>(`${root}/demos/${id(demoId)}/comments/${id(commentId)}`, { method: 'PATCH', body: { text } }),
+    removeComment: (demoId: string, commentId: string) =>
+      client.request(`${root}/demos/${id(demoId)}/comments/${id(commentId)}`, { method: 'DELETE' }),
   }
-  return res.json()
-}
-
-export async function addComment(
-  compositionId: string,
-  demoId: string,
-  text: string,
-  t: number
-): Promise<DemoComment> {
-  const res = await apiClient(`/compositions/${compositionId}/demos/${demoId}/comments`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text, timestamp_s: t }),
-  })
-  if (!res.ok) {
-    throw new Error(await errorMessage(res, 'Error al agregar comentario'))
-  }
-  return toDemoComment(await res.json())
-}
-
-export async function listComments(
-  compositionId: string,
-  demoId: string
-): Promise<DemoComment[]> {
-  const res = await apiClient(`/compositions/${compositionId}/demos/${demoId}/comments`)
-  if (!res.ok) {
-    throw new Error(await errorMessage(res, 'Error al listar comentarios'))
-  }
-  const list: CommentResponse[] = await res.json()
-  return list.map(toDemoComment)
 }

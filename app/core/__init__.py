@@ -1,1 +1,0 @@
-# Erato Core Package

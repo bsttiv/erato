@@ -1,90 +1,91 @@
-let inMemoryAccessToken: string | null = null
-let onAuthFailureCallback: (() => void) | null = null
-let refreshPromise: Promise<string | null> | null = null
-
-export function setAccessToken(token: string | null): void {
-  inMemoryAccessToken = token
+export interface ConflictItem {
+  section: string
+  current_version?: number
 }
 
-export function getAccessToken(): string | null {
-  return inMemoryAccessToken
+/** Body of a failed response, narrow enough for the fields the UI reads. */
+interface ErrorBody {
+  detail?: string
+  code?: string
+  conflicts?: ConflictItem[]
 }
 
-export function setOnAuthFailure(cb: () => void): void {
-  onAuthFailureCallback = cb
+export class ApiError extends Error {
+  status: number
+  code?: string
+  detail?: string
+  conflicts: ConflictItem[]
+  retryAfter: number
+
+  constructor(status: number, body: ErrorBody = {}, retryAfter = NaN) {
+    super(body.detail || 'Request failed')
+    this.status = status
+    this.code = body.code
+    this.detail = body.detail
+    this.conflicts = body.conflicts || []
+    this.retryAfter = retryAfter
+  }
 }
 
-async function executeRefresh(): Promise<string | null> {
-  try {
-    const res = await fetch('/api/auth/refresh', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+/** Session surface client.ts needs; the real session store satisfies it. */
+export interface ClientSession {
+  accessToken: string | null
+  deviceId(): string
+  setTokens(tokens: { access_token: string }): void
+  clear(): void
+}
+
+export interface RequestOptions {
+  method?: string
+  body?: unknown
+  authenticated?: boolean
+  retry?: boolean
+}
+
+export interface ApiClient {
+  request<T = any>(path: string, options?: RequestOptions): Promise<T>
+  refresh(): Promise<unknown>
+}
+
+// Maestro treats two refreshes that overlap as a stolen token and ends the session.
+function acrossTabs<T>(action: () => Promise<T>): Promise<T> {
+  const locks = globalThis.navigator?.locks
+  return locks ? locks.request('erato-refresh', action) as Promise<T> : action()
+}
+
+export function createClient(session: ClientSession, fetcher: typeof fetch = (...args) => fetch(...args)): ApiClient {
+  let refreshing: Promise<unknown> | undefined
+  async function request<T = any>(path: string, { method = 'GET', body, authenticated = true, retry = true }: RequestOptions = {} as RequestOptions): Promise<T> {
+    const requestToken = session.accessToken
+    const headers: Record<string, string> = { 'X-Device-Id': session.deviceId() }
+    if (body !== undefined) headers['Content-Type'] = 'application/json'
+    if (authenticated && requestToken) headers.Authorization = `Bearer ${requestToken}`
+    const response = await fetcher(`/api${path}`, {
+      method, headers, credentials: 'same-origin', ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     })
-    if (!res.ok) {
-      setAccessToken(null)
-      if (onAuthFailureCallback) {
-        onAuthFailureCallback()
-      }
-      return null
+    const data = response.status === 204 ? undefined : await response.json().catch(() => ({}))
+    if (response.ok) return data
+    // Incorrect current passwords are field errors, not expired sessions.
+    if (response.status === 401 && data.code === 'not_authenticated' && authenticated && retry) {
+      // A delayed 401 may belong to the token another request already rotated.
+      if (session.accessToken === requestToken) await refresh()
+      return request(path, { method, body, authenticated, retry: false })
     }
-    const data = await res.json()
-    if (data && data.access_token) {
-      setAccessToken(data.access_token)
-      return data.access_token
-    }
-    setAccessToken(null)
-    return null
-  } catch {
-    setAccessToken(null)
-    if (onAuthFailureCallback) {
-      onAuthFailureCallback()
-    }
-    return null
-  } finally {
-    refreshPromise = null
+    if (response.status === 401 && data.code === 'not_authenticated' && authenticated) session.clear()
+    const rawRetry = response.headers.get('Retry-After')
+    const seconds = rawRetry && /^\d+(\.\d+)?$/.test(rawRetry.trim()) ? Number(rawRetry) : NaN
+    throw new ApiError(response.status, data, seconds > 0 ? seconds : NaN)
   }
-}
-
-export async function apiClient(
-  path: string,
-  options: RequestInit = {}
-): Promise<Response> {
-  const url = path.startsWith('/api') ? path : `/api${path.startsWith('/') ? '' : '/'}${path}`
-
-  const headers = new Headers(options.headers || {})
-  if (inMemoryAccessToken && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${inMemoryAccessToken}`)
-  }
-
-  const reqOptions: RequestInit = {
-    ...options,
-    headers,
-    credentials: options.credentials || 'same-origin',
-  }
-
-  let response = await fetch(url, reqOptions)
-
-  // If 401 and not calling auth endpoints directly, attempt transparent token refresh once
-  if (response.status === 401 && !path.includes('/auth/login') && !path.includes('/auth/refresh')) {
-    if (!refreshPromise) {
-      refreshPromise = executeRefresh()
+  async function refresh(): Promise<unknown> {
+    if (!refreshing) {
+      refreshing = acrossTabs(() => request('/auth/refresh', {
+        method: 'POST', authenticated: false,
+      })).then((tokens) => session.setTokens(tokens as { access_token: string })).catch((error) => {
+        if (error.status === 401) session.clear()
+        throw error
+      }).finally(() => { refreshing = undefined })
     }
-    const newToken = await refreshPromise
-
-    if (newToken) {
-      // Replay original request with new token
-      const retryHeaders = new Headers(options.headers || {})
-      retryHeaders.set('Authorization', `Bearer ${newToken}`)
-      response = await fetch(url, {
-        ...options,
-        headers: retryHeaders,
-        credentials: options.credentials || 'same-origin',
-      })
-    }
+    return refreshing
   }
-
-  return response
+  return { request, refresh }
 }

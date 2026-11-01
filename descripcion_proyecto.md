@@ -13,6 +13,8 @@ letras escritas y escuchar demos grabadas.
 
 Las características que Erato debe poseer son las siguientes:
 
+- Crear una cuenta personal
+- Poder crear una banda y poder invitar personas
 - Capacidad para guardar, editar y borrar nuevas "composiciones"
 - Cada composición posee dentro de sí los siguientes elementos (opcionales todos):
     - Acordes
@@ -23,9 +25,9 @@ Las características que Erato debe poseer son las siguientes:
     (to-do)
 - Los acordes deben poder ser visualmente
 legibles y editables, es decir, se debe presentar
-una vista de "guitarra" o "piano" (elegible) para observar o agregar las notas que se
+una vista de "guitarra" (de forma que se vean los trastes "desde arriba") o "piano" (elegible) para observar o agregar las notas que se
 tocan. 
-- El nombre del acorde se detecta automáticamente basado en la notas (como en oolimo)
+- El nombre del acorde se detecta automáticamente basado en las notas
 - Las tablaturas se editan a mano (solo se debe entregar las 6 cuerdas y que el usuario introduzca las tablaturas a mano) pero debe entregarse una manera cómoda para ingresar nuevas notas
 - Las letras de las canciones se pueden maximizar y también deben poder ser scrolleadas automáticamente con velocidad personalizada
 - Los audios son únicos para cada proyecto y debe ser posible tener una lista de ellos dentro de cada proyecto, pudiendo seleccionar cual reproducir y agregar comentarios en cada uno de ellos en cierto timestamp
@@ -34,22 +36,34 @@ tocan.
 - Las composiciones deben poder compartirse mediante un link
 - Si la composición es pública, cualquier persona con el link puede ver, pero solo editar si es que son un usuario invitado
 - Si la composición es privada, solo los usuarios invitados pueden ver y editar
+- Hay dos espacios de trabajo: personal y banda
+- En el espacio de trabajo personal, solo tú puedes ver las composiciones (a menos que hayas invitado a alguien)
+- En el espacio de trabajo de banda, todos los miembros pueden revisar las composiciones
 
 ## Estética visual
 
 - El diseño base se encuentra dentro de erato-design-system
+- La landing page no debe incluir precios ni hacer referencia a medios de pago, solo debe mostrarse el "Empieza gratis"
+- Basate en los archivos html y css del design system
 - La estética de la página debe sentirse como estar dentro de un bar de jazz: luces cálidas, fondos oscuros pero con destellos de las mismas luces. Imaginate que estas escuchando a Frank Sinatra.
 
 ## Instrucciones
 
+- Yo soy el creador de la arquitectura, dejaré las ideas dentro de arquitectura.md
+- Yo soy el creador de los tests, que dejaré escritos en la carpeta tests_md. Si me recomiendas agregar alguno, me lo debes consultar primero y después dejar guardado en el archivo correspondiente.
 - El modelo de datos me lo tienes que consultar primero
 - Cada decisión que quieras tomar en cuanto a modelos de datos tienes que consultarmelo primero.
-- Genera un README.md en donde se explique todo el proyecto. Deja en claro que se utilizó un Harness con Gentle-AI, Gemini y Claude, pero que yo me encargué del diseño del sistema. La idea es que este proyecto quede en mi curriculum, así que los reclutadores deben saber el rol que cumplí en este proyecto.
+- Manten el backend simple
+- Genera un README.md en donde se explique todo el proyecto. Deja en claro que se utilizó un Harness con Gentle-AI, Codex y Claude, pero que yo me encargué del diseño del sistema. La idea es que este proyecto quede en mi curriculum, así que los reclutadores deben saber el rol que cumplí en este proyecto.
+- El README debe estar escrito en Inglés y debe haber un link para revisarlo en español
+- Utiliza TailwindCSS inteligentemente para extraer diseños de componentes y estilos base
+- Te pasaré el modelo de negocio (conceptos de datos), entradas manuales, procesos autonomos/entradas automáticas y restricciones y requisitos de calidad en los archivos que te especificaré.
+- Debes generarme una propuesta de tests en tests_md, que luego revisaré y aprobaré personalmente
 
 ## Stack técnico
 
-- Python para el backend
-- VueJS para el frontend
+- FastAPI (Python) para el backend
+- VueJS y TailwindCSS para el frontend
 - Vercel para deploy
 - MongoDB para la base de datos
 - Utilizar Docker para containerizar

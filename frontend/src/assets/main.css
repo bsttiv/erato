@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------- Estilos base ---------- */
+@layer base {
+  html {
+    color-scheme: dark;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-ground font-sans text-ink antialiased;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display font-normal tracking-tight;
+  }
+  a {
+    @apply text-brass;
+  }
+  a:hover {
+    @apply text-brass-hover;
+  }
+  :focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-brass;
+  }
+  ::selection {
+    @apply bg-brass text-brass-ink;
+  }
+}
+
+/* ---------- Componentes reutilizables ---------- */
+@layer components {
+  /* Contenedor de página con márgenes iguales a cada lado */
+  .page-x {
+    @apply mx-auto w-full max-w-[1360px] px-4 sm:px-6 lg:px-8;
+  }
+
+  /* Botones */
+  .btn {
+    @apply inline-flex min-h-[48px] cursor-pointer select-none items-center justify-center gap-2 rounded-sm border-0 px-5 text-base font-medium no-underline transition duration-150 active:scale-[.97];
+  }
+  .btn-primary {
+    @apply btn bg-brass text-brass-ink hover:bg-brass-hover hover:text-brass-ink;
+  }
+  .btn-ghost {
+    @apply btn bg-raised text-ink hover:bg-[#35281d] hover:text-ink;
+  }
+  .btn-sm {
+    @apply min-h-[44px] px-4;
+  }
+  .btn-icon {
+    @apply min-h-[44px] w-11 px-0;
+  }
+
+  /* Formularios */
+  .field-label {
+    @apply mb-1.5 block text-sm text-muted;
+  }
+  .field-input {
+    @apply block min-h-[48px] w-full rounded border border-line bg-surface px-3.5 text-base text-ink transition-colors placeholder:text-muted/70 focus:border-brass focus:outline-none;
+  }
+  .field-input-dark {
+    @apply field-input bg-ground;
+  }
+
+  /* Etiquetas y pestañas */
+  .chip {
+    @apply inline-flex min-h-[30px] items-center rounded-full bg-raised px-3 text-sm text-ink;
+  }
+  .chip-on {
+    @apply bg-brass text-brass-ink;
+  }
+  .tab {
+    @apply inline-flex min-h-[44px] items-center whitespace-nowrap rounded px-4 text-base font-medium text-muted no-underline hover:bg-surface hover:text-ink;
+  }
+  .tab-on {
+    @apply bg-raised text-ink;
+  }
+  .toggle {
+    @apply inline-flex min-h-[44px] cursor-pointer items-center gap-2.5 rounded-full border-0 bg-raised px-4 text-[15px] font-medium text-ink transition-colors;
+  }
+  .toggle-on {
+    @apply bg-brass text-brass-ink;
+  }
+  .segmented {
+    @apply inline-flex gap-1 rounded-md bg-surface p-1;
+  }
+  .segmented-item {
+    @apply min-h-[40px] cursor-pointer rounded border-0 bg-transparent px-4 text-[15px] font-medium text-muted;
+  }
+  .segmented-item-on {
+    @apply bg-raised text-ink;
+  }
+  .option-card {
+    @apply block w-full cursor-pointer rounded-md border-2 border-transparent bg-surface px-4 py-4 text-left text-base text-ink transition-colors;
+  }
+  .option-card-on {
+    @apply border-brass;
+  }
+
+  /* Superficies */
+  .card {
+    @apply rounded-md bg-surface p-5 sm:p-6;
+  }
+  .avatar {
+    @apply inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-brass-ink;
+  }
+
+  /* Letras con acordes */
+  .lyric-section {
+    @apply mb-2 mt-7 text-sm font-medium text-brass first:mt-0;
+  }
+  .lyric-chord {
+    @apply whitespace-pre font-semibold text-brass;
+  }
+  .lyric-text {
+    @apply mb-3;
+  }
+
+  /* Diapasón visto desde arriba */
+  .fret-cell {
+    @apply relative h-11 cursor-pointer border-0 border-r-4 border-solid border-fret bg-transparent p-0;
+  }
+  .fret-cell::before {
+    content: '';
+    @apply absolute inset-x-0 top-1/2 h-0.5 -translate-y-1/2 bg-string;
+  }
+  .fret-dot {
+    @apply absolute left-1/2 top-1/2 flex h-7 w-7 -translate-x-1/2 -translate-y-1/2 scale-0 items-center justify-center rounded-full bg-brass text-xs font-semibold text-brass-ink transition-transform duration-200;
+  }
+  .fret-cell:hover .fret-dot {
+    @apply scale-50 opacity-60;
+  }
+  .fret-cell.is-on .fret-dot {
+    @apply scale-100 opacity-100;
+  }
+  .nut-cell {
+    @apply h-11 cursor-pointer border-0 border-r-[6px] border-solid border-nut bg-transparent text-base font-medium text-muted;
+  }
+  .nut-cell.is-open {
+    @apply text-brass;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -1,127 +1,152 @@
 # AGENTS.md — Erato
 
-Instrucciones para cualquier agente de código (Claude, Gemini, Gentle-AI u otro) que trabaje en este repositorio. Léelas completas antes de escribir código.
+Instrucciones para cualquier agente de código (Claude, Codex, Gentle-AI u otro) que trabaje en este repositorio. Léelas completas antes de escribir código. La fuente de verdad del producto es `descripcion_proyecto.md`, complementada por los documentos del autor en `archivos/`:
+
+| Archivo | Contenido |
+| --- | --- |
+| `archivos/arquitectura.md` | Actores del sistema, Maestro, migración |
+| `archivos/conceptos_datos.md` | Conceptos de datos y relaciones (base del modelo; cambios se anotan en su sección) |
+| `archivos/entradas_manuales.md` | Acciones que hace el usuario |
+| `archivos/autonomo_automatico.md` | Procesos que hace el servidor |
+| `archivos/restricciones.md` | Restricciones y requisitos de calidad |
 
 ## Qué es Erato
 
-Erato (por la musa griega de la lírica coral y amorosa) es una aplicación web donde una banda guarda sus **composiciones**. Cada composición reúne los acordes, tablaturas, letras, demos grabadas y tareas pendientes de una canción, en una interfaz fácil de entender para cualquier integrante.
+Erato (por la musa griega de la lírica coral y amorosa) es una aplicación web donde una banda guarda sus **composiciones**. Cada composición reúne acordes, tablaturas, letras, demos grabadas y tareas pendientes de una canción, en una interfaz fácil de entender.
+
+## Roles
+
+- **El autor diseña el sistema.** Define el producto, la arquitectura, el modelo de datos y las reglas de permisos, y aprueba los tests.
+- **Los agentes implementan** lo que el autor definió, y consultan antes de decidir algo que no esté cubierto.
 
 ## Reglas que no se negocian
 
-1. **El modelo de datos lo decide el autor del proyecto.** Antes de crear o modificar colecciones, esquemas, campos, índices, relaciones o reglas de validación de MongoDB, **detente y consulta**. Presenta tu propuesta (colecciones, campos con tipos, ejemplos de documentos, índices y el porqué) y espera aprobación explícita. Esto incluye:
-   - cómo se guardan acordes, tablaturas, letras, demos, comentarios y tareas;
-   - cómo se modelan usuarios, invitaciones, permisos y visibilidad;
-   - dónde y cómo se almacenan los archivos de audio;
-   - cualquier migración o cambio en datos existentes.
-   No avances con supuestos «temporales»: un modelo provisional también requiere aprobación.
-2. **El diseño visual sale de `erato-design-system/`.** No inventes colores, tipografías, radios ni componentes nuevos. Si algo no existe en el sistema, propónlo antes de crearlo.
-3. **Pregunta ante la ambigüedad.** Si una decisión de arquitectura no está cubierta aquí (framework del backend, autenticación, almacenamiento de archivos, estructura de carpetas), propón opciones con sus ventajas y desventajas y espera respuesta.
-4. **No subas secretos.** Credenciales, cadenas de conexión y claves van en variables de entorno, documentadas en `.env.example` y nunca commiteadas.
+1. **Modelo de datos: consultar siempre.** Antes de crear o modificar colecciones, esquemas, campos, índices, relaciones, validaciones o migraciones de MongoDB, detente y presenta tu propuesta (campos con tipos, documento de ejemplo, índices y el porqué). Espera aprobación explícita. Un modelo «provisional» también requiere aprobación. Los conceptos vigentes están en `archivos/conceptos_datos.md`. El modelo antiguo está en `bd_vieja.md`: sirve de referencia, no es el modelo vigente, y podría requerir una migración (que también se consulta).
+2. **Arquitectura: la define el autor.** Sus decisiones están en `archivos/arquitectura.md`. No introduzcas capas, patrones ni estructura de carpetas que contradigan ese documento. Si algo no está cubierto, pregunta.
+3. **Tests: el agente propone, el autor aprueba.** El agente redacta la propuesta de tests en `tests_md/`; el autor la revisa, pide cambios si hace falta y la aprueba. Ningún test se da por aprobado ni se implementa sin esa aprobación explícita. Un test nuevo posterior sigue el mismo ciclo.
+4. **Backend simple.** Sin abstracciones especulativas, sin servicios extra ni infraestructura que no se haya pedido.
+5. **Diseño visual desde `erato-design-system/`.** No inventes colores, tipografías, radios ni componentes. Si algo no existe en el sistema, propónlo antes de crearlo.
+6. **Pregunta ante la ambigüedad.** Una pregunta a la vez, con alternativas y sus ventajas y desventajas cuando haya una bifurcación real.
+7. **Sin secretos en el repositorio.** Credenciales y cadenas de conexión van en variables de entorno, documentadas en `.env.example`.
+8. **Permisos en el backend.** Toda regla de acceso se valida en el servidor en cada petición; ocultar botones en el frontend no es seguridad.
 
 ## Stack técnico
 
-| Capa | Tecnología | Notas |
-| --- | --- | --- |
-| Backend | Python (FastAPI) | Framework confirmado por el autor (FastAPI para ASGI en Vercel y local). |
-| Frontend | Vue.js (Vue 3) | Composition API. |
-| Base de datos | MongoDB | El esquema requiere aprobación (ver regla 1). |
-| Contenedores | Docker | `docker compose` para levantar el entorno local completo (backend, frontend, MongoDB). |
-| Deploy | Vercel | Frontend y backend Python (funciones serverless de Vercel). Confirma la estrategia de deploy del backend antes de implementarla. |
-| Repositorio | GitHub | Ramas cortas por funcionalidad y pull requests descriptivos. |
+| Capa | Tecnología |
+| --- | --- |
+| Backend | Python + FastAPI |
+| Frontend | Vue 3 + TailwindCSS |
+| Base de datos | MongoDB (Atlas en producción) |
+| Almacenamiento de archivos | Cloudinary |
+| Sesiones | Maestro (`github.com/bsttiv/maestro`), simulado con un mock mientras no esté listo |
+| Contenedores | Docker (`docker compose` para el entorno local) |
+| Deploy | Vercel |
+| Repositorio | GitHub |
 
-Puntos para confirmar con el autor antes de implementarlos:
-- El backend en Vercel corre como funciones serverless, y Docker sirve para el entorno local y para que el proyecto sea portable. Si una funcionalidad no encaja en serverless (procesar audio, conexiones largas), avisa y propón alternativas.
-- MongoDB en producción necesita un servicio administrado (por ejemplo, MongoDB Atlas).
-- Los audios de los demos necesitan almacenamiento de archivos: propón opciones (Vercel Blob, S3, GridFS…) y espera la decisión.
+TailwindCSS se usa con criterio: los tokens del design system (`tokens.css`) se mapean al tema de Tailwind, y los estilos repetidos se extraen como componentes Vue o capas `@layer components`, no se copian clase por clase.
 
 ## Funcionalidades
 
+### Cuentas y espacios de trabajo
+
+- Registro e inicio de sesión.
+- Dos espacios de trabajo: **personal** y **banda**.
+- Personal: solo el dueño ve sus composiciones, salvo que invite a alguien.
+- Banda: un usuario crea una banda e invita personas.
+- Invitaciones a canción con rol **editor** (puede editar) o **lector** (solo ve). Invitaciones a banda sin rol: **todos los miembros de una banda son editores** de sus canciones.
+- Sesiones con access y refresh tokens; un usuario puede tener varias sesiones (dispositivos).
+- Solo el nombre visible y el nombre de usuario son públicos; ningún otro dato del usuario se expone.
+
 ### Composiciones
 
-- Crear, ver, editar y borrar composiciones.
-- Cada composición puede incluir, de forma **opcional**, cualquiera de estas secciones: acordes, tablaturas, letra, demos y tareas.
+- Crear, ver, editar y borrar.
+- Secciones opcionales: acordes, tablaturas, letra, demos y tareas.
+
+### Compartir y visibilidad
+
+- Una composición se comparte mediante un **enlace**.
+- Visibilidad: **privada** o **pública**, combinada con el dueño de la canción:
+  - **Personal privada:** la ven el dueño y los usuarios invitados.
+  - **De banda privada:** la ven (y editan) todos los miembros de la banda, y los usuarios invitados.
+  - **Pública** (personal o de banda): cualquiera con el enlace puede verla.
+- En todos los niveles, editar requiere una invitación con rol editor.
 
 ### Acordes
 
-- Se muestran y editan sobre un diagrama de **guitarra** o de **piano**, a elección del usuario.
-- El usuario marca o agrega las notas sobre el diagrama.
-- El **nombre del acorde se detecta automáticamente** a partir de las notas (al estilo de oolimo), incluidos acordes con barra (`D/F#`) y extendidos (`Cmaj7`, `F#m7b5`, `D9`).
-- Referencia: `Erato.ChordEditor` y `Erato.detectChord()` en el design system.
+- Vista de **guitarra** (trastes vistos desde arriba) o **piano**, a elección del usuario, para ver y agregar notas.
+- El **nombre del acorde se detecta automáticamente** a partir de las notas, nunca queda como «desconocido», y se nombra según la tonalidad de la canción.
+- La **tonalidad**: el sistema propone un arreglo de tonalidades candidatas a partir de los acordes y el usuario elige (modo automático), o la fija a mano (modo manual). Sin acordes, no hay candidatas.
+- Un mismo acorde puede tener varias versiones (formas); en la letra se distinguen y, al pasar el cursor, se ve la forma exacta.
+- Los acordes se pueden ubicar sobre la letra; se filtran por instrumento y se muestran en carrusel si son muchos.
 
 ### Tablaturas
 
-- Se escriben a mano sobre 6 cuerdas, sin generación automática.
-- Ingresar notas debe ser cómodo: escribir con el teclado, moverse con las flechas, insertar compases y técnicas (h, p, b, /, ~, x).
-- Referencia: `Erato.TabEditor` y `Erato.tabToText()`.
+- Seis cuerdas, edición manual, sin generación automática.
+- Ingresar notas debe ser cómodo (teclado, flechas, técnicas como h, p, b, /, ~, x).
 
 ### Letras
 
-- Se pueden **maximizar** a pantalla completa.
-- Tienen **desplazamiento automático** con velocidad ajustable por el usuario.
-- Admiten acordes sobre la sílaba (`[Am7]Bajo el farol…`) y rótulos de sección (`# Coro`).
-- Referencia: `Erato.LyricsViewer`.
+- Se pueden **maximizar**.
+- **Desplazamiento automático** con velocidad ajustable.
 
 ### Demos (audio)
 
-- Cada composición tiene su **propia lista de demos**; un audio pertenece a una sola composición.
+- Cada composición tiene su propia lista de demos; un audio pertenece a una sola composición.
 - El usuario elige qué demo reproducir.
-- Se pueden agregar **comentarios anclados a un momento** (timestamp) de cada audio y saltar a ese punto.
-- Referencia: `Erato.DemoPlayer`.
+- Comentarios anclados a un **timestamp** del audio.
+- El servidor **comprime** las demos al subirlas; los archivos viven en Cloudinary.
+
+### Revisiones
+
+- Los cambios se guardan explícitamente y se versionan por sección.
 
 ### Tareas
 
-- Una lista de pendientes común y corriente: agregar, marcar como hecha, borrar y limpiar las hechas.
-- Referencia: `Erato.TodoList`.
-
-### Usuarios
-
-- Registro e inicio de sesión.
-- El método de autenticación (correo y contraseña, OAuth con Google, sesiones o JWT) debe proponerse y confirmarse antes de implementarlo.
-
-### Compartir
-
-- Una composición se comparte mediante un **enlace**.
-- **Pública:** cualquier persona con el enlace puede **verla**, incluso sin cuenta. Solo los **usuarios invitados** pueden **editar**.
-- **Privada:** solo los usuarios invitados pueden verla y editarla. El enlace no da acceso a nadie más.
-- Los permisos se validan **en el backend** en cada petición, no solo ocultando botones en el frontend.
+- Lista de pendientes común: agregar, marcar como hecha y borrar.
 
 ## Diseño visual
 
-- El sistema de diseño está en `erato-design-system/`. Empieza siempre por su `README.md`: explica voz, color, tipografía, espaciado, iconografía y cómo usar cada componente.
-- Ambiente: un **bar de jazz** a medianoche. Fondos oscuros, luces cálidas y destellos de esas mismas luces. Piensa en Frank Sinatra sonando de fondo.
-- Usa los tokens (`tokens.css` / `tokens.json`); no escribas colores, tamaños ni radios a mano.
-- Hay dos temas: **Noche** (principal, oscuro) y **Matiné** (claro). Todo debe verse bien en ambos.
-- Carga los estilos en este orden: `tokens.css`, `components/bundle.css` y luego `components/bundle.js`, después de React 18. Los componentes del bundle son de React; para usarlos en Vue, envuélvelos (por ejemplo, montándolos en un componente Vue) o reimpleméntalos en Vue respetando exactamente su aspecto y comportamiento. **Consulta cuál de los dos caminos tomar antes de empezar.**
-- Los textos de la interfaz van en español, tuteando, sin signos de exclamación ni emoji (ver «Voz y contenido» en el README del design system).
-- Accesibilidad: contraste mínimo de 4.5:1 en texto, foco de teclado visible (`focus-ring`) y controles reales (`<button>`, `<input>`, `<label>`).
+- Base: `erato-design-system/` (`erato-landing/` y `erato-core/erato-pantallas/`). Lee sus `README.md` y toma los HTML y CSS como referencia.
+- Ambiente: un **bar de jazz**. Fondos oscuros, luces cálidas y destellos de esas mismas luces. Frank Sinatra sonando de fondo.
+- La **landing no muestra precios ni medios de pago**; la única llamada a la acción es «Empieza gratis». La maqueta actual incluye planes: hay que quitarlos.
+- Accesibilidad: contraste mínimo 4.5:1 en texto, foco de teclado visible y controles semánticos (`<button>`, `<input>`, `<label>`).
 
 ## Forma de trabajo
 
-- Trabaja en pasos pequeños y verificables. Al terminar cada paso, resume qué cambiaste y qué falta.
-- Escribe pruebas para la lógica del backend (permisos, visibilidad, CRUD) y para la lógica no trivial del frontend (detección de acordes, edición de tablaturas).
-- Mantén el entorno reproducible: `docker compose up` debe bastar para levantar el proyecto en local.
-- Documenta las variables de entorno en `.env.example`.
-- Commits en español, en presente y descriptivos («Agrega comentarios con timestamp a los demos»).
+- Pasos pequeños y verificables; al cerrar cada paso, resume qué cambió y qué falta.
+- Commits con Conventional Commits, sin atribución a IA.
+- `docker compose up` debe bastar para levantar el proyecto en local.
 
 ## README.md del proyecto
 
-Genera un `README.md` en la raíz que explique todo el proyecto. Este proyecto forma parte del portafolio profesional del autor y lo leerán reclutadores, así que debe quedar muy claro **qué rol cumplió el autor**. Debe incluir:
+Genera un `README.md` en la raíz que explique todo el proyecto, **escrito en inglés**, con un enlace a una versión en español (por ejemplo `README.es.md`). Forma parte del portafolio profesional del autor y lo leerán reclutadores, así que debe quedar claro su rol:
 
-1. **Qué es Erato** y qué problema resuelve.
-2. **Funcionalidades** principales, con capturas o GIFs cuando existan.
-3. **Stack técnico** y arquitectura (diagrama simple de frontend, backend, base de datos y almacenamiento).
-4. **Cómo correrlo** en local con Docker y cómo se despliega en Vercel.
-5. **Sección «Mi rol en el proyecto»**, redactada de forma explícita:
-   - El desarrollo se hizo con un **harness de agentes de IA**: **Gentle-AI**, **Gemini** y **Claude**.
-   - **El autor diseñó el sistema**: definió el producto y sus funcionalidades, la arquitectura, el modelo de datos y las reglas de permisos, y la dirección visual y el design system. También dirigió, revisó y validó el trabajo de los agentes.
-   - No presentes el código como escrito a mano por el autor ni minimices su rol: el diseño del sistema y las decisiones son suyas, y la implementación fue asistida por IA.
-6. **Design system:** un enlace a `erato-design-system/` con una breve descripción de su estética.
-7. **Licencia y contacto** (pregunta al autor qué incluir).
+1. Qué es Erato y qué problema resuelve.
+2. Funcionalidades principales.
+3. Stack técnico y arquitectura (diagrama simple).
+4. Cómo correrlo en local con Docker y cómo se despliega en Vercel.
+5. **Sección «Mi rol en el proyecto»**:
+   - La implementación se hizo con un **harness de agentes de IA**: **Gentle-AI**, **Codex** y **Claude**.
+   - **El autor diseñó el sistema**: producto, arquitectura, modelo de datos, permisos y dirección visual; revisó y aprobó los tests. También dirigió, revisó y validó el trabajo de los agentes.
+   - **El algoritmo de detección de acordes y tonalidad es diseño del autor** (nombrar acordes según la tonalidad y proponer todas las tonalidades candidatas para que el usuario elija); los agentes propusieron refinamientos que el autor aprobó. Debe destacarse en el README. Detalle en `archivos/autonomo_automatico.md`.
+   - No presentes el código como escrito a mano por el autor ni minimices su rol.
+6. Enlace a `erato-design-system/` con una breve descripción de su estética.
 
-## Antes de empezar, pregunta
+## Decisiones pendientes
 
-- El modelo de datos completo (regla 1).
-- El framework del backend.
-- El método de autenticación.
-- El almacenamiento de los audios.
-- Si los componentes del design system se envuelven desde React o se reimplementan en Vue.
+Se completan a medida que el autor responde. Ningún agente las resuelve por su cuenta.
+
+- [x] Conceptos de datos (ver `archivos/conceptos_datos.md`).
+- [x] Esquema físico de MongoDB (ver `archivos/esquema_mongodb.md`).
+- [x] Contenido de `archivos/arquitectura.md`.
+- [x] Archivos de entrada del autor, en `archivos/`.
+- [x] Modelo de revisiones por sección (ver `archivos/conceptos_datos.md`).
+- [x] Modelo de tablatura (ver `archivos/conceptos_datos.md`).
+- [x] Contrato del mock de Maestro: `/mint`, `/validate`, `/revoke` y `/refresh` (ver `archivos/arquitectura.md`).
+- [x] Modelo de la letra con acordes ubicados (ver `archivos/conceptos_datos.md`).
+- [x] Plan de migración desde Atlas, reutilizando los audios de Cloudinary (2026-10-31; ver `decisiones/12-migracion.md`).
+- [x] Formato de `tests_md/` y cómo se traducen a tests ejecutables (ver `tests_md/README.md`).
+- [x] Método de autenticación: Maestro (access + refresh tokens).
+- [x] Almacenamiento de los audios: Cloudinary, con entrega privada y URLs que vencen a los 15 minutos (2026-10-31).
+- [x] Estrategia de deploy del backend en Vercel y MongoDB en producción: Vercel Services (`vercel.json`), con el frontend en `/` y el backend FastAPI en `/api` (entrypoint `backend/app/asgi.py`). Las variables de entorno, incluida la conexión a MongoDB Atlas, se configuran en el proyecto de Vercel. La compresión de demos en el servidor queda en pausa (2026-10-23).
+- [x] Componentes del design system: se reimplementan en Vue, sin wrappers de React. Cada componente se implementa en el cambio de su funcionalidad; los componentes base (Button, Icon, Tag, Segmented, SideNav) van en un cambio propio (`design-system-vue`).
