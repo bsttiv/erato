@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import AppModal from '../molecules/AppModal.vue'
 import { client } from '../../stores/session'
-import { errorMessage, moveMessage } from '../../api/messages'
+import { accessMessage, errorMessage, moveMessage } from '../../api/messages'
 import { bandsApi, type Band } from '../../api/bands'
 import { useSong } from '../../stores/song'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [] }>()
 const { song, saving, error, conflicts, canManage, saveSections, load } = useSong()
+const router = useRouter()
 
 const STATUSES = [['idea', 'Idea'], ['in_progress', 'En progreso'], ['ready', 'Lista']]
 const VISIBILITIES = [['private', 'Privada'], ['public', 'Pública']]
@@ -20,6 +22,7 @@ const meter = ref('')
 const busy = ref(false)
 const bands = ref<Band[]>([])
 const bandId = ref('')
+const confirmRemove = ref(false)
 const meters = computed(() => (!meter.value || METERS.includes(meter.value) ? METERS : [meter.value, ...METERS]))
 // Only the owner of a personal song can move it, and only to a band they belong to (file 06).
 const movable = computed(() => canManage.value && song.value?.owner_type === 'user')
@@ -32,6 +35,7 @@ watch(() => props.open, open => {
   meter.value = song.value?.time_signature || ''
   bandId.value = ''
   bands.value = []
+  confirmRemove.value = false
   if (movable.value) bandsApi.list().then(list => { bands.value = list }, () => { bands.value = [] })
 }, { immediate: true })
 
@@ -73,6 +77,16 @@ async function save() {
   busy.value = false
   emit('close')
 }
+async function remove() {
+  busy.value = true
+  try {
+    await client.request(`/songs/${encodeURIComponent(String(song.value!.id))}`, { method: 'DELETE' })
+    await router.push('/canciones')
+  } catch (failure) {
+    error.value = accessMessage(failure)
+    emit('close')
+  } finally { busy.value = false }
+}
 </script>
 
 <template>
@@ -113,5 +127,15 @@ async function save() {
       </div>
       <button type="submit" class="btn-primary" :disabled="saving || busy">{{ saving || busy ? 'Guardando…' : 'Guardar' }}</button>
     </form>
+    <div v-if="canManage" class="mt-6 border-t border-line pt-5">
+      <button v-if="!confirmRemove" type="button" class="btn-ghost btn-sm" :disabled="busy" @click="confirmRemove = true">Borrar composición</button>
+      <template v-else>
+        <p class="mb-3 text-sm text-muted">No se puede deshacer.</p>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" class="btn-primary btn-sm" :disabled="busy" @click="remove">Confirmar: borrar composición, demos y comentarios</button>
+          <button type="button" class="btn-ghost btn-sm" :disabled="busy" @click="confirmRemove = false">Cancelar</button>
+        </div>
+      </template>
+    </div>
   </AppModal>
 </template>

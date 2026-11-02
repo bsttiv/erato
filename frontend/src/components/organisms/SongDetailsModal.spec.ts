@@ -4,9 +4,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 import SongDetailsModal from './SongDetailsModal.vue'
 
-const mocks = vi.hoisted(() => ({ request: vi.fn(), saveSections: vi.fn(), load: vi.fn(), state: null as any }))
+const mocks = vi.hoisted(() => ({ request: vi.fn(), saveSections: vi.fn(), load: vi.fn(), push: vi.fn(), state: null as any }))
 vi.mock('../../stores/session', () => ({ client: { request: mocks.request } }))
 vi.mock('../../stores/song', () => ({ useSong: () => mocks.state }))
+vi.mock('vue-router', () => ({ useRouter: () => ({ push: mocks.push }) }))
 
 const original = { id: 's1', status: 'idea', visibility: 'private', tempo: 92, time_signature: '4/4' }
 
@@ -199,5 +200,71 @@ describe('SongDetailsModal move — tests_md/propuesta-mover-a-banda-2026-11-02.
     const wrapper = await open()
     expect(options(wrapper)).toEqual(['No mover'])
     expect(band(wrapper).attributes('disabled')).toBeDefined()
+  })
+})
+
+describe('SongDetailsModal delete — tests_md/propuesta-borrar-cancion-2026-11-02.md', () => {
+  const button = (wrapper: Wrapper, label: string) => wrapper.findAll('button').find(node => node.text() === label)
+  const CONFIRM = 'Confirmar: borrar composición, demos y comentarios'
+
+  it('DET-020 offers the delete to whoever manages the song', () => {
+    const wrapper = render()
+    expect(button(wrapper, 'Borrar composición')).toBeDefined()
+    expect(mocks.request).not.toHaveBeenCalled()
+  })
+  it('DET-021 offers no delete to an editor who cannot manage', () => {
+    const wrapper = render(original, false)
+    expect(button(wrapper, 'Borrar composición')).toBeUndefined()
+  })
+  it('DET-022 asks for confirmation before deleting', async () => {
+    const wrapper = render()
+    await choose(wrapper, 'Borrar composición')
+    expect(button(wrapper, CONFIRM)).toBeDefined()
+    expect(button(wrapper, 'Cancelar')).toBeDefined()
+    expect(wrapper.text()).toContain('No se puede deshacer')
+    expect(button(wrapper, 'Borrar composición')).toBeUndefined()
+    expect(mocks.request).not.toHaveBeenCalled()
+  })
+  it('DET-023 cancels the delete', async () => {
+    const wrapper = render()
+    await choose(wrapper, 'Borrar composición')
+    await choose(wrapper, 'Cancelar')
+    expect(button(wrapper, 'Borrar composición')).toBeDefined()
+    expect(button(wrapper, CONFIRM)).toBeUndefined()
+    expect(mocks.request).not.toHaveBeenCalled()
+  })
+  it('DET-024 deletes the song and goes to the list', async () => {
+    mocks.request.mockResolvedValue(undefined)
+    const wrapper = render()
+    await choose(wrapper, 'Borrar composición')
+    await choose(wrapper, CONFIRM)
+    await flushPromises()
+    expect(mocks.request).toHaveBeenCalledOnce()
+    expect(mocks.request).toHaveBeenCalledWith('/songs/s1', { method: 'DELETE' })
+    expect(mocks.push).toHaveBeenCalledWith('/canciones')
+  })
+  it('DET-025 closes and reports a failed delete', async () => {
+    mocks.request.mockRejectedValue({ status: 404, code: 'not_found' })
+    const wrapper = render()
+    await choose(wrapper, 'Borrar composición')
+    await choose(wrapper, CONFIRM)
+    await flushPromises()
+    expect(wrapper.emitted('close')).toHaveLength(1)
+    expect(mocks.state.error.value).not.toBe('')
+    expect(mocks.push).not.toHaveBeenCalled()
+    expect(mocks.state.song.value).toEqual(original)
+  })
+  it('DET-026 sends only the delete, not the pending form changes', async () => {
+    mocks.request.mockImplementation(async (url: string) => (url === '/bands' ? [] : undefined))
+    const wrapper = render({ ...original, owner_type: 'user' })
+    await flushPromises()
+    mocks.request.mockClear()
+    await choose(wrapper, 'Lista')
+    await choose(wrapper, 'Pública')
+    await choose(wrapper, 'Borrar composición')
+    await choose(wrapper, CONFIRM)
+    await flushPromises()
+    expect(mocks.request.mock.calls).toEqual([['/songs/s1', { method: 'DELETE' }]])
+    expect(mocks.saveSections).not.toHaveBeenCalled()
   })
 })
