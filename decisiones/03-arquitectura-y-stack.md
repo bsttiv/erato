@@ -76,14 +76,20 @@ Decisión del autor (2026-10-23): el despliegue usa **Vercel Services** definido
 - Servicio `frontend`: raíz `frontend/`.
 - Servicio `backend`: raíz `backend/`, entrypoint `app.asgi:app` (módulo `backend/app/asgi.py`, instancia a nivel de módulo que Vercel necesita porque `main.py` solo expone la fábrica).
 - El frontend se sirve en `/` y el backend FastAPI en `/api`. **Las rutas de FastAPI se declaran sin el prefijo.** Vercel entrega la ruta original, así que `backend/app/asgi.py` fija `root_path = "/api"` (revisión aprobada el 2026-11-01; reemplaza a la transformación `request.path`, que no resolvía el prefijo).
-- Reescrituras: `/api/(.*)` → backend; `/assets/(.*)` y las rutas con punto (`/(.*\..*)`) → frontend; cualquier otra ruta → frontend con `path: /index.html` (**SPA fallback**, necesario porque el router usa historial web y las rutas como `/canciones/:id` son enlaces directos).
+- Reescrituras de nivel superior: `/api/(.*)` → backend; cualquier otra ruta → frontend.
+- **SPA fallback** dentro del servicio `frontend`: una reescritura propia `/(.*)` → `/index.html`. Es necesaria porque el router usa historial web y las rutas como `/canciones/:id` son enlaces directos. Vercel sirve primero los archivos que existen en `dist/` (assets, favicon) y solo después aplica la reescritura.
+- Revisión aprobada el 2026-11-02, que reemplaza el fallback anterior (`destination: { "service": "frontend", "path": "/index.html" }` en el nivel superior). Ese fallback devolvía 404 en los enlaces directos por dos razones: `path` solo elige qué regla corre dentro del servicio, no el archivo que se sirve, y entrar a un servicio es final, así que Vercel no vuelve a las reglas de nivel superior. Además, en modo services se ignora un `vercel.json` dentro de la raíz del servicio, por lo que se eliminó `frontend/vercel.json`. Referencias: <https://vercel.com/docs/services/routing> y <https://vercel.com/docs/services/config-reference>.
 - Contenido textual de `vercel.json`:
 
 ```json
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "services": {
-    "frontend": { "root": "frontend/", "framework": "vite" },
+    "frontend": {
+      "root": "frontend/",
+      "framework": "vite",
+      "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+    },
     "backend": {
       "root": "backend/",
       "framework": "fastapi",
@@ -92,9 +98,7 @@ Decisión del autor (2026-10-23): el despliegue usa **Vercel Services** definido
   },
   "rewrites": [
     { "source": "/api/(.*)", "destination": { "service": "backend" } },
-    { "source": "/assets/(.*)", "destination": { "service": "frontend" } },
-    { "source": "/(.*\\..*)", "destination": { "service": "frontend" } },
-    { "source": "/(.*)", "destination": { "service": "frontend", "path": "/index.html" } }
+    { "source": "/(.*)", "destination": { "service": "frontend" } }
   ]
 }
 ```
