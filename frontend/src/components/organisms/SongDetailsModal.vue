@@ -2,12 +2,13 @@
 import { computed, ref, watch } from 'vue'
 import AppModal from '../molecules/AppModal.vue'
 import { client } from '../../stores/session'
-import { errorMessage } from '../../api/messages'
+import { errorMessage, moveMessage } from '../../api/messages'
+import { bandsApi, type Band } from '../../api/bands'
 import { useSong } from '../../stores/song'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: [] }>()
-const { song, saving, error, conflicts, canManage, saveSections } = useSong()
+const { song, saving, error, conflicts, canManage, saveSections, load } = useSong()
 
 const STATUSES = [['idea', 'Idea'], ['in_progress', 'En progreso'], ['ready', 'Lista']]
 const VISIBILITIES = [['private', 'Privada'], ['public', 'Pública']]
@@ -17,7 +18,11 @@ const visibility = ref('private')
 const tempo = ref<number | ''>('')
 const meter = ref('')
 const busy = ref(false)
+const bands = ref<Band[]>([])
+const bandId = ref('')
 const meters = computed(() => (!meter.value || METERS.includes(meter.value) ? METERS : [meter.value, ...METERS]))
+// Only the owner of a personal song can move it, and only to a band they belong to (file 06).
+const movable = computed(() => canManage.value && song.value?.owner_type === 'user')
 
 watch(() => props.open, open => {
   if (!open) return
@@ -25,6 +30,9 @@ watch(() => props.open, open => {
   visibility.value = song.value?.visibility || 'private'
   tempo.value = song.value?.tempo ?? ''
   meter.value = song.value?.time_signature || ''
+  bandId.value = ''
+  bands.value = []
+  if (movable.value) bandsApi.list().then(list => { bands.value = list }, () => { bands.value = [] })
 }, { immediate: true })
 
 function changedMeta() {
@@ -50,6 +58,17 @@ async function save() {
       const updated = await client.request(`/songs/${encodeURIComponent(String(target.id))}/visibility`, { method: 'PATCH', body: { visibility: visibility.value } })
       if (song.value === target) song.value = updated
     } catch (failure) { error.value = errorMessage(failure) }
+  }
+  if (movable.value && bandId.value) {
+    const current = song.value!
+    try {
+      const updated = await client.request(`/songs/${encodeURIComponent(String(current.id))}/move`, { method: 'POST', body: { band_id: bandId.value } })
+      if (song.value === current) {
+        song.value = updated
+        // Manage rights change with the owner: on a band song only the band owner manages.
+        void load()
+      }
+    } catch (failure) { error.value = moveMessage(failure) }
   }
   busy.value = false
   emit('close')
@@ -83,6 +102,14 @@ async function save() {
             <option v-for="value in meters" :key="value">{{ value }}</option>
           </select>
         </div>
+      </div>
+      <div v-if="movable">
+        <label for="details-band" class="field-label">Mover a una banda</label>
+        <select id="details-band" v-model="bandId" class="field-input-dark w-full" :disabled="!bands.length" aria-describedby="details-band-hint">
+          <option value="">No mover</option>
+          <option v-for="band in bands" :key="band.id" :value="band.id">{{ band.name }}</option>
+        </select>
+        <p id="details-band-hint" class="mt-2 text-sm text-muted">Pasa a ser de la banda; no se puede volver a personal.</p>
       </div>
       <button type="submit" class="btn-primary" :disabled="saving || busy">{{ saving || busy ? 'Guardando…' : 'Guardar' }}</button>
     </form>

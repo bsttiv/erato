@@ -38,6 +38,12 @@ export function accessMessage(error: ApiError): string {
   return errorMessage(error)
 }
 
+/** Messages for moving a personal song to a band. */
+export function moveMessage(error: ApiError): string {
+  if (error.code === 'quota_exceeded') return 'La banda no tiene espacio para las demos de esta canción: superaría el límite de 2 GB.'
+  return accessMessage(error)
+}
+
 /** Messages for the demo upload: the API's 422 codes plus the direct upload to storage. */
 export function uploadMessage(error: unknown): string {
   if (error instanceof StorageError) return 'No se pudo subir el archivo. Revisa tu conexión e inténtalo de nuevo.'

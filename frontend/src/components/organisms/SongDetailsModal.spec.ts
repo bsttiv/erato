@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 import SongDetailsModal from './SongDetailsModal.vue'
 
-const mocks = vi.hoisted(() => ({ request: vi.fn(), saveSections: vi.fn(), state: null as any }))
+const mocks = vi.hoisted(() => ({ request: vi.fn(), saveSections: vi.fn(), load: vi.fn(), state: null as any }))
 vi.mock('../../stores/session', () => ({ client: { request: mocks.request } }))
 vi.mock('../../stores/song', () => ({ useSong: () => mocks.state }))
 
@@ -13,7 +13,7 @@ const original = { id: 's1', status: 'idea', visibility: 'private', tempo: 92, t
 function render(song: Record<string, unknown> = original, canManage = true) {
   mocks.state = {
     song: ref({ ...song }), saving: ref(false), error: ref(''), conflicts: ref([]), canManage: ref(canManage),
-    saveSections: mocks.saveSections,
+    saveSections: mocks.saveSections, load: mocks.load,
   }
   return mount(SongDetailsModal, { props: { open: true }, attachTo: document.body })
 }
@@ -115,5 +115,89 @@ describe('SongDetailsModal — tests_md/propuesta-detalles-cancion-2026-10-31.md
     expect((meter(wrapper).element as HTMLSelectElement).value).toBe('7/8')
     await submit(wrapper)
     expect(mocks.saveSections).not.toHaveBeenCalled()
+  })
+})
+
+describe('SongDetailsModal move — tests_md/propuesta-mover-a-banda-2026-11-02.md', () => {
+  const personal = { ...original, owner_type: 'user', owner_id: 'u1' }
+  const bands = [{ id: 'b1', name: 'Los Gatos' }, { id: 'b2', name: 'Trío Sur' }]
+  const moved = { ...personal, owner_type: 'band', owner_id: 'b2' }
+  const band = (wrapper: Wrapper) => wrapper.find('#details-band')
+  const options = (wrapper: Wrapper) => band(wrapper).findAll('option').map(node => node.text())
+  const calls = () => mocks.request.mock.calls.map(([url, init]) => `${init?.method || 'GET'} ${url}`)
+  function serve(list = bands, move: () => Promise<unknown> = async () => moved) {
+    mocks.request.mockImplementation(async (url: string, init?: { method?: string, body?: any }) => {
+      if (url === '/bands') return list
+      if (url.endsWith('/move')) return move()
+      return { ...personal, visibility: init?.body?.visibility }
+    })
+  }
+  async function open(song: Record<string, unknown> = personal, canManage = true) {
+    const wrapper = render(song, canManage)
+    await flushPromises()
+    return wrapper
+  }
+
+  it('DET-012 offers the user bands on a personal song', async () => {
+    serve()
+    const wrapper = await open()
+    expect(wrapper.text()).toContain('Mover a una banda')
+    expect((band(wrapper).element as HTMLSelectElement).value).toBe('')
+    expect(options(wrapper)).toEqual(['No mover', 'Los Gatos', 'Trío Sur'])
+  })
+  it('DET-013 offers no move on a band song', async () => {
+    serve()
+    const wrapper = await open({ ...original, owner_type: 'band', owner_id: 'b1' })
+    expect(band(wrapper).exists()).toBe(false)
+    expect(calls()).not.toContain('GET /bands')
+  })
+  it('DET-014 offers no move to an editor who is not the owner', async () => {
+    serve()
+    const wrapper = await open(personal, false)
+    expect(band(wrapper).exists()).toBe(false)
+    await tempo(wrapper).setValue(100)
+    await submit(wrapper)
+    expect(calls()).toEqual([])
+  })
+  it('DET-015 moves the song to the chosen band and closes', async () => {
+    serve()
+    const wrapper = await open()
+    await band(wrapper).setValue('b2')
+    await submit(wrapper)
+    expect(mocks.request).toHaveBeenCalledWith('/songs/s1/move', { method: 'POST', body: { band_id: 'b2' } })
+    expect(mocks.state.song.value).toEqual(moved)
+    expect(mocks.load).toHaveBeenCalledOnce()
+    expect(wrapper.emitted('close')).toHaveLength(1)
+  })
+  it('DET-016 changes the visibility before moving', async () => {
+    serve()
+    const wrapper = await open()
+    await choose(wrapper, 'Pública')
+    await band(wrapper).setValue('b1')
+    await submit(wrapper)
+    expect(calls()).toEqual(['GET /bands', 'PATCH /songs/s1/visibility', 'POST /songs/s1/move'])
+  })
+  it('DET-017 does not move with No mover', async () => {
+    serve()
+    const wrapper = await open()
+    await choose(wrapper, 'Pública')
+    await submit(wrapper)
+    expect(calls()).toEqual(['GET /bands', 'PATCH /songs/s1/visibility'])
+  })
+  it('DET-018 closes and reports a failed move', async () => {
+    serve(bands, async () => { throw { status: 422, code: 'quota_exceeded' } })
+    const wrapper = await open()
+    await band(wrapper).setValue('b1')
+    await submit(wrapper)
+    expect(wrapper.emitted('close')).toHaveLength(1)
+    expect(mocks.state.error.value).toContain('2 GB')
+    expect(mocks.state.song.value).toEqual(personal)
+    expect(mocks.load).not.toHaveBeenCalled()
+  })
+  it('DET-019 disables the move without bands', async () => {
+    serve([])
+    const wrapper = await open()
+    expect(options(wrapper)).toEqual(['No mover'])
+    expect(band(wrapper).attributes('disabled')).toBeDefined()
   })
 })
